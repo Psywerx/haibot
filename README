@@ -1,0 +1,15 @@
+----------------------------------------------
+ tehbots - A bunch of simple trollish bots... 
+----------------------------------------------
+
+Databases not included as that would take the magic out of the bots.
+
+Tehbots are:
+teh_bot - should be smartest... actually just randomly says stuff.
+rym_bot - a very crude "roses are red" bot... everyone hates him.
+meh_bot - says "meh." when it thinks it's apropriate.
+
+Check the sources for extra files you might need and figure it out.
+wordbag.db - a mildly cleaned-up channel log, so major repetition there.
+meh_bot.db - words that might appear in sentences you'd say "meh." to.
+  .channel - name of channel you wish to troll.

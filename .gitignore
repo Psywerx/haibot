@@ -1,3 +1,11 @@
 *.class
 *~
+
 *.db
+*.log
+*.csv
+
+.*
+!.gitignore
+
+todo

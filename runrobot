@@ -1,0 +1,3 @@
+#!/bin/bash
+
+scalac -cp pircbot.jar $1.scala && scala -cp pircbot.jar:. $1
