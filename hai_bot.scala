@@ -8,12 +8,12 @@ import scala.concurrent.ops._
 object hai_bot extends App { new hai_bot }
 
 class hai_bot extends PircBot {
-    val name = "_haibot_2"
+    val name = "_haibot_"
     this.setName(name)
     this.setVerbose(true)
     this.connect("irc.freenode.net")
-    //val chan = io.Source.fromFile(".channel").getLines.toList(0)
-    val chan = "#psywerx-bot"
+    val chan = io.Source.fromFile(".channel").getLines.toList(0)
+    //val chan = "#psywerx-bot"
     this.joinChannel(chan)
     
     def now = (System.nanoTime()/1000000000L).toInt
