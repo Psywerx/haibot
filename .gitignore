@@ -9,3 +9,5 @@
 !.gitignore
 
 todo
+boilerpipe*
+langdetect*

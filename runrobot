@@ -1,3 +1,0 @@
-#!/bin/bash
-
-scalac -cp pircbot.jar $1.scala && echo "Putting into background..."  && { scala -cp pircbot.jar:. $1 &>> $1.log & }

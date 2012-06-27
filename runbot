@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#pircbot
+cp="pircbot.jar:."
+
+#boilerpipe
+bp="boilerpipe-1.2.0"
+if [ ! -e "$bp/$bp.jar" ]; then
+    echo "trying to get boilerpipe"
+    wget https://boilerpipe.googlecode.com/files/$bp-bin.tar.gz &> /dev/null
+    tar xvzf $bp-bin.tar.gz &> /dev/null
+    rm $bp-bin.tar.gz &> /dev/null
+    [ ! -e "$bp/$bp.jar" ] && echo "boilerpipe not present" && exit
+fi
+cp+=":$bp/$bp.jar:$bp/lib/nekohtml-1.9.13.jar:$bp/lib/xerces-2.9.1.jar"
+
+#langdetect
+ldet="langdetect"
+if [ ! -e "langdetect/lib/langdetect.jar" ]; then
+    echo "trying to get langdetect"
+    wget http://language-detection.googlecode.com/files/langdetect-09-13-2011.zip &> /dev/null
+    unzip langdetect-09-13-2011.zip -d langdetect &> /dev/null
+    rm langdetect-09-13-2011.zip &> /dev/null
+    [ ! -e "langdetect/lib/langdetect.jar" ] && echo "langdetect not present" && exit
+fi
+cp+=":langdetect/lib/langdetect.jar"
+
+bk="$2"
+bot="`basename $1 .scala`"
+
+run() {
+    if [ "$bk" != "" ]; then
+        echo "running $bot..." && scala -cp $cp $bot
+    else
+        echo "putting $bot into background..."  && { scala -cp $cp $bot &>> $bot.log & }
+    fi
+}
+
+if [ $bot.scala -nt $bot.class ]; then
+    echo "compiling $bot"
+    scalac -cp $cp $bot.scala && run
+else
+    run
+fi
