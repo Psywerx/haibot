@@ -107,7 +107,8 @@ class teh_bot extends PircBot {
                 "show some enthusiasm, _mehbot_...",
                 "don't listen to _mehbot_... tell us more!"
             )
-        } else if(msg.startsWithAny("hai ", "ohai", "o hai ") && nextFloat<0.5) {
+        } else if((msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && nextFloat<0.45)
+            || (msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && msg.contains("tehbot") && nextFloat<0.85)) {
             sendMsg(
                 "hai!",
                 "ohai :)",
