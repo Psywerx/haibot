@@ -134,10 +134,21 @@ class hai_bot extends PircBot {
                 "NO U!",
                 "This wouldn't happen if you made us better..."
             )
-        } else if(msg.contains("haskell") && nextFloat<0.25) {
-            sendMsg("have you tried using monads?")
-        } else if(msg.contains(" vim ") && nextFloat<0.25) {
-            sendMsg("use pathogen.")
+        } else if(msg.containsAny("i jasn", "wat", "how", "kako", "ne vem") && nextFloat<0.2) {
+            if(msg.contains("haskell")) {
+                sendMsg(
+                    "have you tried using monads?",
+                    "have you tried monads?",
+                    "did you try using a monad?"
+                    "make a monad out of it.",
+                )
+            } else if(msg.contains(" vim ")) {
+                sendMsg(
+                    "use pathogen."
+                    "have you tried using pathogen?"
+                    "did you try with pathogen?"
+                )
+            }
         }
         
         if(message.startsWith("@msg")) {
