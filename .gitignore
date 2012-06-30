@@ -9,5 +9,6 @@
 !.gitignore
 
 todo
+haibot
 boilerpipe*
 langdetect*

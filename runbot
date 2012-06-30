@@ -25,20 +25,27 @@ if [ ! -e "langdetect/lib/langdetect.jar" ]; then
 fi
 cp+=":langdetect/lib/langdetect.jar"
 
-bk="$2"
+args="$2"
 bot="`basename $1 .scala`"
 
-run() {
-    if [ "$bk" != "" ]; then
-        echo "running $bot..." && scala -cp $cp $bot
-    else
-        echo "putting $bot into background..."  && { scala -cp $cp $bot &>> $bot.log & }
-    fi
+compile() {
+    echo "compiling $bot"
+    mkdir bin &> /dev/null
+    cp+=":bin"
+    scalac -d bin -cp $cp Utils.scala $bot.scala
 }
 
-if [ $bot.scala -nt $bot.class ]; then
-    echo "compiling $bot"
-    scalac -cp $cp $bot.scala && run
+run() {
+    runcmd="scala -cp $cp haibot.$bot"
+    case "$args" in
+        -c) echo "not gonna run $bot.";;
+        -f) echo "running $bot..." && $runcmd;;
+         *) echo "putting $bot into background..." && { $runcmd &>> $bot.log & }
+    esac
+}
+
+if [ $bot.scala -nt $pkg/$bot.class ]; then
+    compile && run
 else
     run
 fi

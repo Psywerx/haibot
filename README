@@ -1,15 +1,14 @@
-----------------------------------------------
- tehbots - A bunch of simple trollish bots... 
-----------------------------------------------
-
-Databases not included as that would take the magic out of the bots.
-
-Tehbots are:
-teh_bot - should be smartest... actually just randomly says stuff.
-rym_bot - a very crude "roses are red" bot... everyone hates him.
-meh_bot - says "meh." when it thinks it's apropriate.
+----------
+  haibot 
+----------
+Databases not included as that would take the magic out of him.
+Also, your computer can probably get hacked through this bot :)
 
 Check the sources for extra files you might need and figure it out.
-wordbag.db - a mildly cleaned-up channel log, so major repetition there.
-meh_bot.db - words that might appear in sentences you'd say "meh." to.
-  .channel - name of channel you wish to troll.
+.haibot - settings... "key value"
+tasks.db - used for @msgs, can be empty
+awww.db - words that might appear in sites with cute pictues.
+meh.db - words that might appear in sentences you'd say "meh." to.
+twss.db - some snippets that would make one say "that's what she said".
+badexts.db - just some ".ext" stuff you don't want to download...
+block.db - don't mention these names, because it annoys them or smth.
