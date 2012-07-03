@@ -108,9 +108,9 @@ class haibot extends PircBot {
             )
         } else if(msg.startsWithAny("fucking ", "fakin") && msg.sentences(0).split(" ").length < 5 && nextFloat<0.7) {
             speak(
-                "how does "+message.sentences(0)+" feel?",
-                "having sex with "+message.sentences(0).substring(message.indexOf(" ")+1)+"?",
-                "come on, "+sender+"... don't fuck "+message.sentences(0).substring(message.indexOf(" ")+1)+"?"
+                "how does "+message.sentences(0).trim+" feel?",
+                "having sex with "+message.sentences(0).substring(message.indexOf(" ")+1).trim+"?",
+                "come on, "+sender+"... don't fuck "+message.sentences(0).substring(message.indexOf(" ")+1).trim
             )
         } else if(msg.startsWithAny("shut", "fuck") && msg.containsAny("up", "you") && msg.containsAny(name, "botko", "bot_") && nextFloat<0.8) {
             speak(

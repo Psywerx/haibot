@@ -1,7 +1,6 @@
 package haibot
 
 import collection.mutable._
-import sys.process._
 import java.io._
 import java.net._
 import math._
@@ -31,7 +30,6 @@ object Utils {
             """|([A-Z][a-z]{2,10} [0-9]{1,2}, [0-9]{4})""" + // meetup May 30, 2012
             """|([0-9]{1,2} [A-Z][a-z]{2,10} [0-9]{4})""" + // facebook 7 July 2012
             "").r
-        lazy val wn_s = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
     }
 
     /// Ya, rly
@@ -53,8 +51,7 @@ object Utils {
         sinceTimes(timeRef.hashCode) = nnow
         
         nnow-time
-    }
-    
+    }    
     def time(func: => Unit) = {
         val startTime = now
         func
@@ -63,28 +60,73 @@ object Utils {
     
     /// Wordnet stuff - also in bash, and on prolog data
     object WordNet {
-        var wn_sPath = "prolog/wn_s.pl"
+        val wn_sPath = "prolog/wn_s.pl"
+        lazy val wn_sReg = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
         
-        def synonym(in:String):String = {
-            var prefix = in.takeWhile(c=> !(c.toString matches "[a-z]"))
-            var postfix = in.reverse.takeWhile(c=> !(c.toString matches "[a-z]")).reverse
-            var s = try { 
-                in.substring(prefix.size, in.size-postfix.size) 
-            } catch { 
-                case _ => 
-                prefix = ""
-                postfix = ""
-                in 
-            }
+        abstract class SynComp
+        case class Prep(prefix:String,suffix:String,word:String) extends SynComp
+        case class ResList(s:List[String]) extends SynComp
+        
+        //TODO: settings: min length, prevent same, etc
+        def synonyms(in:String*):List[String] = {
+            var comp = in.map(str=> {
+                var (prefix,suffix) = (
+                    str.takeWhile(c=> !(c.toString matches "[a-z]")),
+                    str.reverse.takeWhile(c=> !(c.toString matches "[a-z]")).reverse
+                )
+                if(prefix.size+suffix.size >= str.size-3) 
+                    ResList(List(str))
+                else 
+                    Prep(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
+            })
             
-            if(s.size<=3 || nextFloat<0.2) return in
+            //prepare query
+            var query = comp.flatMap(sc => 
+                sc match { 
+                    case Prep(prefix,suffix,str) => List(str)
+                    case _ => Nil
+                }
+            ).distinct.map(e=> "'"+e+"'")
+            
+            //query db for words
+            var ids = HashSet[String]()
+            var results = fromFile(wn_sPath).getLines.toList
+                .filter(_.containsAny(query:_*))
+                .map(str => {
+                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
+                    ids += "("+_SynsetID+","
+                    (_SynsetID,_WordNumber.toInt,_Word,_Type,_Sense,_Count.toInt)
+                }).groupBy(_._3) // Word -> s(...)
+                
+            var results2 = fromFile(wn_sPath).getLines.toList
+                .filter(_.containsAny(ids.toSeq:_*))
+                .map(str => {
+                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
+                    (_SynsetID,_WordNumber.toInt,_Word,_Type,_Sense,_Count.toInt)
+                }).groupBy(_._1) // SynsetID -> s(...)
+            
+            return comp.map(sc=>
+                sc match { 
+                    case Prep(prefix,suffix,str) =>
+                        try {
+                            results(str).flatMap(res=> results2(res._1).map(_._3)).map(w=> prefix+w+suffix).filter(_.split(" ").forall(_.size>=3))
+                        } catch {
+                            case _ => List(prefix+str+suffix)
+                        }
+                    case ResList(a) => a
+                    case _ => List("?")
+                }
+            ).map(words=> shuffle(words).toList(0)).toList
+            //return comp.map(words=> shuffle(words._1).toList(0))
+            /*
+            
+            //TOI: if(s.size<=3 || nextFloat<0.2) return in
             
             try {
-                var wn_s = sed(s"'$s'", wn_sPath)
-                    .map(str => {
-                        val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
-                        (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
-                    })
+                var wn_s = sed(s"'$s'", wn_sPath).map(str => {
+                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
+                    (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
+                })
                 
                 if(wn_s.size==0) return in //no luck
                 
@@ -94,7 +136,7 @@ object Utils {
                 
                 wn_s = fromFile(wn_sPath).getLines.toList.filter(_.containsAny(wn_s.map(e=> e._1):_*))
                     .map(str => {
-                        val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;                    
+                        val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;                    
                         (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
                     }).filter(_._3!=s).sortWith(_._6.toInt > _._6.toInt)
                 if(wn_s.size==0) return in //no luck
@@ -106,16 +148,18 @@ object Utils {
                 }).get._3+postfix
             } catch {
                 case _ => in
-            }
+            }*/
         }
         
-        def rephrase(s:String):String = s.split(" ").map(synonym).mkString(" ")
+        //def rephrase(s:String):String = s.split(" ").map(synonym).mkString(" ")
+        def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
     }
 
     /// some things just shouldn't exist
     object sed {
+        import sys.process._
         def apply(s:String, file:String) = 
-            Seq("sed","-n","/"+s+"/p",file).!!.split("\n").filter(_!="").toList
+            Seq("sed","-n", s"/$s/p",file).!!.split("\n").filter(_!="").toList
     }
 
     /// Store based on bash :) #softwareanarchitecture
@@ -123,6 +167,7 @@ object Utils {
     // also take it, or leave it :)
     object Store { def apply(file:String) = new Store(file) }
     class Store(file:String, keyFormat:String="""([-_a-zA-Z0-9]{1,16})""") {
+        import sys.process._
         def isKey(s:String) = s matches keyFormat
         def +(k:String, v:String=null) = (Seq("echo", if(v!=null) k+" "+v else k) #>> new File(file)).!!
         def -(k:String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
