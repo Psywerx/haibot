@@ -45,6 +45,7 @@ class haibot extends PircBot {
     def mehBag = io.Source.fromFile(folder+"meh.db").getLines.toSet
     def nomehBag = io.Source.fromFile(folder+"nomeh.db").getLines.toSet
     def blocklist = io.Source.fromFile(folder+"block.db").getLines.toSet
+    //val lb = io.Source.fromFile("sentences.db").getLines.toList.flatMap(_.replaceAll("""[,":*>()]""","").split("[.?!]").map(_.trim))
     
     var lastMsg = ""
     def speak(msgs:String*) =
@@ -61,8 +62,8 @@ class haibot extends PircBot {
     
     override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
         if(sender == name) spawn {
-            speak("o hai!", "hai guise!", "hello!", "I'm back")
             Thread.sleep(2000)
+            speak("o hai!", if(users.size>2) "hai guise!" else "hi, you!", "ohai", "hello!", "hi")
             users.foreach(getMsgs)
         }
         if(sender.startsWith("Hairy") && nextFloat<0.125) {
@@ -75,7 +76,7 @@ class haibot extends PircBot {
         val msg = message.makeEasy
         //TODO: make language for this kind of thing
         if(sender.startsWith("Hairy") && message.startsWith("@kill "+name)) {
-            speak("bai guise!", "bye.", "au revoir!", "I understand.", "I'll be back");
+            speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "bye.", "au revoir!");
             exit(0)
         } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (nextFloat<0.4 || (nextFloat<0.8 && msg.contains(name)))) {
             speak(
@@ -146,7 +147,7 @@ class haibot extends PircBot {
                     if((words & Set("fluffy","puffy")).size > 0) Memes.so_fluffy else "aww!"
                 )
             }
-        } else if(nextFloat<(msg.split(" ").toSet & mehBag).size*0.17) { //ex meh_bot //TODO: unmeh for cool stuff
+        } else if(nextFloat<((msg.split(" ").toSet & mehBag).size)*0.17 - (msg.split(" ").toSet & nomehBag).size*0.25) { //ex meh_bot
             speak("meh.")
         } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && nextFloat<0.2) {
             if(msg.contains("haskell") && !msg.contains("monad")) {
@@ -203,12 +204,12 @@ class haibot extends PircBot {
         } else if(message.startsWith("@msg ")) {
             message.split(" ").toList match {
                 case "@msg"::nick::msg =>
-                    val force = msg.length>0 && msg(0)!="-f"
+                    val force = msg.length>0 && msg(0)=="-f"
                     val msg2 = if(force) msg.tail else msg
                     if(!force && (nick == name || nick == sender)) {
                         speak(
                             "Oh, you...",
-                            "Knock it off, meatbag!",
+                            if(sender contains "bot") "Knock it off!" else "Knock it off, meatbag!",
                             Memes.it_was_you,
                             Memes.NO_U
                         )
@@ -217,7 +218,7 @@ class haibot extends PircBot {
                             "dude, "+nick+" is right here...",
                             "hey, "+nick+"... "+msg2.mkString(" ").toUpperCase
                         )
-                    } else if(msgs.isKey(nick) && msg.size>0) { //TODO: Stranger-danger, case sensitivity :)
+                    } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
                         msgs + (nick, msg2.mkString(" "))
                         var say = List("k.", "it shall be done.", "ay-ay.")
                         val dw = if(nextFloat<0.5) "d" else "w"
@@ -234,13 +235,12 @@ class haibot extends PircBot {
         } else if(message.contains("@all") && !users.contains("botko")) {        
             speak((users.toBuffer -- blocklist).mkString(", "))
         } else if(message.startsWith("@reword ")) {
-            var nuMsg = WordNet.rephrase(message.substring("@reword ".length))
-            for(i <- 1 to 3) {
-                if(nuMsg==message || nuMsg == lastMsg) nuMsg = WordNet.rephrase(message.substring("@reword ".length))
-            }
+            val mssg = message.substring("@reword ".length)
+            var nuMsg = WordNet.rephrase(mssg)
+            for(i <- 1 to 3) if(nuMsg==mssg || nuMsg == lastMsg) nuMsg = WordNet.rephrase(mssg)
             
             speak(
-                if(nuMsg==message || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg
+                if(nuMsg==mssg || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg
             )
         }
     }

@@ -32,7 +32,7 @@ compile() {
     echo "compiling $bot"
     mkdir bin &> /dev/null
     cp+=":bin"
-    scalac -d bin -cp $cp Utils.scala $bot.scala
+    scalac -optimise -d bin -cp $cp Utils.scala $bot.scala
 }
 
 run() {

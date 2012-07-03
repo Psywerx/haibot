@@ -7,6 +7,7 @@ import java.net._
 import math._
 import scala.util.matching._
 import scala.util.Random._
+import scala.io.Source._
 
 object Utils {
     /// Pimped types
@@ -57,45 +58,54 @@ object Utils {
     def time(func: => Unit) = {
         val startTime = now
         func
-        ((now-startTime)/timeDivisor).toInt
+        now-startTime
     }
     
     /// Wordnet stuff - also in bash, and on prolog data
     object WordNet {
         var wn_sPath = "prolog/wn_s.pl"
         
-        def synonym(s:String):String = {
+        def synonym(in:String):String = {
+            var prefix = in.takeWhile(c=> !(c.toString matches "[a-z]"))
+            var postfix = in.reverse.takeWhile(c=> !(c.toString matches "[a-z]")).reverse
+            var s = in.substring(prefix.size, in.size-postfix.size)
+            
+            if(s.size<=3 || nextFloat<0.25) return in
+            
             try {
                 var wn_s = sed(s"'$s'", wn_sPath)
                     .map(str => {
                         val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
                         (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
                     })
-                if(wn_s.size==0) return s //no luck
-                val bestSynsets = wn_s.sortWith(_._6.toInt > _._6.toInt)
-                val bestSynsetID = shuffle(bestSynsets.filter(_._6.toInt >= bestSynsets(0)._6.toInt-2)).toList(0)._1
-                wn_s = sed(s"""$bestSynsetID,""", wn_sPath)
+                
+                if(wn_s.size==0) return in //no luck
+                
+                //val bestSynsets = wn_s.sortWith(_._6.toInt > _._6.toInt)
+                //val bestSynsetID = shuffle(bestSynsets.filter(_._6.toInt >= bestSynsets(0)._6.toInt-2)).toList(0)._1
+                //wn_s = sed(s"""$bestSynsetID,""", wn_sPath)...
+                
+                wn_s = fromFile(wn_sPath).getLines.toList.filter(_.containsAny(wn_s.map(e=> e._1):_*))
                     .map(str => {
                         val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;                    
                         (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
-                    })
-                wn_s = wn_s.filter(_._3!=s).sortWith(_._6.toInt > _._6.toInt)
-                if(wn_s.size<=1) return s //no luck
-                var sum = wn_s.map(_._6.toInt+1).sum // weighted random
+                    }).filter(_._3!=s).sortWith(_._6.toInt > _._6.toInt)
+                if(wn_s.size==0) return in //no luck
+                var sum = wn_s.map(_._6.toInt*3+1).sum // weighted random
                 var res = nextInt(sum)
-                wn_s.find(syn=> {
-                    res -= syn._6.toInt+1
+                prefix+wn_s.find(syn=> {
+                    res -= syn._6.toInt*3+1
                     (res<=0)
-                }).get._3
+                }).get._3+postfix
             } catch {
-                case _ => s
+                case _ => in
             }
         }
         
-        def rephrase(s:String):String = s.split(" ").map(w=> if(w.size>=3) synonym(w) else w).mkString(" ")
+        def rephrase(s:String):String = s.split(" ").map(synonym).mkString(" ")
     }
 
-    /// some things just shouldnt exist
+    /// some things just shouldn't exist
     object sed {
         def apply(s:String, file:String) = 
             Seq("sed","-n","/"+s+"/p",file).!!.split("\n").filter(_!="").toList
