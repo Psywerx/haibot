@@ -3,12 +3,21 @@
 ----------
 Databases not included as that would take the magic out of him.
 Also, your computer can probably get hacked through this bot :)
+Also, ignore other bots - too lazy to properly get rid of them.
 
 Check the sources for extra files you might need and figure it out.
 .haibot - settings... "key value"
 tasks.db - used for @msgs, can be empty
-awww.db - words that might appear in sites with cute pictues.
+awww.db - words that might appear in sites with cute pictues. 
+noawww.db - words that negate the cuteness (it used to think tentacle rape was cute)
 meh.db - words that might appear in sentences you'd say "meh." to.
+nomeh.db - some things just are awesome... negate the mehness.
 twss.db - some snippets that would make one say "that's what she said".
 badexts.db - just some ".ext" stuff you don't want to download...
 block.db - don't mention these names, because it annoys them or smth.
+
+Some libs that are used:
+boilerpipe - the article extractor library
+langdetect - not used yet, but will be
+Wordnet - Prolog version... easier to parse than the actual one :)
+

@@ -5,6 +5,8 @@ import sys.process._
 import java.io._
 import java.net._
 import math._
+import scala.util.matching._
+import scala.util.Random._
 
 object Utils {
     /// Pimped types
@@ -15,12 +17,20 @@ object Utils {
         def endsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
         def sentences = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
         def makeEasy = s.toLowerCase.map(a=>("čćžšđ".zip("cczsd").toMap).getOrElse(a, a))
+        def findAll(r:Regex) = r.findAllIn(s).toList
+        def removeAll(rem:String) = s.filterNot(rem contains _)
     }
     implicit def String2Pimp(s:String) = new PimpString(s)
 
     /// Some regexes
     object Regex {
-        val URL = """(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""".r
+        lazy val URL = """(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""".r
+        lazy val Date = (
+            """([0-9]{2}[/.][0-9]{2}[/.][0-9]{2,4})""" + // 00/00/yyyy
+            """|([A-Z][a-z]{2,10} [0-9]{1,2}, [0-9]{4})""" + // meetup May 30, 2012
+            """|([0-9]{1,2} [A-Z][a-z]{2,10} [0-9]{4})""" + // facebook 7 July 2012
+            "").r
+        lazy val wn_s = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
     }
 
     /// Ya, rly
@@ -49,6 +59,47 @@ object Utils {
         func
         ((now-startTime)/timeDivisor).toInt
     }
+    
+    /// Wordnet stuff - also in bash, and on prolog data
+    object WordNet {
+        var wn_sPath = "prolog/wn_s.pl"
+        
+        def synonym(s:String):String = {
+            try {
+                var wn_s = sed(s"'$s'", wn_sPath)
+                    .map(str => {
+                        val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
+                        (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
+                    })
+                if(wn_s.size==0) return s //no luck
+                val bestSynsets = wn_s.sortWith(_._6.toInt > _._6.toInt)
+                val bestSynsetID = shuffle(bestSynsets.filter(_._6.toInt >= bestSynsets(0)._6.toInt-2)).toList(0)._1
+                wn_s = sed(s"""$bestSynsetID,""", wn_sPath)
+                    .map(str => {
+                        val Regex.wn_s(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;                    
+                        (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
+                    })
+                wn_s = wn_s.filter(_._3!=s).sortWith(_._6.toInt > _._6.toInt)
+                if(wn_s.size<=1) return s //no luck
+                var sum = wn_s.map(_._6.toInt+1).sum // weighted random
+                var res = nextInt(sum)
+                wn_s.find(syn=> {
+                    res -= syn._6.toInt+1
+                    (res<=0)
+                }).get._3
+            } catch {
+                case _ => s
+            }
+        }
+        
+        def rephrase(s:String):String = s.split(" ").map(w=> if(w.size>=3) synonym(w) else w).mkString(" ")
+    }
+
+    /// some things just shouldnt exist
+    object sed {
+        def apply(s:String, file:String) = 
+            Seq("sed","-n","/"+s+"/p",file).!!.split("\n").filter(_!="").toList
+    }
 
     /// Store based on bash :) #softwareanarchitecture
     // talk about leaky abstractions...
@@ -59,6 +110,10 @@ object Utils {
         def +(k:String, v:String=null) = (Seq("echo", if(v!=null) k+" "+v else k) #>> new File(file)).!!
         def -(k:String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
         def ?(k:String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!!.split("\n").filter(_!="").map(res=> res.substring(min(res.length,k.length+1))).toList
+        def * = Seq("cat", file).!!.split("\n").filter(_!="").map(res=> {
+            val sep = res.indexOf(" ")
+            if(sep == -1) (res, null) else (res.substring(0,sep), res.substring(sep+1))            
+        }).toList
 
         def ?-(key:String) = {
             val out = ?(key)
