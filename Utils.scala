@@ -68,9 +68,16 @@ object Utils {
         def synonym(in:String):String = {
             var prefix = in.takeWhile(c=> !(c.toString matches "[a-z]"))
             var postfix = in.reverse.takeWhile(c=> !(c.toString matches "[a-z]")).reverse
-            var s = in.substring(prefix.size, in.size-postfix.size)
+            var s = try { 
+                in.substring(prefix.size, in.size-postfix.size) 
+            } catch { 
+                case _ => 
+                prefix = ""
+                postfix = ""
+                in 
+            }
             
-            if(s.size<=3 || nextFloat<0.25) return in
+            if(s.size<=3 || nextFloat<0.2) return in
             
             try {
                 var wn_s = sed(s"'$s'", wn_sPath)
