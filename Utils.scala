@@ -76,7 +76,7 @@ object Utils {
                     str.takeWhile(c=> !(c>='a' && c<='z')),
                     str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
                 )
-                if(prefix.size+suffix.size >= str.size-2) 
+                if(prefix.size+suffix.size >= str.size-2 || !(str matches """[a-zA-Z0-9 .'/-]+""" )) 
                     Result(str)
                 else 
                     Process(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
@@ -86,22 +86,22 @@ object Utils {
             val query = tasks.flatMap({
                 case Process(prefix,suffix,word) => List(word)
                 case _ => Nil
-            }).distinct.map(e=> "'"+e+"'")
+            }).distinct.map(e=> e+"'")
             
             //query db for words
-            val ids = ListBuffer[String]()
+            val ids = HashSet[Int]()
             val results = wn_sFile
-                .filter(e=> e.substring(e.indexOf("'")).startsWithAny(query:_*))
+                .filter(e=> e.substring(e.indexOf("'")+1).startsWithAny(query:_*))
                 .map(e=> {
                     val out = e.split(",")
-                    ids += out(0)+","
+                    ids += out(0).toInt
                     out
                 })
                 .groupBy(_(2)) // word -> s(...)
             
             //query db for syn ids
             val results2 = wn_sFile
-                .filter(_.startsWithAny(ids:_*))//TODO: with prefix-tree
+                .filter(e=> ids contains e.take(9).toInt)
                 .map(_.split(","))
                 .groupBy(_(0)) // synsetID -> s(...)
             
@@ -112,7 +112,7 @@ object Utils {
                             Alternatives(
                                 results("'"+word+"'").flatMap(res=> 
                                     results2(res(0))
-                                        .map(e=> prefix+e(2).tail.init+suffix)
+                                        .map(e=> prefix+e(2).tail.init.replaceAll("''","'")+suffix)
                                         .filter(_.split(" ").forall(_.size>=3))
                                 )
                             )
@@ -128,13 +128,6 @@ object Utils {
         }
         
         def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
-    }
-
-    /// some things just shouldn't exist
-    object sed {
-        import sys.process._
-        def apply(s:String, file:String) = 
-            Seq("sed","-n", s"/$s/p",file).!!.split("\n").filter(_!="").toList
     }
 
     /// Store based on bash :) #softwareanarchitecture
