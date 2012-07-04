@@ -44,7 +44,7 @@ run() {
     esac
 }
 
-if [ $bot.scala -nt bin/haibot/$bot.class ]; then
+if [ $bot.scala -nt bin/haibot/$bot.class ] || [ "$args" == "-c" ]; then
     compile && run
 else
     run
