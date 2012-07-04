@@ -12,9 +12,9 @@ object Utils {
     /// Pimped types
     class PimpString(s:String) {
         // TODO: containsPercent
-        def containsAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
+        def containsAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
         def startsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
-        def endsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
+        def endsWithAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
         def sentences = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
         def makeEasy = s.toLowerCase.map(a=>("čćžšđ".zip("cczsd").toMap).getOrElse(a, a))
         def findAll(r:Regex) = r.findAllIn(s).toList
@@ -60,8 +60,9 @@ object Utils {
     
     /// Wordnet stuff - also in bash, and on prolog data
     object WordNet {
-        val wn_sPath = "prolog/wn_s.pl"
-        lazy val wn_sReg = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
+        val wn_sPath = "prolog/wn_s.db"
+        lazy val wn_sFile = fromFile(wn_sPath).getLines.toList
+        //lazy val wn_sReg = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
         
         abstract class SynComp
         case class Prep(prefix:String,suffix:String,word:String) extends SynComp
@@ -70,42 +71,54 @@ object Utils {
         //TODO: settings: min length, prevent same, etc
         def synonyms(in:String*):List[String] = {
             var comp = in.map(str=> {
-                var (prefix,suffix) = (
-                    str.takeWhile(c=> !(c.toString matches "[a-z]")),
-                    str.reverse.takeWhile(c=> !(c.toString matches "[a-z]")).reverse
+                var (prefix,suffix) = ( //TODO: handle ThIs kiNd of stuff "and,this"
+                    str.takeWhile(c=> !(c>='a' && c<='z')),
+                    str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
                 )
-                if(prefix.size+suffix.size >= str.size-3) 
+                if(prefix.size+suffix.size >= str.size-2) 
                     ResList(List(str))
                 else 
                     Prep(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
             })
             
             //prepare query
-            var query = comp.flatMap(sc => 
-                sc match { 
-                    case Prep(prefix,suffix,str) => List(str)
-                    case _ => Nil
-                }
-            ).distinct.map(e=> "'"+e+"'")
+            var query = comp.flatMap({
+                case Prep(prefix,suffix,word) => List(word)
+                case _ => Nil
+            }).distinct.map(e=> "'"+e+"'")
             
             //query db for words
-            var ids = HashSet[String]()
-            var results = fromFile(wn_sPath).getLines.toList
+            var ids = ListBuffer[String]()
+            var results = wn_sFile
                 .filter(_.containsAny(query:_*))
-                .map(str => {
-                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
-                    ids += "("+_SynsetID+","
-                    (_SynsetID,_WordNumber.toInt,_Word,_Type,_Sense,_Count.toInt)
-                }).groupBy(_._3) // Word -> s(...)
-                
-            var results2 = fromFile(wn_sPath).getLines.toList
-                .filter(_.containsAny(ids.toSeq:_*))
-                .map(str => {
-                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
-                    (_SynsetID,_WordNumber.toInt,_Word,_Type,_Sense,_Count.toInt)
-                }).groupBy(_._1) // SynsetID -> s(...)
+                .map(e=> {
+                    val out = e.split(",")
+                    ids += out(0)+","
+                    out
+                })
+                .groupBy(_(2)) // word -> s(...)
             
-            return comp.map(sc=>
+            //query db for syn ids
+            var results2 = wn_sFile
+                .filter(_.startsWithAny(ids:_*))//TODO: with prefix-tree
+                .map(str => str.split(","))
+                .groupBy(_(0)) // synsetID -> s(...)
+            
+            return comp.map({
+                case Prep(prefix,suffix,word) =>
+                    try {
+                        results("'"+word+"'").flatMap(res=> 
+                            results2(res(0)).map(e=> prefix+e(2).tail.init+suffix)
+                            .filter(_.split(" ").forall(_.size>=2))
+                        )
+                    } catch {
+                        case e:Exception => List(prefix+word+suffix)
+                    }
+                case ResList(a) => a
+                case _ => List("???")
+            }).map(words=> shuffle(words).toList(0)).toList
+
+/*            return comp.map(sc=>
                 sc match { 
                     case Prep(prefix,suffix,str) =>
                         try {
@@ -117,7 +130,7 @@ object Utils {
                     case _ => List("?")
                 }
             ).map(words=> shuffle(words).toList(0)).toList
-            //return comp.map(words=> shuffle(words._1).toList(0))
+            //return comp.map(words=> shuffle(words._1).toList(0))*/
             /*
             
             //TOI: if(s.size<=3 || nextFloat<0.2) return in
