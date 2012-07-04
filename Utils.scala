@@ -64,33 +64,34 @@ object Utils {
         lazy val wn_sFile = fromFile(wn_sPath).getLines.toList
         //lazy val wn_sReg = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
         
-        abstract class SynComp
-        case class Prep(prefix:String,suffix:String,word:String) extends SynComp
-        case class ResList(s:List[String]) extends SynComp
+        abstract class SynTask
+        case class Process(prefix:String,suffix:String,word:String) extends SynTask
+        case class Alternatives(s:List[String]) extends SynTask
+        case class Result(s:String) extends SynTask
         
         //TODO: settings: min length, prevent same, etc
         def synonyms(in:String*):List[String] = {
-            var comp = in.map(str=> {
-                var (prefix,suffix) = ( //TODO: handle ThIs kiNd of stuff "and,this"
+            val comp = in.map(str=> {
+                val (prefix,suffix) = ( //TODO: handle ThIs kiNd of stuff "and,this"
                     str.takeWhile(c=> !(c>='a' && c<='z')),
                     str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
                 )
                 if(prefix.size+suffix.size >= str.size-2) 
-                    ResList(List(str))
+                    Result(str)
                 else 
-                    Prep(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
-            })
+                    Process(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
+            }).toList
             
             //prepare query
-            var query = comp.flatMap({
-                case Prep(prefix,suffix,word) => List(word)
+            val query = comp.flatMap({
+                case Process(prefix,suffix,word) => List(word)
                 case _ => Nil
             }).distinct.map(e=> "'"+e+"'")
             
             //query db for words
-            var ids = ListBuffer[String]()
-            var results = wn_sFile
-                .filter(_.containsAny(query:_*))
+            val ids = ListBuffer[String]()
+            val results = wn_sFile
+                .filter(e=> e.substring(e.indexOf("'")).startsWithAny(query:_*))
                 .map(e=> {
                     val out = e.split(",")
                     ids += out(0)+","
@@ -99,72 +100,35 @@ object Utils {
                 .groupBy(_(2)) // word -> s(...)
             
             //query db for syn ids
-            var results2 = wn_sFile
+            val results2 = wn_sFile
                 .filter(_.startsWithAny(ids:_*))//TODO: with prefix-tree
-                .map(str => str.split(","))
+                .map(_.split(","))
                 .groupBy(_(0)) // synsetID -> s(...)
             
-            return comp.map({
-                case Prep(prefix,suffix,word) =>
-                    try {
-                        results("'"+word+"'").flatMap(res=> 
-                            results2(res(0)).map(e=> prefix+e(2).tail.init+suffix)
-                            .filter(_.split(" ").forall(_.size>=2))
-                        )
-                    } catch {
-                        case e:Exception => List(prefix+word+suffix)
-                    }
-                case ResList(a) => a
-                case _ => List("???")
-            }).map(words=> shuffle(words).toList(0)).toList
-
-/*            return comp.map(sc=>
-                sc match { 
-                    case Prep(prefix,suffix,str) =>
+            return comp
+                .map({
+                    case Process(prefix,suffix,word) =>
                         try {
-                            results(str).flatMap(res=> results2(res._1).map(_._3)).map(w=> prefix+w+suffix).filter(_.split(" ").forall(_.size>=3))
+                            Alternatives(
+                                results("'"+word+"'").flatMap(res=> 
+                                    results2(res(0))
+                                        .map(e=> prefix+e(2).tail.init+suffix)
+                                        .filter(_.split(" ").forall(_.size>=3))
+                                )
+                            )
                         } catch {
-                            case _ => List(prefix+str+suffix)
+                            case _ => Result(prefix+word+suffix)
                         }
-                    case ResList(a) => a
-                    case _ => List("?")
-                }
-            ).map(words=> shuffle(words).toList(0)).toList
-            //return comp.map(words=> shuffle(words._1).toList(0))*/
-            /*
-            
-            //TOI: if(s.size<=3 || nextFloat<0.2) return in
-            
-            try {
-                var wn_s = sed(s"'$s'", wn_sPath).map(str => {
-                    val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;
-                    (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
+                    case t:SynTask => t
+                    case _ => Result("???")
                 })
-                
-                if(wn_s.size==0) return in //no luck
-                
-                //val bestSynsets = wn_s.sortWith(_._6.toInt > _._6.toInt)
-                //val bestSynsetID = shuffle(bestSynsets.filter(_._6.toInt >= bestSynsets(0)._6.toInt-2)).toList(0)._1
-                //wn_s = sed(s"""$bestSynsetID,""", wn_sPath)...
-                
-                wn_s = fromFile(wn_sPath).getLines.toList.filter(_.containsAny(wn_s.map(e=> e._1):_*))
-                    .map(str => {
-                        val wn_sReg(_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count) = str;                    
-                        (_SynsetID,_WordNumber,_Word,_Type,_Sense,_Count)
-                    }).filter(_._3!=s).sortWith(_._6.toInt > _._6.toInt)
-                if(wn_s.size==0) return in //no luck
-                var sum = wn_s.map(_._6.toInt*3+1).sum // weighted random
-                var res = nextInt(sum)
-                prefix+wn_s.find(syn=> {
-                    res -= syn._6.toInt*3+1
-                    (res<=0)
-                }).get._3+postfix
-            } catch {
-                case _ => in
-            }*/
+                .map({
+                    case Result(r) => r
+                    case Alternatives(rl) => rl(nextInt(rl.size))
+                    case _ => "???"
+                })
         }
         
-        //def rephrase(s:String):String = s.split(" ").map(synonym).mkString(" ")
         def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
     }
 
