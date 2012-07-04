@@ -71,7 +71,7 @@ object Utils {
         
         //TODO: settings: min length, prevent same, etc
         def synonyms(in:String*):List[String] = {
-            val comp = in.map(str=> {
+            val tasks = in.map(str=> {
                 val (prefix,suffix) = ( //TODO: handle ThIs kiNd of stuff "and,this"
                     str.takeWhile(c=> !(c>='a' && c<='z')),
                     str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
@@ -83,7 +83,7 @@ object Utils {
             }).toList
             
             //prepare query
-            val query = comp.flatMap({
+            val query = tasks.flatMap({
                 case Process(prefix,suffix,word) => List(word)
                 case _ => Nil
             }).distinct.map(e=> "'"+e+"'")
@@ -105,7 +105,7 @@ object Utils {
                 .map(_.split(","))
                 .groupBy(_(0)) // synsetID -> s(...)
             
-            return comp
+            return tasks
                 .map({
                     case Process(prefix,suffix,word) =>
                         try {
@@ -119,13 +119,11 @@ object Utils {
                         } catch {
                             case _ => Result(prefix+word+suffix)
                         }
-                    case t:SynTask => t
-                    case _ => Result("???")
+                    case st:SynTask => st
                 })
                 .map({
                     case Result(r) => r
                     case Alternatives(rl) => rl(nextInt(rl.size))
-                    case _ => "???"
                 })
         }
         
