@@ -60,8 +60,8 @@ object Utils {
     
     /// Wordnet stuff - also in bash, and on prolog data
     object WordNet {
-        val wn_sPath = "prolog/wn_s.db"
-        lazy val wn_sFile = fromFile(wn_sPath).getLines.toList
+        lazy val wn_s = fromFile("prolog/wn_s.db").getLines.toList
+        lazy val wn_hyp = fromFile("prolog/wn_hyp.db").getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt))
         //lazy val wn_sReg = """s\(([0-9]+),([0-9]+),'(.*?)',([a-z]+),([0-9]+),([0-9]+)\)\.""".r // s(100844254,3,'sex',n,1,14).
         
         abstract class SynTask
@@ -90,7 +90,7 @@ object Utils {
             
             //query db for words
             val ids = HashSet[Int]()
-            val results = wn_sFile
+            val results = wn_s
                 .filter(e=> e.substring(e.indexOf("'")+1).startsWithAny(query:_*))
                 .map(e=> {
                     val out = e.split(",")
@@ -100,7 +100,7 @@ object Utils {
                 .groupBy(_(2)) // word -> s(...)
             
             //query db for syn ids
-            val results2 = wn_sFile
+            val results2 = wn_s
                 .filter(e=> ids contains e.take(9).toInt)
                 .map(_.split(","))
                 .groupBy(_(0)) // synsetID -> s(...)
@@ -128,7 +128,63 @@ object Utils {
         }
         
         def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
+
+        def hypernym(in:String*):String = {
+            println(in)
+            val tasks = in.map(str=> {
+                val (prefix,suffix) = (
+                    str.takeWhile(c=> !(c>='a' && c<='z')),
+                    str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
+                )
+                if(prefix.size+suffix.size >= str.size-2 || !(str matches """[a-zA-Z0-9 .'/-]+""" )) 
+                    Result(str)
+                else 
+                    Process(prefix,suffix,str.substring(prefix.size, str.size-suffix.size))
+            }).toList
+    
+            //prepare query
+            val query = tasks.flatMap({
+                case Process(prefix,suffix,word) => List(word)
+                case _ => Nil
+            }).distinct.map(e=> e+"'")
+            
+            println(query)
+            
+            //query db for ids
+            val ids = wn_s
+                .filter(e=> e.substring(e.indexOf("'")+1).startsWithAny(query:_*))
+                .map(e=> e.split(",")(0).toInt)
+                .toSet
+                
+            println(ids)
+            
+            
+            var idds = wn_hyp.filter(e=> ids contains e._1).groupBy(_._2).toList.sortWith(_._2.size > _._2.size)
+            var ids2 = idds.map(_._1)//idds.takeWhile(_._2.size >= idds.head._2.size-1).map(_._1)
+            
+            /*idds = wn_hyp.filter(e=> ids++ids2 contains e._1).groupBy(_._2).toList.sortWith(_._2.size > _._2.size)
+            ids2 = idds.map(_._1)*/
+            
+            var out = wn_s
+                .filter(e=> ids2 contains e.take(9).toInt)
+                .map(_.split(","))
+                .sortWith((a,b)=> idds.find(_._1 == a(0).toInt).get._2.size > idds.find(_._1 == b(0).toInt).get._2.size)
+                .map(e=> e(2).tail.init)// + idds.find(_._1 == e(0).toInt).get._2.size)
+                .distinct.take(20)
+            out = out.filterNot(e=> out.exists(a=> a.startsWith(e.take(5)) && a.length < e.length )).distinct.take(5)
+            out.mkString(", ")
+                
+            /*val bestid = wn_hyp.filter(e=> ids contains e._1).groupBy(_._2).maxBy(_._2.size)._1
+            val best = wn_s
+                .filter(_.take(9).toInt == bestid)
+                .map(_.split(","))
+                .maxBy(_.last.toInt)
+            return best(2)*/
+        }
+
+        def context(s:String):String = hypernym(s.split(" "):_*)
     }
+    
 
     /// Store based on bash :) #softwareanarchitecture
     // talk about leaky abstractions...

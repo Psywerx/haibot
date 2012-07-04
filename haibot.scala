@@ -45,6 +45,7 @@ class haibot extends PircBot {
     def mehBag = io.Source.fromFile(folder+"meh.db").getLines.toSet
     def nomehBag = io.Source.fromFile(folder+"nomeh.db").getLines.toSet
     def blocklist = io.Source.fromFile(folder+"block.db").getLines.toSet
+    lazy val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
     //val lb = io.Source.fromFile("sentences.db").getLines.toList.flatMap(_.replaceAll("""[,":*>()]""","").split("[.?!]").map(_.trim))
     
     var lastMsg = ""
@@ -242,6 +243,33 @@ class haibot extends PircBot {
             speak(
                 if(nuMsg==mssg || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg
             )
+        } else if(message.startsWith("@context ")) {
+            val mssg = message.substring("@context ".length)
+            val words = 
+                if(Regex.URL.findAllIn(message).toList.size > 0) {
+                     mssg
+                        .findAll(Regex.URL)
+                        .map(url => {
+                            var out = ""
+                            if(!url.endsWithAny(badExts:_*)) try {
+                                out = ArticleExtractor.INSTANCE.getText(new URL(url))
+                            } catch { case _ => }
+                            out
+                        })
+                        .reduce(_+_)
+                        .split("\\s")
+                        .filter(_.length>2)
+                        .filterNot(e=> stoplist contains e)
+                        .map(_.toLowerCase)
+                        .distinct
+                        .mkString(" ")
+                } else {
+                    mssg.makeEasy.split(" ").distinct.filterNot(e=> stoplist contains e).mkString(" ")
+                }
+            
+            println(words)
+            
+            speak("I think it's about "+WordNet.context(words))
         }
     }
 }
