@@ -252,16 +252,17 @@ class haibot extends PircBot {
                         .map(url => {
                             var out = ""
                             if(!url.endsWithAny(badExts:_*)) try {
-                                out = ArticleExtractor.INSTANCE.getText(new URL(url))
+                                out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
                             } catch { case _ => }
                             out
                         })
                         .reduce(_+_)
+                        .replaceAll("[^a-zA-Z0-9-]", " ")
                         .split("\\s")
                         .filter(_.length>2)
-                        .filterNot(e=> stoplist contains e)
                         .map(_.toLowerCase)
-                        .distinct
+                        .filterNot(e=> stoplist contains e)
+                        //.distinct
                         .mkString(" ")
                 } else {
                     mssg.makeEasy.split(" ").distinct.filterNot(e=> stoplist contains e).mkString(" ")
