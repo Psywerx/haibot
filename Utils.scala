@@ -93,8 +93,11 @@ object Utils {
                     val tmpStr = str.substring(prefix.size, str.size-suffix.size)
                     if(wn_sByWord contains tmpStr) {
                         var syns = wn_sByWord(tmpStr).map(_._1).distinct.flatMap(e=> wn_sById(e).map(_._2))
-                        syns = syns.filter(e=> e.size>3)
-                        prefix+syns(nextInt(syns.size))+suffix
+                        syns = syns.filter(e=> e!=tmpStr && e.split(" ").forall(_.size>3))
+                        if(syns.size > 0)
+                            prefix+syns(nextInt(syns.size))+suffix
+                        else
+                            str
                     } else {
                         str
                     }
