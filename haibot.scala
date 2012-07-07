@@ -45,7 +45,7 @@ class haibot extends PircBot {
     def mehBag = io.Source.fromFile(folder+"meh.db").getLines.toSet
     def nomehBag = io.Source.fromFile(folder+"nomeh.db").getLines.toSet
     def blocklist = io.Source.fromFile(folder+"block.db").getLines.toSet
-    lazy val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
+    lazy val stoplist = io.Source.fromFile("stoplist.db").getLines.toSet
     //val lb = io.Source.fromFile("sentences.db").getLines.toList.flatMap(_.replaceAll("""[,":*>()]""","").split("[.?!]").map(_.trim))
     
     var lastMsg = ""
@@ -115,10 +115,10 @@ class haibot extends PircBot {
             )
         } else if(msg.startsWithAny("shut", "fuck") && msg.containsAny("up", "you") && msg.containsAny(name, "botko", "bot_") && nextFloat<0.8) {
             speak(
-                WordNet.rephrase("Please, don't insult the robot race."),
+                "Please, don't insult the robot race.",
                 Memes.NO_U,
                 "NO U!",
-                WordNet.rephrase("This wouldn't happen if you made us better..."),
+                "This wouldn't happen if you made us better...",
                 "Yeah, blame it on the bots"
             )
         } else if(msg.containsAny(sheSaid:_*) && nextFloat<0.66) {
@@ -245,32 +245,36 @@ class haibot extends PircBot {
             )
         } else if(message.startsWith("@context ")) {
             val mssg = message.substring("@context ".length)
-            val words = 
-                if(Regex.URL.findAllIn(message).toList.size > 0) {
-                     mssg
-                        .findAll(Regex.URL)
-                        .map(url => {
-                            var out = ""
-                            if(!url.endsWithAny(badExts:_*)) try {
-                                out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
-                            } catch { case _ => }
-                            out
-                        })
-                        .reduce(_+_)
-                        .replaceAll("[^a-zA-Z0-9-]", " ")
-                        .split("\\s")
-                        .filter(_.length>2)
-                        .map(_.toLowerCase)
-                        .filterNot(e=> stoplist contains e)
-                        //.distinct
-                        .mkString(" ")
-                } else {
-                    mssg.makeEasy.split(" ").distinct.filterNot(e=> stoplist contains e).mkString(" ")
-                }
+            if(Regex.URL.findAllIn(message).toList.size > 0) {
+                 val words = mssg
+                    .findAll(Regex.URL)
+                    .map(url => {
+                        var out = ""
+                        if(!url.endsWithAny(badExts:_*)) try {
+                            out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
+                        } catch { case _ => }
+                        out
+                    })
+                    .reduce(_+" "+_)
+                    .replaceAll("[^a-zA-Z0-9 .'/-]", " ")
+                    .split("\\s")
+                    .filter(w=> w.length>=3 && w.length<=34 && !(stoplist contains w.toLowerCase))///"Supercalifragilisticexpialidocious".size
+                    .mkString(" ")
+                    
+                println(words)
+                val context = WordNet.context(words)
+                if(context!="")
+                    speak(
+                        s"I think it's about $context.",
+                        s"It might be about $context.",
+                        s"It could be about $context."
+                    )
+                else
+                    speak("I have no idea...", "I don't know what this is about.")
+            } else {
+                speak("Give me some links...", "I require an URL.", "Try that one with a link.")
+            }
             
-            println(words)
-            
-            speak("I think it's about "+WordNet.context(words))
         }
     }
 }

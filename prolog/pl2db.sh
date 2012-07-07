@@ -1,3 +1,3 @@
 #change name, cut
 
-cat $1 | cut -b $2- | awk 'sub("..$", "")' > `basename $1`.db
+cat $1 | cut -b $2- | awk 'sub("..$", "")' > `basename $1 .pl`.db

@@ -9,9 +9,11 @@ import scala.util.Random._
 import scala.io.Source._
 
 object Utils {
+    //TODO: pack each thing up with imports it needs, so you can copy-paste and such
+
     /// Pimped types
     class PimpString(s:String) {
-        // TODO: containsPercent
+        // TODO: containsPercent:Double for fuzzy reasoning
         def containsAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
         def startsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
         def endsWithAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
@@ -74,101 +76,125 @@ object Utils {
     
     /// Wordnet stuff - also in bash, and on prolog data
     object WordNet {
-        lazy val wn_s = fromFile("prolog/wn_s.db").getLines.toList
-
         //These take a while at startup... make them lazy if it bothers you
-        val wn_sAll = fromFile("prolog/wn_s.db").getLines.toList.map(_.split(",")).map(e=> (e(0).toInt,e(2).init.tail.replaceAll("''","'"),e.last.toInt))
-        val wn_sById = wn_sAll.groupBy(_._1)
-        val wn_sByWord = wn_sAll.groupBy(_._2)
+        //format is (id,word,type)... I should probably keep type
+        type wn_s = (Int,String,Char)
+        val wn_sAll = fromFile("prolog/wn_s.db").getLines.toList.map(_.split(",")).map(e=> (e(0).toInt,e(2).init.tail.replaceAll("''","'"),e(3)(0)))
+        val wn_sById = wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]())
+        val wn_sByWord = wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]())
         
-        def synonym(in:String*):List[String] = {
-            in.map(str=> {
-                val (prefix,suffix) = (
-                    str.takeWhile(c=> !(c>='a' && c<='z')),
-                    str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
-                )
-                if(prefix.size+suffix.size >= str.size-3 || !(str matches """[a-zA-Z0-9 .'/-]+""" )) {
-                    str
+        val wordReg = """([^a-zA-Z0-9 .'/-]*)([a-zA-Z0-9 .'/-]{3,})([^a-zA-Z0-9 .'/-]*)""".r
+        val capitals = """[A-Z][a-zA-Z0-9 .'/-]*"""
+        val caps = """[A-Z0-9 .'/-]+"""
+        val lower = """[a-z0-9 .'/-]+"""
+        
+        def synonyms(strs:String*):List[String] = strs.map(str=> synonym(str)).toList
+        def synonym(str:String):String = str match {
+            case wordReg(prefix,word,suffix) => 
+                val (capital, allcaps, alllower) = (word matches capitals, word matches caps, word matches lower)
+                val part = if(!(allcaps || alllower)) {
+                    val upper = word.count(e=> e.toString==e.toString.toUpperCase).toFloat
+                    val lower = word.count(e=> e.toString==e.toString.toLowerCase).toFloat
+                    upper/(upper+lower)
                 } else {
-                    val tmpStr = str.substring(prefix.size, str.size-suffix.size)
-                    if(wn_sByWord contains tmpStr) {
-                        var syns = wn_sByWord(tmpStr).map(_._1).distinct.flatMap(e=> wn_sById(e).map(_._2))
-                        syns = syns.filter(e=> e!=tmpStr && e.split(" ").forall(_.size>3))
-                        if(syns.size > 0)
-                            prefix+syns(nextInt(syns.size))+suffix
-                        else
-                            str
-                    } else {
-                        str
-                    }
+                    0f
                 }
-            }).toList
+
+                val syns = wn_sByWord(word.toLowerCase) // find word
+                    .map(_._1).distinct.flatMap(e=> wn_sById(e).map(_._2)) // query all synonyms by id
+                    .filter(e=> e!=word && e.split(" ").forall(_.size>=4)).distinct // filter probably useless ones
+                if(syns.size > 0) {
+                    var out = syns(nextInt(syns.size))                    
+                    if(out.toLowerCase == word.toLowerCase)
+                        out = word else
+                    if(alllower) 
+                        out = out.toLowerCase else
+                    if(allcaps) 
+                        out = out.toUpperCase else
+                    if(capital && part<0.25) 
+                        out = out.head.toString.toUpperCase+out.tail else 
+                    if(out matches lower) {
+                        out = out.map(e=> if(nextFloat<part) e.toString.toUpperCase.head else e.toString.toLowerCase.head)
+                        if(capital) out = out.head.toString.toUpperCase+out.tail
+                    }
+                    
+                    prefix+out+suffix
+                } else {
+                    str
+                }
+            case _ => str
+        }
+        def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
+        
+        
+        def stem(w:String):List[String] = // bad excuse for a stemmer :)
+            (List(w) ++ 
+                w.split("-")
+                    .flatMap(w=> List(w, w.replaceAll("ability$", "able")))
+                    .flatMap(w=> List(w, w.replaceAll("s$|er$|est$|ed$|ing$|d$", "")))
+                    //.flatMap(w=> List(w, w.replaceAll("^un|^im|^in", "")))
+                    .filter(_.size>=4)
+            ).distinct
+            
+        def preprocess(w:String):List[String] = 
+            stem(w).flatMap(e=> List(e, e.toLowerCase)).distinct
+        
+        def getMapFromwn(dbName:String) = io.Source.fromFile(dbName).getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e=> e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
+        val wn = List("hyp","sim","ins","mm","ms","mp","at","der").map(e=> e -> getMapFromwn(s"prolog/wn_$e.db")).toMap
+        val stoplist = io.Source.fromFile("stoplist.db").getLines.toSet ++ Set("answer", "test", "issue", "start", "publication")
+        
+        var weights = getWeights
+        def getWeights = {
+            val file = io.Source.fromFile("weights")
+            val out = file.getLines.toList.map(_.split(" ")).map(e=> (e(0), e(1).toFloat)).toMap
+            file.close
+            out
         }
         
-        def rephrase(s:String):String = synonym(s.split(" "):_*).mkString(" ")
+        def context(in:String):String = {
+            try {
+                val scores = HashMap[String, Double]()
+                def score(str:String,add:Double) = if(!(stoplist contains str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
 
-        lazy val wn_hyp = fromFile("prolog/wn_hyp.db").getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt))
-        lazy val wn_mm = fromFile("prolog/wn_mm.db").getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt))
-        lazy val wn_mp = fromFile("prolog/wn_mp.db").getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt))
-
-        def hypernym(in:String*):String = {
-            println(in)
-            val tasks = in.flatMap(str=> {
-                val (prefix,suffix) = (
-                    str.takeWhile(c=> !(c>='a' && c<='z')),
-                    str.reverse.takeWhile(c=> !(c>='a' && c<='z')).reverse
-                )
-                if(prefix.size+suffix.size >= str.size-2 || !(str matches """[a-zA-Z0-9 .'/-]+""" )) 
-                    Nil
-                else 
-                    List(str.substring(prefix.size, str.size-suffix.size))
-            }).toList
-    
-            //prepare query
-            val query = tasks.distinct.map(e=> e+"'")
-            
-            println(query)
-            
-            //query db for ids
-            val ids = wn_s
-                .filter(e=> e.substring(e.indexOf("'")+1).startsWithAny(query:_*))
-                .map(e=> e.split(",")(0).toInt)
-                .toSet
+                val words = in.split(" ").toList.flatMap({
+                    case wordReg(prefix,word,suffix) => 
+                        if(word.size >= 3) {
+                            preprocess(word).filter(w=>wn_sByWord contains w).flatMap(w=> {
+                                if(!(stoplist contains w)) {
+                                    score(w,1)
+                                    wn_sByWord(w)
+                                } else {
+                                    Nil
+                                }
+                            })
+                        } else {
+                            Nil
+                        }
+                    case _ => Nil
+                }).filter(e=> e._3=='v' || e._3=='n')
                 
-            println(ids)
-            
-            val scores = HashMap[Int, Double]()
-            def score(id:Int,add:Double) = scores(id) = (scores.getOrElse(id, 0.0)+add)
-            
-            ids.foreach(e=> score(e,0.2))
-            wn_hyp.foreach(e=> if(ids contains e._1) score(e._2,1.3) else if(ids contains e._2) score(e._1,0.1))
-             wn_mm.foreach(e=> if(ids contains e._1) score(e._2,0.3) else if(ids contains e._2) score(e._1,0.1))
-             wn_mp.foreach(e=> if(ids contains e._1) score(e._2,0.3) else if(ids contains e._2) score(e._1,0.1))
-            
-            val hadId = HashSet[Int]()
-            val idds = scores.toList.sortWith(_._2 > _._2).take(100)
-            val ids2 = idds.map(_._1).toSet
-            
-            val shitlist = Set[String]()//"move change alter modify person individual someone somebody mortal soul be".split(" ").toSet
-            var out = wn_s
-                .filter(e=> ids2 contains e.take(9).toInt)
-                .map(_.split(","))
-                .sortWith((a,b)=> 
-                    idds.find(_._1 == a(0).toInt).get._2 + (a.last.toInt+1)*0.5 > idds.find(_._1 == b(0).toInt).get._2 + (b.last.toInt+1)*0.5
+                getWeights
+                
+                wn.foreach(wndb=> 
+                    words.foreach(elt=>                     
+                        wndb._2(elt._1).foreach(id2=> 
+                            wn_sById(id2).foreach(elt=> 
+                                score(elt._2, weights(wndb._1))
+                            )
+                        )
+                    )
                 )
-                .filter(e=>{ true
-                    if(hadId contains e(0).toInt) false else { hadId += e(0).toInt; true} 
-                })
-                .map(e=> e(2).tail.init + idds.find(_._1 == e(0).toInt).get._2.toString.take(3))
-                .filterNot(e=> shitlist contains e.dropRight(3)).distinct
-            out = out
-                .filterNot(e=> out.exists(a=> a.startsWith(e.take(4)) && a.length < e.length ))
-                .distinct.take(20)
-            //out = out.filterNot(e=> out.exists(a=> a.startsWith(e.take(4)) && a.length < e.length )).distinct.take(5)
-            out.mkString(", ")
+                
+                scores.toList.sortWith(_._2 > _._2).take(30).filterNot(e=> 
+                    scores.exists(a=> 
+                        (a._1!=e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
+                        (a._1.startsWith(e._1.take(4)) || (e._1 contains a._1))
+                    )//take out similars
+                ).map(e=> e._1).take(7).mkString(", ") //sort and convert to string
+            } catch {
+                case e:Exception => e.printStackTrace; ""
+            }
         }
-
-        def context(s:String):String = hypernym(s.split(" "):_*)
     }
     
 
