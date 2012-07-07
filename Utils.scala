@@ -190,7 +190,7 @@ object Utils {
                         (a._1!=e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
                         (a._1.startsWith(e._1.take(4)) || (e._1 contains a._1))
                     )//take out similars
-                ).map(e=> e._1).take(7).mkString(", ") //sort and convert to string
+                ).map(e=> e._1).take(3).mkString(", ") //sort and convert to string
             } catch {
                 case e:Exception => e.printStackTrace; ""
             }
