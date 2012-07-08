@@ -2,12 +2,11 @@ package haibot
 import Utils._
 
 import org.jibble.pircbot._
-import collection.mutable._
+import collection.mutable.{HashSet,ListBuffer}
 import util.Random._
 import java.io._
 import java.net._
 import scala.concurrent.ops._
-import de.l3s.boilerpipe.extractors._
 
 object haibot extends App { new haibot }
 
@@ -18,102 +17,133 @@ class haibot extends PircBot {
     val name = (settings ? "name")(0)
     val chan = (settings ? "chan")(0)
     val serv = (settings ? "serv")(0)
+    val owner = (settings ? "owner")(0) //owner prefix actually if you look below
 
     this.setVerbose(true)
     this.setName(name)
-    this.connect(serv)
+    this.connect(serv) //TODO handle failure and disconnects
     this.joinChannel(chan)
-    
-    val userList = ListBuffer[String]()
-    def users = {
-        if(since(userList) > 5000) {
-            userList.clear
-            userList ++= getUsers(chan).map(_.getNick())
-        }
-        userList
-    }
-    
+
     val msgs = Store(folder+"msgs.db")
     def getMsgs(nick:String) = (msgs ?- nick).foreach(msg=> speak(nick+": "+msg))
 
     val events = Store(folder+"event.db")
 
-    def badExts = io.Source.fromFile(folder+"badexts.db").getLines.toBuffer
-    def sheSaid = io.Source.fromFile(folder+"twss.db").getLines.toBuffer
-    def awwwBag = io.Source.fromFile(folder+"awww.db").getLines.toSet
-    def noawwwBag = io.Source.fromFile(folder+"noawww.db").getLines.toSet
-    def mehBag = io.Source.fromFile(folder+"meh.db").getLines.toSet
-    def nomehBag = io.Source.fromFile(folder+"nomeh.db").getLines.toSet
-    def blocklist = io.Source.fromFile(folder+"block.db").getLines.toSet
-    lazy val stoplist = io.Source.fromFile("stoplist.db").getLines.toSet
-    //val lb = io.Source.fromFile("sentences.db").getLines.toList.flatMap(_.replaceAll("""[,":*>()]""","").split("[.?!]").map(_.trim))
+    def fromFile(name:String) = {
+        val file = io.Source.fromFile(name)
+        val out = file.getLines.toList
+        file.close
+        out
+    }
+          
+    def bros = fromFile(folder+"bros.db").toSet
+    def sheSaid = fromFile(folder+"twss.db").toList
+    def awwwBag = fromFile(folder+"awww.db").toSet
+    def noawwwBag = fromFile(folder+"noawww.db").toSet
+    def mehBag = fromFile(folder+"meh.db").toSet
+    def nomehBag = fromFile(folder+"nomeh.db").toSet
+    def mustNotBeNamed = fromFile(folder+"dontmention.db").toSet
+
+    var userList = Set[String]()
+    def users = {
+        if(since(userList) > 5000) {
+            userList = getUsers(chan).map(_.getNick()).toSet
+        }
+        
+        userList
+    }
     
     var lastMsg = ""
-    def speak(msgs:String*) =
+    def speak(msgs:String*) = {
         shuffle(msgs.toBuffer - lastMsg).headOption.map(newMsg => {
             Thread.sleep(777+nextInt(777*2))
             sendMessage(chan, newMsg)
             lastMsg = newMsg
         })
-
+    }
     
     override def onNickChange(oldNick:String, login:String, hostname:String, newNick:String) = {
+        //TODO: keep note of this stuff... you'll know who's who, so you don't end up like http://myapokalips.com/show/23
         getMsgs(newNick)
     }
     
     override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
-        if(sender == name) spawn {
-            Thread.sleep(2000)
-            speak("o hai!", if(users.size>2) "hai guise!" else "hi, you!", "ohai", "hello!", "hi")
+        if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
+            Thread.sleep(1000)
+            if(users.size > 0) speak("o hai!", if(users.size==1) "hi, you!" else "hai guise!", "ohai", "hello!", "hi")
             users.foreach(getMsgs)
+        } else {
+            if(sender.startsWith(owner) && 0.12.prob) speak("welcome, father.", "welcome back!", "hi, you")
+            getMsgs(sender)
         }
-        if(sender.startsWith("Hairy") && nextFloat<0.125) {
-            speak("welcome, father.", "welcome back!")
-        }
-        getMsgs(sender)        
     }
                                                                   
     override def onMessage(channel:String, sender:String, login:String, hostname:String, message:String) = {
         val msg = message.makeEasy
-        //TODO: make language for this kind of thing
-        if(sender.startsWith("Hairy") && message.startsWith("@kill "+name)) {
-            speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "bye.", "au revoir!");
+        val msgBag = msg.split(" ").toSet
+        lazy val sentences = message.sentences
+        val mentions = msg.split(" ").toSet & users
+        val URLs = Regex.URL.findAllIn(message).toSet
+        lazy val URLsText = Net.scrapeURLs(URLs.toList:_*)
+        lazy val URLsWords = URLsText
+            .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
+            .split("\\s")
+            .filter(w=> w.length>=3 && w.length<=34)///"Supercalifragilisticexpialidocious".size
+        
+        // Oh look, AI
+        if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name)) {
+            speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
             exit(0)
-        } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (nextFloat<0.4 || (nextFloat<0.8 && msg.contains(name)))) {
-            speak(
-                s"hai $sender!",
-                "ohai :)",
-                "hello!",
-                s"hi! $sender"
-            )
-        } else if(message.contains(name+"++") && nextFloat<0.65) {
+        } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (0.35.prob || (0.85.prob && mentions.contains(name)))) {
+            var responses = ListBuffer[String]("ohai :)", "hello!")
+            if(mentions.contains(name)) 
+                responses ++= List(s"ohai $sender!", s"hai $sender!",s"hi $sender!")
+            if(!mentions.contains(name) && mentions.size>0) 
+                responses += "o hai "+mentions.toSeq.random
+            
+            speak(responses:_*)
+        } else if(message.contains(name+"++") && 0.65.prob) {
             speak(
                 "yaay, I did good!",
                 "woohoo!",
                 "yeah!",
                 """\o/""",
                 "scoar!",
-                if(nextFloat<0.2) s"$sender++" else "yaaay!"
+                if(0.2.prob) s"$sender++" else "yaaay!"
             )
-        } else if(sender=="botko" && message.contains(name)) {
+        } else if(msg == "yes "+name.makeEasy && 0.5.prob) {
             speak(
-                "my brethren speaks of me!",
-                "I appreciate that, brother botko."
+                "I knew it!",
+                "woohoo!",
+                "yeah!",
+                if(0.2.prob) s"$sender++" else "yaaay!"
             )
-        } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && nextFloat<0.6) {
+        } else if(bros.contains(sender) && mentions.contains(name) && 0.7.prob) {
+            speak(
+                "tnx, bro!",
+                s"yes, $sender.",
+                "my brethren speaks of me!",
+                s"I appreciate that, brother $sender."
+            )
+        } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && 0.6.prob) {
             speak(
                 "oooh, is that a regex? I <3 regexes!",
                 "Regex! My favorite thing!",
                 "mmm, regexes!",
                 "wow, I wonder what that matches."
             )
-        } else if(msg.startsWithAny("fucking ", "fakin") && msg.sentences(0).split(" ").length < 5 && nextFloat<0.7) {
+            
+        // naughty part
+        } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,4) && 0.7.prob) { 
             speak(
-                "how does "+message.sentences(0).trim+" feel?",
-                "having sex with "+message.sentences(0).substring(message.indexOf(" ")+1).trim+"?",
-                "come on, "+sender+"... don't fuck "+message.sentences(0).substring(message.indexOf(" ")+1).trim
+                "how does "+sentences(0).trim+" feel?",
+                "having sex with "+sentences(0).substring(sentences(0).indexOf(" ")+1).trim+"?",
+                "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(" ")+1).trim
             )
-        } else if(msg.startsWithAny("shut", "fuck") && msg.containsAny("up", "you") && msg.containsAny(name, "botko", "bot_") && nextFloat<0.8) {
+        } else if(msg.containsAny("but sex", "butt sex") && 0.75.prob) { 
+            speak("did someone mention butt sex?")
+        } else if(msg.startsWithAny("shut", "fuck") && msg.containsAny("up", "you") && msg.containsAny((List(name) ++ bros):_*) && 0.8.prob) {
+            // SHUT YOU haibot! :)
             speak(
                 "Please, don't insult the robot race.",
                 Memes.NO_U,
@@ -121,25 +151,18 @@ class haibot extends PircBot {
                 "This wouldn't happen if you made us better...",
                 "Yeah, blame it on the bots"
             )
-        } else if(msg.containsAny(sheSaid:_*) && nextFloat<0.66) {
+        } else if(msg.containsAny(sheSaid:_*) && 0.66.prob) {
             speak("that's what she said!")
-        } else if(Regex.URL.findAllIn(message).toList.size > 0) { //ex aww_bot
-            val words = message
-                .findAll(Regex.URL)
-                .map(url => {
-                    var out = ""
-                    if(!url.endsWithAny(badExts:_*)) try {
-                        out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
-                    } catch { case _ => }
-                    out
-                })
-                .reduce(_+_)
-                .split("\\s")
-                .filter(_.length>2)
-                .map(_.toLowerCase)
-                .toSet
+            
+        // ex meh_bot
+        } else if(((msgBag & mehBag).size*0.15 - (msgBag & nomehBag).size*0.3).prob) {
+            speak("meh.")
+        
+        // ex aww_bot
+        } else if(URLs.size > 0) { 
+            val words = URLsWords.map(_.toLowerCase).toSet
            
-            if(nextFloat<0.22*((awwwBag & words).size - (noawwwBag & words).size)) {
+            if((((awwwBag & words).size - (noawwwBag & words).size)*0.23).prob) {
                 speak(
                     "awww.",
                     "dawww!",
@@ -148,9 +171,7 @@ class haibot extends PircBot {
                     if((words & Set("fluffy","puffy")).size > 0) Memes.so_fluffy else "aww!"
                 )
             }
-        } else if(nextFloat<((msg.split(" ").toSet & mehBag).size)*0.17 - (msg.split(" ").toSet & nomehBag).size*0.25) { //ex meh_bot
-            speak("meh.")
-        } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && nextFloat<0.2) {
+        } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && 0.5.prob) {
             if(msg.contains("haskell") && !msg.contains("monad")) {
                 speak(
                     "have you tried with monads?",
@@ -167,30 +188,23 @@ class haibot extends PircBot {
             }
         }
         
-        if(message.startsWith("@event ")) {//TODO: request dialog needed here - can't just wing it
-            var URLs = message.findAll(Regex.URL).distinct
-            //TODO: detect date and title from this
-            var text = (List("") ++ URLs.map(url => {
-                var out = ""
-                if(!url.endsWithAny(badExts:_*)) try {
-                    out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
-                } catch { case _ => }
-                out
-            })).reduce(_+_)
-            println(text)
-            var dates = message.findAll(Regex.Date) ++ text.findAll(Regex.Date)
-            val title = message
+        if(message.startsWith("@event ")) {
+            var dates = message.findAll(Regex.Date) ++ URLsText.findAll(Regex.Date)
+            
+            //TODO: how do I find the title, boilerpipe?
+            val title = message 
                 .replaceAll(Regex.Date.toString, "")
                 .replaceAll(Regex.URL.toString, "")
-                .substring("@event".length).trim
+                .substring("@event ".length).trim
                 
             var status = ListBuffer[String]()
-            if(title.length==0) status += "title"
-            if(dates.length==0) status += "date"
-            if(URLs.length==0) status += "URL"
+            if(title.size==0) status += "title"
+            if(dates.size==0) status += "date"
+            if(URLs.size==0) status += "URL"
             
-            if(status.length>0) {
-                speak("I don't have "+status.mkString(", ")+" for this. Paste them in text form, pls")
+            if(status.size>0) {
+                val itthem = if(status.size==1) "it" else "them"
+                speak("I don't have "+status.mkString(", ")+s" for this. Paste $itthem in text form, pls.")
             } else {
                 speak("Is this right? "+dates(0)+" -- "+title)
                 events + (dates(0).replaceAll("[/.]","_"), title+" "+URLs.mkString(" "))
@@ -222,7 +236,7 @@ class haibot extends PircBot {
                     } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
                         msgs + (nick, msg2.mkString(" "))
                         var say = List("k.", "it shall be done.", "ay-ay.")
-                        val dw = if(nextFloat<0.5) "d" else "w"
+                        val dw = if(0.5.prob) "d" else "w"
                         if(force) say.map(s=> "I ${dw}on't like it, but "+s)
                         speak(say:_*)
                     } else { //TODO msg types, confusion levels, rephrase lastMsg with filler words and synonyms(wordnet), novelty levels for weights
@@ -234,7 +248,7 @@ class haibot extends PircBot {
                    speak("Sorry, I don't know what to do with this.")
             }
         } else if(message.contains("@all") && !users.contains("botko")) {        
-            speak((users.toBuffer -- blocklist).mkString(", "))
+            speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
         } else if(message.startsWith("@reword ")) {
             val mssg = message.substring("@reword ".length)
             var nuMsg = WordNet.rephrase(mssg)
@@ -246,20 +260,7 @@ class haibot extends PircBot {
         } else if(message.startsWith("@context ")) {
             val mssg = message.substring("@context ".length)
             if(Regex.URL.findAllIn(message).toList.size > 0) {
-                 val words = mssg
-                    .findAll(Regex.URL)
-                    .map(url => {
-                        var out = ""
-                        if(!url.endsWithAny(badExts:_*)) try {
-                            out = KeepEverythingExtractor.INSTANCE.getText(new URL(url))
-                        } catch { case _ => }
-                        out
-                    })
-                    .reduce(_+" "+_)
-                    .replaceAll("[^a-zA-Z0-9 .'/-]", " ")
-                    .split("\\s")
-                    .filter(w=> w.length>=3 && w.length<=34 && !(stoplist contains w.toLowerCase))///"Supercalifragilisticexpialidocious".size
-                    .mkString(" ")
+                 val words = URLsWords.mkString(" ")
                     
                 println(words)
                 val context = WordNet.context(words)
