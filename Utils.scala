@@ -12,6 +12,7 @@ object Utils {
 
     /// Pimped types
     implicit class PimpString(s:String) { 
+        def replaceAll(m:(String,String)*):String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
         // TODO: containsPercent:Double for fuzzy reasoning
         def containsAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
         def startsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
@@ -35,6 +36,15 @@ object Utils {
                     ).min
         }    
     }
+
+    // hashmap with default value
+    class HashMapDef[A,B](defVal:B) extends HashMap[A,B] {
+        override def default(key:A) = defVal
+    }
+    implicit class HashMap2Def[A,B](hm:HashMap[A,B]) { //TODO: copy values or something
+        def withDefaultValue(defVal:B) = new HashMapDef[A,B](defVal)
+    }
+    
     implicit class Seqs[A](s:Seq[A]) { 
         def random = s(nextInt(s.size)) 
         def randomOption = if(s.size > 0) Some(s(nextInt(s.size))) else None

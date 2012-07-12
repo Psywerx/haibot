@@ -2,7 +2,7 @@ package haibot
 import Utils._
 
 import org.jibble.pircbot._
-import collection.mutable.{HashSet,ListBuffer}
+import collection.mutable.{HashSet,ListBuffer,HashMap}
 import util.Random._
 import java.io._
 import java.net._
@@ -11,13 +11,15 @@ import scala.concurrent.ops._
 object haibot extends App { new haibot }
 
 class haibot extends PircBot {
-    val settings = Store(".haibot")
-    // TODO: make these def, and autoreload
-    val folder = (settings ? "folder")(0)
-    val name = (settings ? "name")(0)
-    val chan = (settings ? "chan")(0)
-    val serv = (settings ? "serv")(0)
-    val owner = (settings ? "owner")(0) //owner prefix actually if you look below
+    val config = Store(".haibot").*.toMap
+    val (folder,name,chan,serv,owner) = (
+        config("folder"), 
+        config("name"), 
+        config("chan"), 
+        config("serv"), 
+        config("owner")
+    )
+    //owner prefix actually if you look below
 
     this.setVerbose(true)
     this.setName(name)
@@ -27,7 +29,7 @@ class haibot extends PircBot {
     val msgs = Store(folder+"msgs.db")
     def getMsgs(nick:String) = (msgs ?- nick).foreach(msg=> speak(nick+": "+msg))
 
-    val events = Store(folder+"event.db")
+    val events = Store(folder+"events.db")
 
     def fromFile(name:String) = {
         val file = io.Source.fromFile(name)
@@ -70,7 +72,7 @@ class haibot extends PircBot {
     override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
         if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
             Thread.sleep(1000)
-            if(users.size > 0) speak("o hai!", if(users.size==1) "hi, you!" else "hai guise!", "ohai", "hello!", "hi")
+            if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello!", "hi")
             users.foreach(getMsgs)
         } else {
             if(sender.startsWith(owner) && 0.12.prob) speak("welcome, father.", "welcome back!", "hi, you")
@@ -88,7 +90,7 @@ class haibot extends PircBot {
         lazy val URLsWords = URLsText
             .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
             .split("\\s")
-            .filter(w=> w.length>=3 && w.length<=34)///"Supercalifragilisticexpialidocious".size
+            .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
         
         // Oh look, AI
         if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name)) {
@@ -111,7 +113,7 @@ class haibot extends PircBot {
                 "scoar!",
                 if(0.2.prob) s"$sender++" else "yaaay!"
             )
-        } else if(msg == "yes "+name.makeEasy && 0.5.prob) {
+        } else if(msg == "yes "+name.makeEasy && 0.65.prob) {
             speak(
                 "I knew it!",
                 "woohoo!",
@@ -155,14 +157,14 @@ class haibot extends PircBot {
             speak("that's what she said!")
             
         // ex meh_bot
-        } else if(((msgBag & mehBag).size*0.15 - (msgBag & nomehBag).size*0.3).prob) {
+        } else if(((msgBag & mehBag).size*0.12 - (msgBag & nomehBag).size*0.3).prob) {
             speak("meh.")
         
         // ex aww_bot
         } else if(URLs.size > 0) { 
             val words = URLsWords.map(_.toLowerCase).toSet
            
-            if((((awwwBag & words).size - (noawwwBag & words).size)*0.23).prob) {
+            if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
                 speak(
                     "awww.",
                     "dawww!",
@@ -177,19 +179,23 @@ class haibot extends PircBot {
                     "have you tried with monads?",
                     "did you try using a monad?",
                     "make a monad out of it.",
-                    "have you tried adding more monads?"
-                )
+                    "have you tried adding more monads?")
             } else if(msg.contains(" vim ")) {
                 speak(
                     "use pathogen.",
                     "have you tried using pathogen?",
-                    "did you try with pathogen?"
-                )
+                    "did you try with pathogen?")
+            } else if(0.25.prob) {
+                speak(
+                    "I am confused about this also.",
+                    "I don't know... hope this helps.",
+                    "I have no idea... hope this helps.",
+                    "Don't worry, you'll figure it out eventually...")
             }
         }
         
         if(message.startsWith("@event ")) {
-            var dates = message.findAll(Regex.Date) ++ URLsText.findAll(Regex.Date)
+            val dates = message.findAll(Regex.Date) ++ URLsText.findAll(Regex.Date)
             
             //TODO: how do I find the title, boilerpipe?
             val title = message 
@@ -240,12 +246,12 @@ class haibot extends PircBot {
                         if(force) say.map(s=> "I ${dw}on't like it, but "+s)
                         speak(say:_*)
                     } else { //TODO msg types, confusion levels, rephrase lastMsg with filler words and synonyms(wordnet), novelty levels for weights
-                        val fillerList = List(" still", " really", " kind of", " unfortunately")
-                        val filler = if(lastMsg.startsWith("Sorry")) shuffle(fillerList).toList(0) else ""
-                        speak(s"Sorry, I$filler don't know what to do with this.")
+                        def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
+                        speak(s"Sorry, I$fillers don't know what to do with this.")
                     }
                case _ =>
-                   speak("Sorry, I don't know what to do with this.")
+                    def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
+                    speak("Sorry, I$fillers don't know what to do with this.")
             }
         } else if(message.contains("@all") && !users.contains("botko")) {        
             speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
@@ -254,9 +260,7 @@ class haibot extends PircBot {
             var nuMsg = WordNet.rephrase(mssg)
             for(i <- 1 to 3) if(nuMsg==mssg || nuMsg == lastMsg) nuMsg = WordNet.rephrase(mssg)
             
-            speak(
-                if(nuMsg==mssg || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg
-            )
+            speak(if(nuMsg==mssg || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg)
         } else if(message.startsWith("@context ")) {
             val mssg = message.substring("@context ".length)
             if(Regex.URL.findAllIn(message).toList.size > 0) {
@@ -268,8 +272,7 @@ class haibot extends PircBot {
                     speak(
                         s"I think it's about $context.",
                         s"It might be about $context.",
-                        s"It could be about $context."
-                    )
+                        s"It could be about $context.")
                 else
                     speak("I have no idea...", "I don't know what this is about.")
             } else {
@@ -277,6 +280,159 @@ class haibot extends PircBot {
             }
             
         }
+    }
+    
+    var lastPrivMsg = HashMap[String, String]().withDefaultValue("")
+    def speakPriv(message:String, nick:String,msgs:String*) = {
+    
+        import sys.process._
+        val nickClean = nick.replaceAll("[^a-zA-Z]", "")
+        (Seq("echo", nickClean+" "+message) #>> new File("chat_"+nickClean+".log")).!!
+    
+        shuffle(msgs.toBuffer - lastPrivMsg(nick)).headOption.map(newMsg => {
+            Thread.sleep(500+nextInt(500*2))
+            sendMessage(nick, newMsg)
+            lastPrivMsg(nick) = newMsg
+            (Seq("echo", name+" "+newMsg) #>> new File("chat_"+nickClean+".log")).!!
+        })
+    }
+
+    override def onPrivateMessage(sender:String, login:String, hostname:String, message:String) {
+        if(users contains sender) message.makeEasy.replaceAll(
+            "i'm"->"i am", 
+            "i've"->"i have", 
+            "i'll"->"i will", 
+            "i'd"->"i would",
+            "i was"->"i am", //TODO - seems to work
+            "gonna"->"going to", 
+            "they're"->"they are", 
+            "we're"->"we are",
+            "don't"->"dont"
+        ).split(" ").toList match {
+            case List("hello") | List("hi") => speakPriv(message, sender,
+                    "How do you do?",
+                    "Hi. How are you?")
+            case "i"::"am"::x => 
+                if(x.length>0 && x(0).endsWith("ing")) { // doING something
+                    val x2 = x.map(w=> if(List("my","mine").contains(w)) "your" else w)
+                    //Memory <= (IsVerbing, x2.mkString(" "))
+                    speakPriv(message, sender,
+                        "How does "+x2.mkString(" ")+" make you feel?",
+                        "How long have you been "+x2.mkString(" ")+"?")
+                } else if(x.length>0 && List("a","an","the").contains(x(0))) { // being A something
+                    //Memory <= (IsNoun, x.mkString(" "));
+                    speakPriv(message, sender,
+                        "How long have you been "+x.mkString(" ")+"?",
+                        "How does being "+x.mkString(" ")+" make you feel?")
+                } else if(x.length==1) {
+                    //Memory <= (IsNoun, x.mkString(" "));
+                    speakPriv(message, sender,
+                        "How long have you been "+x.mkString(" ")+"?")
+                } else {
+                    speakPriv(message, sender,
+                        "How does that make you feel?",
+                        "How long have you been "+x.mkString(" ")+"?")
+                }
+            case "i"::"feel"::"like"::x => 
+                    if(x.length>0 && x(0)=="my") 
+                        speakPriv(message, sender,
+                            "Why do you think your "+x.tail.mkString(" ")+"?")
+                    else 
+                        speakPriv(message, sender,
+                            "What makes you think that?",
+                            "Why do you think that is?")
+            case "i"::"feel"::x => 
+                    speakPriv(message, sender,
+                        "How long have you been feeling"+x.mkString(" ")+"?",
+                        if(x.length>1) "Does anyone else you know "+x(0)+" "+x.tail.mkString(" ")+"?" else
+                        "Why do you feel that way?")
+            case "i"::"dont"::x => 
+                speakPriv(message, sender,
+                    "Why don't you "+x.mkString(" ")+"?")
+            case "i"::"would"::x => 
+                speakPriv(message, sender,
+                    "Why don't you?")
+            case "i"::verb::x =>
+                speakPriv(message, sender,
+                    "Tell me more about "+x.mkString(" ")+".",
+                    "Does anyone else you know "+verb+" "+x.mkString(" ")+"?")
+            case w1::"you"::x::"me"::_ => 
+                speakPriv(message, sender,
+                    "What makes you think I "+x+" you?",
+                    "Why do you think I "+x+" you?")
+            case w1::w2::"you"::x::"me"::_ => 
+                speakPriv(message, sender,
+                    "What makes you think I "+x+" you?")
+            case "they"::"are"::x::_ => 
+                speakPriv(message, sender,
+                    "Why do you think they're "+x+"?")
+            case "because"::_ => 
+                //val mem = Memory->(IsVerbing)
+                speakPriv(message, sender,
+                    //if(mem.isDefined) {
+                    //    "OK. would you like to talk about "+mem.get+"?"
+                    //} else
+                    "I understand... would you like to talk about something else?",
+                    "OK... but how does that make you feel?"
+                )
+            case "since"::x => 
+                speakPriv(message, sender,
+                    "What did you do before that?"
+                )
+            case "for"::"instance"::x => 
+                    if(x.length > 1) 
+                        speakPriv(message, sender,"Can you think of any other examples?") //for instance, bla bla bla
+                    else 
+                        speakPriv(message, sender, //"lets talk about something else" "for instance?"
+                            "Let's talk about what you're doing",
+                            "How are your life plans progressing",
+                            "What can you tell me about yourself?",
+                            {
+                                //val memNoun = Memory->(IsNoun)
+                                //val memVerb = Memory->(IsVerbing)
+
+                                //if(memNoun.isDefined) "Let's talk more about you being "+memNoun.get+"." else
+                                //if(memVerb.isDefined) "Let's talk about "+memVerb.get+" some more." else
+                                "Please tell me more."
+                            }
+                        )
+            case "for"::x => 
+                speakPriv(message, sender,
+                    if(x.contains("years")||x.contains("long")||x.contains("while")) 
+                        "What can you recall from before that?"
+                    else 
+                        "What did you think before that?"
+                )
+            case "yes"::x => 
+                speakPriv(message, sender,
+                    "You seem sure...",
+                    "Are you certain?",
+                    "Are you sure?")
+            case "no"::x => 
+                speakPriv(message, sender,
+                    "Why not?")
+            case x => 
+                if(x.contains("you")) speakPriv(message, sender,
+                    "Lets talk about something else...",
+                    "Do you really think that about me?") //TODO
+                else {
+                    //val memNoun = Memory->(IsNoun)
+                    //val memVerb = Memory->(IsVerbing)
+                    speakPriv(message, sender,
+                    //if(memNoun.isDefined) {
+                    //    speak(
+                    //        "Let's talk more about you being "+memNoun.get+".")
+                    //} else
+                    "Let's change the topic.",
+                    "Let's change the topic...",
+                    //if(memVerb.isDefined) {
+                    //    speak(
+                    //        "Let's talk about "+memVerb.get+" some more.")
+                    //} else
+                    "Why is that?",
+                    "Please tell me more.")
+                }
+        }    
     }
 }
 
