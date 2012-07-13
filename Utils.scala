@@ -38,12 +38,12 @@ object Utils {
     }
 
     // hashmap with default value
-    class HashMapDef[A,B](defVal:B) extends HashMap[A,B] {
+    /*class HashMapDef[A,B](defVal:B) extends HashMap[A,B] {
         override def default(key:A) = defVal
     }
     implicit class HashMap2Def[A,B](hm:HashMap[A,B]) { //TODO: copy values or something
         def withDefaultValue(defVal:B) = new HashMapDef[A,B](defVal)
-    }
+    }*/
     
     implicit class Seqs[A](s:Seq[A]) { 
         def random = s(nextInt(s.size)) 

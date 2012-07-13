@@ -25,8 +25,8 @@ if [ ! -e "langdetect/lib/langdetect.jar" ]; then
 fi
 cp+=":langdetect/lib/langdetect.jar"
 
-args="$2"
-bot="`basename $1 .scala`"
+args="$1"
+bot="`basename haibot .scala`"
 
 compile() {
     echo "compiling $bot"

@@ -157,7 +157,7 @@ class haibot extends PircBot {
             speak("that's what she said!")
             
         // ex meh_bot
-        } else if(((msgBag & mehBag).size*0.12 - (msgBag & nomehBag).size*0.3).prob) {
+        } else if((((msgBag & mehBag).size-1)*0.15 - (msgBag & nomehBag).size*0.3).prob) {
             speak("meh.")
         
         // ex aww_bot
@@ -241,7 +241,7 @@ class haibot extends PircBot {
                         )
                     } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
                         msgs + (nick, msg2.mkString(" "))
-                        var say = List("k.", "it shall be done.", "ay-ay.")
+                        var say = List("k.", "it shall be done.", "ay-ay!")
                         val dw = if(0.5.prob) "d" else "w"
                         if(force) say.map(s=> "I ${dw}on't like it, but "+s)
                         speak(say:_*)
