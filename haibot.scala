@@ -27,7 +27,7 @@ class haibot extends PircBot {
     this.joinChannel(chan)
 
     val msgs = Store(folder+"msgs.db")
-    def getMsgs(nick:String) = (msgs ?- nick).foreach(msg=> speak(nick+": "+msg))
+    def getMsgs(nick:String) = (msgs ?- nick.toLowerCase.dropRight(1)).foreach(msg=> speak(nick+": "+msg))
 
     val events = Store(folder+"events.db")
 
@@ -45,6 +45,37 @@ class haibot extends PircBot {
     def mehBag = fromFile(folder+"meh.db").toSet
     def nomehBag = fromFile(folder+"nomeh.db").toSet
     def mustNotBeNamed = fromFile(folder+"dontmention.db").toSet
+    
+    var twitterCheck = 0
+    def trusted = fromFile(folder+"trusted.db").toSet
+    import sys.process._
+    def checkTwitter = {
+        if(since(twitterCheck) > 11*60*1000) {
+            val mentions = (Seq("t", "mentions").!!).trim
+            if(mentions(0)=='@') {
+                val lastTw = fromFile(folder+"lasttweet.db").head
+                val mentionsL = mentions.replaceAll("\n   ", " ").split("\n").map(_.trim).takeWhile(_!=lastTw)
+                if(mentionsL.size > 0) {
+                    setLastTweet(mentionsL.head)
+                    mentionsL.map(a => {
+                        val (name,msg) = a.splitAt(a.indexOf(" "))
+                        speak(name.drop(1) + " on Twitter says:" + msg)
+                    })
+                }
+            }
+            twitterCheck = now
+        }
+    }
+    def setLastTweet(tw:String) = (Seq("echo", tw) #> new File(folder+"lasttweet.db")).!!
+    
+    var tweetScore = Set[String]()
+    var tweetPlsScore = Set[String]()
+    var tweetNegScore = Set[String]()
+    var tweetMsg = ""
+    var tweetId = ""
+    var tweetLim = 2
+    
+    
 
     var userList = Set[String]()
     def users = {
@@ -58,7 +89,7 @@ class haibot extends PircBot {
     var lastMsg = ""
     def speak(msgs:String*) = {
         shuffle(msgs.toBuffer - lastMsg).headOption.map(newMsg => {
-            Thread.sleep(777+nextInt(777*2))
+            Thread.sleep(543+nextInt(654*2))
             sendMessage(chan, newMsg)
             lastMsg = newMsg
         })
@@ -93,7 +124,7 @@ class haibot extends PircBot {
             .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
         
         // Oh look, AI
-        if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name)) {
+        if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
             speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
             exit(0)
         } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (0.35.prob || (0.85.prob && mentions.contains(name)))) {
@@ -222,9 +253,81 @@ class haibot extends PircBot {
         } else if(message.startsWith("-event ")) {
             var rem = events ?- message.substring("-event ".length) //TODO: lolwat
             speak("I have removed "+rem.length+" event"+(if(rem.length!=1) "s" else ""))
+        } else if(message.startsWith("@yes") || message.startsWith("@maybe") || message.startsWith("@please")) {
+            if(message.startsWith("@yes") || (message.startsWith("@maybe") && nextFloat<0.5))
+                if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) tweetScore = tweetScore ++ Set(sender)            
+            
+            var beggedBefore = false
+            if(message.startsWith("@please")) {
+                beggedBefore = (tweetPlsScore contains sender)
+                if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) tweetPlsScore = tweetPlsScore ++ Set(sender)
+            }
+            if(beggedBefore && nextFloat<0.4) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
+            
+            import sys.process._
+            def limiter = (!beggedBefore && message.startsWith("@please") && nextFloat<0.22) || (tweetScore.size-tweetNegScore.size>=tweetLim)            
+            if(tweetMsg == null && (tweetId matches "[0-9]*") && limiter) {
+                val ret = Seq("t", "retweet", tweetId).!
+                if(ret==0) 
+                    speak("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
+                else
+                    speak("Failed to retweet :/")
+                    
+                tweetScore = Set()
+                tweetNegScore = Set()
+                tweetPlsScore = Set()
+                tweetMsg = ""
+            } else if(tweetMsg != null && tweetMsg.size>=1 && tweetMsg.size<=140 && limiter) {
+                val ret = Seq("t", "update", tweetMsg).!
+                val ret2 = Seq("fbcmd", "PPOST", "361394543950153", tweetMsg).!
+                
+                (ret,ret2) match {
+                    case (0,0) => speak("It is done.", "It's done", "I tweeted it, and facebook'd it!", "Posted it.")
+                    case (0,_) => speak("Tweeted it, but facebooking failed!")
+                    case (_,0) => speak("Facebook'd it, but tweeting failed!")
+                    case (_,_) => speak("Failed to post anywhere :(")
+                }
+
+                tweetScore = Set()
+                tweetNegScore = Set()
+                tweetPlsScore = Set()
+                tweetMsg = ""
+            }
+        } else if(message.startsWith("@no")) {
+            tweetNegScore = tweetNegScore ++ Set(sender)
+        } else if(URLs.filter(a=> a matches "https?://(www\\.)?twitter\\.com/.*/status/[0-9]*.*").size==1) {
+            val url = URLs.filter(a=> a matches "https?://(www\\.)?twitter\\.com/.*/status/[0-9]*.*").head
+            tweetMsg = null
+            tweetId = url.substring(url.lastIndexOf("/")+1).takeWhile(_.toString matches "[0-9]")
+            tweetScore = Set(sender)
+            tweetNegScore = Set()
+            tweetPlsScore = Set()
+            tweetLim = 3
+            speak("Want me to retweet that?", "Should I retweet that?")
+        } else if(message.startsWith("@world ")) {
+            val tweet = message.drop("@world ".length)
+            if(tweet.size>=1 && tweet.size<=140) {
+                speak(
+                    "Someone pls confirm.",
+                    "I need a vote.",
+                    "Someone say @yes or @no."
+                )
+                tweetMsg = tweet
+                tweetScore = Set(sender)
+                tweetNegScore = Set()
+                tweetPlsScore = Set()
+                tweetLim = if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) 2 else 3
+                if(tweetLim>2) {
+                    speak("Also, I don't think I know you... I need positive "+(tweetLim-1)+" votes for you")
+                }
+             } else {
+                speak(
+                    "That's too long to tweet, you twit! ("+tweet.size+" char)"
+                )
+            }
         } else if(message.startsWith("@msg ")) {
             message.split(" ").toList match {
-                case "@msg"::nick::msg =>
+                case "@msg"::nick::msg =>                   
                     val force = msg.length>0 && msg(0)=="-f"
                     val msg2 = if(force) msg.tail else msg
                     if(!force && (nick == name || nick == sender)) {
@@ -240,7 +343,7 @@ class haibot extends PircBot {
                             "hey, "+nick+"... "+msg2.mkString(" ").toUpperCase
                         )
                     } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
-                        msgs + (nick, msg2.mkString(" "))
+                        msgs + (nick.dropRight(1).toLowerCase, msg2.mkString(" "))
                         var say = List("k.", "it shall be done.", "ay-ay!")
                         val dw = if(0.5.prob) "d" else "w"
                         if(force) say.map(s=> "I ${dw}on't like it, but "+s)
@@ -253,7 +356,7 @@ class haibot extends PircBot {
                     def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
                     speak("Sorry, I$fillers don't know what to do with this.")
             }
-        } else if(message.contains("@all") && !users.contains("botko")) {        
+        } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
             speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
         } else if(message.startsWith("@reword ")) {
             val mssg = message.substring("@reword ".length)
@@ -280,6 +383,7 @@ class haibot extends PircBot {
             }
             
         }
+        checkTwitter
     }
     
     var lastPrivMsg = HashMap[String, String]().withDefaultValue("")
