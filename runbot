@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Hai!"
+
 #pircbot
 cp="pircbot.jar:."
 
@@ -38,6 +40,9 @@ if [ ! -e "lib/prolog/wn_ant.db" ]; then
     cd ..
     [ ! -e "lib/prolog" ] && echo "getting $wn failed" && exit
 fi
+
+if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t the twitter client."; fi
+if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd the twitter client."; fi
 
 args="$1"
 bot="haibot"
