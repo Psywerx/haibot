@@ -1,25 +1,36 @@
-----------
-  haibot 
-----------
+--------
+ haibot 
+--------
+
+A sort-of cool IRC bot.
 Databases not included as that would take the magic out of him.
 Also, your computer can probably get hacked through this bot :)
 
-Check the sources for extra files you might need and figure it out.
-.haibot - settings... "key value" store
-tasks.db - used for @msgs, can be empty
-events.db - used for @event, can be empty
-awww.db - words that might appear in sites with cute pictues. 
-noawww.db - words that negate the cuteness (it used to think tentacle rape was cute)
-meh.db - words that might appear in sentences you'd say "meh." to.
-nomeh.db - some things just are awesome... negate the mehness.
-twss.db - some snippets that would make one say "that's what she said".
-badexts.db - just some ".ext" stuff you don't want to even consider downloading.
-bros.db - names of other bots or actual bros on channel.
-dontmention.db - don't mention these names, because it annoys them or smth.
-stoplist.db - stopwords for some text processing
+Check the sources for what it does and what you might need to start it.
+I realize it's a lot to ask, but you must work to get to know this guy ;)
 
-Some libs that are used:
-boilerpipe - the article extractor library
-langdetect - not used yet, but will be
-WordNet - Prolog version... easier to parse than the actual one :)
+Last time I updated this README the extra files were:
+.haibot - IRC & other settings... "key value", keys are: folder,name,serv,chan,owner
+<folder from .haibot>/
+    tasks.db - used for @msgs, can be empty
+    events.db - used for @event, can be empty (also doesn't really work)
+    lasttweets.db - used by the twitter part, will be autopopulated if t is setup
+    trusted.db - list of names that can maybe do a bit more than the unknowns.
+    awww.db - words that might appear in sites with cute pictues and such. 
+    noawww.db - words that negate the cuteness (e.g. dolphin rape caves)
+    meh.db - words that might appear in sentences you'd say "meh." to.
+    nomeh.db - some things just are awesome... negate the mehness.
+    twss.db - some snippets that would make one say "that's what she said".
+    bros.db - names of other bots or actual bros on channel.
+    dontmention.db - don't mention these names, because it might annoy them.
+utils/
+    badexts.db - some extensions you don't want to even consider downloading
+    stoplist.db - stopwords for some text processing
+    weights - some weights for wordnet tables
+    
 
+And the used libs were:
+    boilerpipe - the article extractor library -- autodownloaded
+    WordNet - lexical db for English (prolog version) -- autodownloaded
+    t - twitter CLI client -- you need to set it up manually
+    fbcmd - facebook CLI client -- also manually.

@@ -8,6 +8,7 @@ import scala.util.matching._
 import scala.util.Random._
 
 object Utils {
+    val folder = "utils/"
     //TODO: pack each thing up with imports it needs, so you can copy-paste and such
 
     /// Pimped types
@@ -78,7 +79,7 @@ object Utils {
         import de.l3s.boilerpipe.extractors._
         val extractor = KeepEverythingExtractor.INSTANCE
         
-        def badExts = io.Source.fromFile("badexts.db").getLines.toBuffer
+        def badExts = io.Source.fromFile(folder+"badexts.db").getLines.toBuffer
         def scrapeURLs(urls:String*):String = { //TODO: ni se mi dal :)
             urls.map(
                 _.findAll(Regex.URL).map(url => 
@@ -119,7 +120,7 @@ object Utils {
         //These take a while at startup... make them lazy if it bothers you
         //format is (id,word,type)... I should probably keep type
         type wn_s = (Int,String,Char)
-        val wn_sAll = io.Source.fromFile("prolog/wn_s.db").getLines.toList.map(_.split(",")).map(e=> (e(0).toInt,e(2).init.tail.replaceAll("''","'"),e(3)(0)))
+        val wn_sAll = io.Source.fromFile("lib/prolog/wn_s.db").getLines.toList.map(_.split(",")).map(e=> (e(0).toInt,e(2).init.tail.replaceAll("''","'"),e(3)(0)))
         val wn_sById = wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]())
         val wn_sByWord = wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]())
         
@@ -179,13 +180,13 @@ object Utils {
         def preprocess(w:String):List[String] = 
             stem(w).flatMap(e=> List(e, e.toLowerCase)).distinct
         
-        def getMapFromwn(dbName:String) = io.Source.fromFile(dbName).getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e=> e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
-        val wn = List("hyp","sim","ins","mm","ms","mp","at","der").map(e=> e -> getMapFromwn(s"prolog/wn_$e.db")).toMap
-        val stoplist = io.Source.fromFile("stoplist.db").getLines.toSet ++ Set("answer", "test", "issue", "start", "publication")
+        def getMapFromwn(dbName:String) = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e=> e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
+        val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e=> e -> getMapFromwn(s"wn_$e.db")).toMap
+        val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet ++ Set("answer", "test", "issue", "start", "publication")
         
         var weights = getWeights
         def getWeights = {
-            val file = io.Source.fromFile("weights")
+            val file = io.Source.fromFile(folder+"weights")
             val out = file.getLines.toList.map(_.split(" ")).map(e=> (e(0), e(1).toFloat)).toMap
             file.close
             out

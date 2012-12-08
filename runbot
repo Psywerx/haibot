@@ -5,34 +5,53 @@ cp="pircbot.jar:."
 
 #boilerpipe
 bp="boilerpipe-1.2.0"
-if [ ! -e "$bp/$bp.jar" ]; then
-    echo "trying to get boilerpipe"
+if [ ! -e "lib/$bp/$bp.jar" ]; then
+    echo "trying to get $bp"
+    mkdir lib &> /dev/null
+    cd lib
     wget https://boilerpipe.googlecode.com/files/$bp-bin.tar.gz &> /dev/null
     tar xvzf $bp-bin.tar.gz &> /dev/null
     rm $bp-bin.tar.gz &> /dev/null
-    [ ! -e "$bp/$bp.jar" ] && echo "boilerpipe not present" && exit
+    cd ..
+    [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit
 fi
-cp+=":$bp/$bp.jar:$bp/lib/nekohtml-1.9.13.jar:$bp/lib/xerces-2.9.1.jar"
+cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
 
-#langdetect
-ldet="langdetect"
-if [ ! -e "langdetect/lib/langdetect.jar" ]; then
-    echo "trying to get langdetect"
-    wget http://language-detection.googlecode.com/files/langdetect-09-13-2011.zip &> /dev/null
-    unzip langdetect-09-13-2011.zip -d langdetect &> /dev/null
-    rm langdetect-09-13-2011.zip &> /dev/null
-    [ ! -e "langdetect/lib/langdetect.jar" ] && echo "langdetect not present" && exit
+#prolog wordnet db
+wn="WNprolog-3.0"
+if [ ! -e "lib/prolog/wn_ant.db" ]; then
+    echo "trying to get $wn"
+    mkdir lib &> /dev/null
+    cd lib
+    wget http://wordnetcode.princeton.edu/3.0/$wn.tar.gz &> /dev/null
+    tar xvzf $wn.tar.gz &> /dev/null
+    rm $wn.tar.gz &> /dev/null
+    if [ -e "prolog/wn_ant.pl" ]; then
+        cd prolog
+        #strip prolog syntax
+        for db in *.pl; do
+            skip=$( echo `expr length $db`-6+2 | bc )
+            cat $db | cut -b $skip- | awk 'sub("..$", "")' > `basename $db .pl`.db
+        done
+        cd ..
+    fi
+    cd ..
+    [ ! -e "lib/prolog" ] && echo "getting $wn failed" && exit
 fi
-cp+=":langdetect/lib/langdetect.jar"
 
 args="$1"
-bot="`basename haibot .scala`"
+bot="haibot"
+outdir="bin"
+cp+=":$outdir"
+logdir="logs"
+mkdir $logdir &> /dev/null
+mkdir $outdir &> /dev/null
 
 compile() {
     echo "compiling $bot"
-    mkdir bin &> /dev/null
-    cp+=":bin"
-    scalac -Yinline-warnings -deprecation -optimise -d bin -cp $cp Utils.scala $bot.scala
+    rm -rf $outdir &> /dev/null
+    mkdir $outdir &> /dev/null
+    scalac -Xlint -Yinline-warnings -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala
 }
 
 run() {
@@ -40,11 +59,11 @@ run() {
     case "$args" in
         -c) echo "not gonna run $bot.";;
         -f) echo "running $bot..." && $runcmd;;
-         *) echo "putting $bot into background..." && { $runcmd &>> $bot.log & }
+         *) echo "putting $bot into background..." && { $runcmd &>> $logdir/$bot.log & }
     esac
 }
 
-if [ $bot.scala -nt bin/haibot/$bot.class ] || [ "$args" == "-c" ]; then
+if [[ $bot.scala -nt $outdir/haibot/$bot.class ]] || [[ Utils.scala -nt $outdir/haibot/Utils.class ]] || [[ "$args" == "-c" ]]; then
     compile && run
 else
     run
