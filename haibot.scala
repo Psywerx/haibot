@@ -45,9 +45,10 @@ class haibot extends PircBot {
     def mehBag = fromFile(folder+"meh.db").toSet
     def nomehBag = fromFile(folder+"nomeh.db").toSet
     def mustNotBeNamed = fromFile(folder+"dontmention.db").toSet
+    def girls = fromFile(folder+"girls.db").toSet
     
     var twitterCheck = 0
-    def trusted = fromFile(folder+"trusted.db").toSet
+    def trusted = fromFile(folder+"trusted.db").map(_.toLowerCase).toSet
     import sys.process._
     def checkTwitter(force:Boolean=false) = {
         if(since(twitterCheck) > 7*60*1000 || force) {
@@ -108,10 +109,14 @@ class haibot extends PircBot {
     override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
         if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
             Thread.sleep(1000)
-            if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello!", "hi")
+            if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
             users.foreach(getMsgs)
         } else {
-            if(sender.startsWith(owner) && 0.12.prob) speak("welcome, father.", "welcome back!", "hi, you")
+            if(sender.startsWith(owner) && 0.10.prob) speak(
+                "welcome, father"+".".maybe, 
+                "welcome back!", 
+                "hi, you"+"!".maybe, 
+                s"I've missed you, $sender"+".".maybe)
             getMsgs(sender)
         }
     }
@@ -127,13 +132,14 @@ class haibot extends PircBot {
             .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
             .split("\\s")
             .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
+        val isSenderGirl = girls.contains(sender.toLowerCase.replaceAll("[^a-z]",""))
         
         // Oh look, AI
         if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
             speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
             exit(0)
         } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (0.35.prob || (0.85.prob && mentions.contains(name)))) {
-            var responses = ListBuffer[String]("ohai :)", "hello!")
+            var responses = ListBuffer[String]("ohai :)", "hello!", "hi!", "hi there")
             if(mentions.contains(name)) 
                 responses ++= List(s"ohai $sender!", s"hai $sender!",s"hi $sender!")
             if(!mentions.contains(name) && mentions.size>0) 
@@ -149,7 +155,7 @@ class haibot extends PircBot {
                 "scoar!",
                 if(0.2.prob) s"$sender++" else "yaaay!"
             )
-        } else if(msg == "yes "+name.makeEasy && 0.65.prob) {
+        } else if(msg.startsWith("yes "+name.makeEasy) && 0.65.prob) {
             speak(
                 "I knew it!",
                 "woohoo!",
@@ -165,13 +171,15 @@ class haibot extends PircBot {
             )
         } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && 0.6.prob) {
             speak(
-                "oooh, is that a regex? I <3 regexes!",
-                "Regex! My favorite thing!",
-                "mmm, regexes!",
-                "wow, I wonder what that matches."
+                "oooh, is that a regex? I "+Seq("<3","love").random+" regexes!",
+                "Regex! My favorite thing!"+"!".maybe,
+                "m".maybe+"mmm, regexes!",
+                "wow, ".maybe+"I wonder what that matches"
             )
             
         // naughty part
+        } else if(msg.contains("i need an adult") && 0.88.prob) { 
+            speak("I am an adult!")
         } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,4) && 0.7.prob) { 
             speak(
                 "how does "+sentences(0).trim+" feel?",
@@ -193,7 +201,7 @@ class haibot extends PircBot {
             speak("that's what she said!")
             
         // ex meh_bot
-        } else if((((msgBag & mehBag).size-1)*0.15 - (msgBag & nomehBag).size*0.3).prob) {
+        } else if((((msgBag & mehBag).size-1)*0.15 - (msgBag & nomehBag).size*0.33).prob) {
             speak("meh.")
         
         // ex aww_bot
@@ -202,31 +210,44 @@ class haibot extends PircBot {
            
             if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
                 speak(
-                    "awww.",
-                    "dawww!",
-                    "lol, cute :)",
+                    "awww"+"w".maybe+".".maybe,
+                    "dawww"+"w".maybe+"!".maybe,
+                    "how cute"+"!".maybe+" ^_^",
+                    "lol, cute "+Seq(":)", "^_^").random,
                     "so. cute.",
-                    if((words & Set("fluffy","puffy")).size > 0) Memes.so_fluffy else "aww!"
+                    if((words & Set("fluff","puff")).size > 0) Memes.so_fluffy else "aww!"
                 )
             }
-        } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && 0.5.prob) {
+        } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && !(msg.contains("show")) && 0.5.prob) {
             if(msg.contains("haskell") && !msg.contains("monad")) {
                 speak(
                     "have you tried with monads?",
                     "did you try using a monad?",
                     "make a monad out of it.",
                     "have you tried adding more monads?")
-            } else if(msg.contains(" vim ")) {
+            } else if(msg.contains(" vim")) {
                 speak(
                     "use pathogen.",
                     "have you tried using pathogen?",
                     "did you try with pathogen?")
-            } else if(0.25.prob) {
+            } else if(0.27.prob) {
                 speak(
-                    "I am confused about this also.",
-                    "I don't know... hope this helps.",
-                    "I have no idea... hope this helps.",
-                    "Don't worry, you'll figure it out eventually...")
+                    "I am confused about this "+Seq("also", "too").random+".",
+                    "This "+Seq("puzzles", "confuses")+" me "+Seq("also", "too").random+".",
+                    Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
+                    "Don't worry"+" about it".maybe+", you'll figure it out "+Seq("eventually", "with time").random+"...",
+                    "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+"...",
+                    (if(!mentions.isEmpty && 0.8.prob) 
+                        Seq("I don't know","I have no idea").random+
+                        Seq(", ", "...").random+" but " +
+                        mentions.toSeq.random +
+                        " might."
+                     else
+                        Seq("Have you tried ","Did you try ").random +
+                        Seq("searhing the ","looking on the ","querying the").random +
+                        Seq("internet","internets","intarwebs","cyberspace","electronic noosphere","information super-highway").random + "?"
+                    )
+                    )
             }
         }
         
@@ -325,6 +346,7 @@ class haibot extends PircBot {
                 tweetLim = 2
                 speak(
                     "Someone pls confirm.",
+                    "Please confirm.",
                     "I need a vote.",
                     "Someone say @yes or @no."
                 )
@@ -345,6 +367,7 @@ class haibot extends PircBot {
             if(tweet.size>=1 && tweet.size<=140) {
                 speak(
                     "Someone pls confirm.",
+                    "Please confirm.",
                     "I need a vote.",
                     "Someone say @yes or @no."
                 )
@@ -354,7 +377,7 @@ class haibot extends PircBot {
                 tweetPlsScore = Set()
                 tweetLim = if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) 2 else 3
                 if(tweetLim>2) {
-                    speak("Also, I don't think I know you... I need positive "+(tweetLim-1)+" votes for you")
+                    speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
                 }
              } else {
                 speak(
@@ -364,7 +387,7 @@ class haibot extends PircBot {
         } else if(message.startsWith("@msg ")) {
             message.split(" ").toList match {
                 case "@msg"::nick22::msg =>                   
-                    val nick = nick22.replaceAll(":", "")
+                    val nick = nick22.replaceAll(":,.@", "")
                     val force = msg.length>0 && msg(0)=="-f"
                     val msg2 = if(force) msg.tail else msg
                     if(!force && (nick == name || nick == sender)) {
@@ -381,9 +404,13 @@ class haibot extends PircBot {
                         )
                     } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
                         msgs + (nick.dropRight(1).toLowerCase, msg2.mkString(" "))
-                        var say = List("k.", "it shall be done.", "ay-ay!")
+                        var say = List(
+                            "o".maybe+"k"+".".maybe, 
+                            "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
+                            "ay"+"-ay".maybe+Seq(" cap'n", "captain").random.maybe+"!", 
+                            Seq("sure", "ok").random+",I'll tell "+(if(isSenderGirl) "her" else "him")+".".maybe)
                         val dw = if(0.5.prob) "d" else "w"
-                        if(force) say.map(s=> "I ${dw}on't like it, but "+s)
+                        if(force) say.map(s=> s"I ${dw}on't like it, but "+s)
                         speak(say:_*)
                     } else { //TODO msg types, confusion levels, rephrase lastMsg with filler words and synonyms(wordnet), novelty levels for weights
                         def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
@@ -391,7 +418,7 @@ class haibot extends PircBot {
                     }
                case _ =>
                     def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
-                    speak("Sorry, I$fillers don't know what to do with this.")
+                    speak(s"Sorry, I$fillers don't know what to do with this.")
             }
         } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
             speak((users.toBuffer -- mustNotBeNamed).mkString(", "))

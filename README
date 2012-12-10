@@ -4,15 +4,14 @@
 
 A sort-of cool IRC bot.
 Databases not included as that would take the magic out of him.
-Also, your computer can probably get hacked through this bot :)
-
 Check the sources for what it does and what you might need to start it.
 I realize it's a lot to ask, but you must work to get to know this guy ;)
+Also, your computer can probably get hacked through this bot :)
 
 Last time I updated this README the extra files were:
 .haibot - IRC & other settings... "key value", keys are: folder,name,serv,chan,owner
 <folder from .haibot>/
-    tasks.db - used for @msgs, can be empty
+    msgs.db - used for @msgs, can be empty
     events.db - used for @event, can be empty (also doesn't really work)
     lasttweets.db - used by the twitter part, will be autopopulated if t is setup
     trusted.db - list of names that can maybe do a bit more than the unknowns.
@@ -23,6 +22,7 @@ Last time I updated this README the extra files were:
     twss.db - some snippets that would make one say "that's what she said".
     bros.db - names of other bots or actual bros on channel.
     dontmention.db - don't mention these names, because it might annoy them.
+    girls.db - to phrase certain replies correctly. Not trying to be creepy :)
 utils/
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing

@@ -20,6 +20,7 @@ object Utils {
         def endsWithAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
         def sentences = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
         def makeEasy = s.toLowerCase.map(a=>("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll(", ", " ")
+        def maybe = if(0.5.prob) s else ""
         def findAll(r:Regex) = r.findAllIn(s).toList
         def removeAll(rem:String) = s.filterNot(rem contains _)
         def distance(s2:String):Int = distance(s,s2)
