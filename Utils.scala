@@ -38,6 +38,9 @@ object Utils {
                     ).min
         }    
     }
+    
+    implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args:Any*):String = sc.parts.iterator.mkString("").maybe }
+    implicit class PimpInt(val i:Int) extends AnyVal { def ~(j:Int) = nextInt(j-i+1)+i }
 
     // hashmap with default value
     /*class HashMapDef[A,B](defVal:B) extends HashMap[A,B] {
