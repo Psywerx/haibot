@@ -46,6 +46,7 @@ class haibot extends PircBot {
     def nomehBag = fromFile(folder+"nomeh.db").toSet
     def mustNotBeNamed = fromFile(folder+"dontmention.db").toSet
     def girls = fromFile(folder+"girls.db").toSet
+    def isGirl(s:String) = girls.contains(s.toLowerCase.replaceAll("[^a-z]",""))
     
     var twitterCheck = 0
     def trusted = fromFile(folder+"trusted.db").map(_.toLowerCase).toSet
@@ -132,7 +133,6 @@ class haibot extends PircBot {
             .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
             .split("\\s")
             .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
-        val isSenderGirl = girls.contains(sender.toLowerCase.replaceAll("[^a-z]",""))
         
         // Oh look, AI
         if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
@@ -233,7 +233,7 @@ class haibot extends PircBot {
             } else if(0.27.prob) {
                 speak(
                     "I am confused about this "+Seq("also", "too").random+".",
-                    "This "+Seq("puzzles", "confuses")+" me "+Seq("also", "too").random+".",
+                    "This "+Seq("puzzles", "confuses").random+" me "+Seq("also", "too").random+".",
                     Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
                     "Don't worry"+" about it".maybe+", you'll figure it out "+Seq("eventually", "with time").random+"...",
                     "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+"...",
@@ -279,19 +279,20 @@ class haibot extends PircBot {
         } else if(message.startsWith("-event ")) {
             var rem = events ?- message.substring("-event ".length) //TODO: lolwat
             speak("I have removed "+rem.length+" event"+(if(rem.length!=1) "s" else ""))
-        } else if(message.startsWith("@yes") || message.startsWith("@maybe") || message.startsWith("@please")) {
-            if(message.startsWith("@yes") || (message.startsWith("@maybe") && nextFloat<0.5))
-                if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) tweetScore = tweetScore ++ Set(sender)            
+        // Twitter/FB part
+        } else if(message.startsWithAny("@yes", "@sure", "@maybe", "@please")) {
+            if(message.startsWithAny("@yes", "@sure") || (message.startsWith("@maybe") && 0.5.prob))
+                if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) tweetScore = tweetScore ++ Set(sender)
             
             var beggedBefore = false
             if(message.startsWith("@please")) {
                 beggedBefore = (tweetPlsScore contains sender)
                 if(trusted contains sender.toLowerCase.replaceAll("[0-9_]","")) tweetPlsScore = tweetPlsScore ++ Set(sender)
             }
-            if(beggedBefore && nextFloat<0.4) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
+            if(beggedBefore && 0.4.prob) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
             
             import sys.process._
-            def limiter = (!beggedBefore && message.startsWith("@please") && nextFloat<0.22) || (tweetScore.size-tweetNegScore.size>=tweetLim)            
+            def limiter = (!beggedBefore && message.startsWith("@please") && 0.25.prob) || (tweetScore.size-tweetNegScore.size>=tweetLim)            
             if(tweetMsg == null && tweetId == null && tweetNames.size>0) {
                 val ret = (Seq("t", "follow") ++ tweetNames).!
                 if(ret==0) 
@@ -361,16 +362,21 @@ class haibot extends PircBot {
             tweetNegScore = Set()
             tweetPlsScore = Set()
             tweetLim = 2
-            speak("Want me to retweet that?", "Should I retweet that?")
+            speak(
+                Seq("Want me to","Should I").random+"retweet "+Seq("this","that").random+"?",
+                "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random+".".maybe,
+                Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
+                "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+"it".maybe+".".maybe,
+                "Someone "+"please".maybe+"confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+".".maybe)
         } else if(message.startsWith("@world ")) {
             val tweet = message.drop("@world ".length)
             if(tweet.size>=1 && tweet.size<=140) {
                 speak(
-                    "Someone pls confirm.",
-                    "Please confirm.",
-                    "I need a vote.",
-                    "Someone say @yes or @no."
-                )
+                    "Someone "+Seq("pls","please","").random+" confirm"+".".maybe,
+                    Seq("Does anyone "+"else ".maybe+"here ".maybe+"think", "Anyone "+"else ".maybe+"here ".maybe+"thinks").random+" it's a good idea to "+Seq("tweet","post").random+Seq(" this"," that").random+"?"+" :)".maybe,
+                    "Do you "+Seq("guise"+(if(!girls.isEmpty)" and gals".maybe else ""), "people").random+" agree that I should "+Seq("tweet","post").random+Seq(" this"," that").random+"?",
+                    "I need a vote"+", before I post this".maybe+".".maybe,
+                    "Someone "+Seq("simply", "should").random.maybe.maybe+"say @yes or @no."+".. @maybe works too.".maybe.maybe.maybe)
                 tweetMsg = tweet
                 tweetScore = Set(sender)
                 tweetNegScore = Set()
@@ -380,9 +386,7 @@ class haibot extends PircBot {
                     speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
                 }
              } else {
-                speak(
-                    "That's too long to tweet, you twit! ("+tweet.size+" char)"
-                )
+                speak("That's too long to tweet, you twit! ("+tweet.size+" char)")
             }
         } else if(message.startsWith("@msg ")) {
             message.split(" ").toList match {
@@ -399,7 +403,7 @@ class haibot extends PircBot {
                         )
                     } else if(!force && users.contains(nick)) {
                         speak(
-                            "dude, "+nick+" is right here...",
+                            (if(isGirl(sender)) "woman, " else "dude, ")+nick+" is right here...",
                             "hey, "+nick+": "+msg2.mkString(" ").toUpperCase
                         )
                     } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
@@ -408,7 +412,7 @@ class haibot extends PircBot {
                             "o".maybe+"k"+".".maybe, 
                             "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
                             "ay"+"-ay".maybe+Seq(" cap'n", "captain").random.maybe+"!", 
-                            Seq("sure", "ok").random+",I'll tell "+(if(isSenderGirl) "her" else "him")+".".maybe)
+                            Seq("sure", "ok").random+", I'll tell "+(if(isGirl(nick)) "her" else "him")+".".maybe)
                         val dw = if(0.5.prob) "d" else "w"
                         if(force) say.map(s=> s"I ${dw}on't like it, but "+s)
                         speak(say:_*)
