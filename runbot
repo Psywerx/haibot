@@ -53,6 +53,12 @@ mkdir $logdir &> /dev/null
 mkdir $outdir &> /dev/null
 
 compile() {
+    echo "static checking :)"
+    echo "  checking if forgot to put Seq(...).random"
+    grep --color=auto -rnE 'Seq[(]([^")]*"[^"]*")*[^)]*[)][ ]*([+][^+]|,[ ]*$)' *.scala
+    echo "  checking if forgot s before string interpolation"
+    grep --color=auto -rnP '[,( +]["]{1,3}(?!.*[,( +]s").*[$][^"|]' *.scala
+
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
