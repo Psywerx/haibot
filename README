@@ -20,7 +20,7 @@ Last time I updated this README the extra files were:
     meh.db - words that might appear in sentences you'd say "meh." to.
     nomeh.db - some things just are awesome... negate the mehness.
     twss.db - some snippets that would make one say "that's what she said".
-    bros.db - names of other bots or actual bros on channel.
+    bots.db - the names of other known bots on the channel.
     dontmention.db - don't mention these names, because it might annoy them.
     girls.db - to phrase certain replies correctly. Not trying to be creepy :)
 utils/
