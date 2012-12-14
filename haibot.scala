@@ -1,5 +1,6 @@
 package haibot
 import Utils._
+import Utils.Date._
 
 import org.jibble.pircbot._
 import collection.mutable.{HashSet,ListBuffer,HashMap}
@@ -12,6 +13,7 @@ import sys.process._
 object haibot extends App { new haibot }
 
 class haibot extends PircBot {
+  var startTime = now
   val config = Store(".haibot").*.toMap
   val (folder,name,chan,serv,owner) = (
     config("folder"), 
@@ -38,6 +40,7 @@ class haibot extends PircBot {
     out
   }
   
+  // TODO: cache them at least for a minute or so
   def sheSaid = fromFile(folder+"twss.db").toList
   def awwwBag = fromFile(folder+"awww.db").toSet
   def noawwwBag = fromFile(folder+"noawww.db").toSet
@@ -56,7 +59,7 @@ class haibot extends PircBot {
   }
   
   var twitterCheck = 0
-  val twitterCheckInterval = 7*60*1000
+  val twitterCheckInterval = 7*60
   def checkTwitter(force:Boolean = false) = {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       val mentions = (Seq("t", "mentions", "-n", "5").!!).trim
@@ -91,7 +94,7 @@ class haibot extends PircBot {
 
   var userList = Set[String]()
   def users = {
-    if(since(userList) > 5000) {
+    if(since(userList) > 5) {
       userList = getUsers(chan).map(_.getNick).toSet
     }
     
@@ -101,7 +104,7 @@ class haibot extends PircBot {
   var lastMsg = ""
   def speak(msgs:String*) = if(!msgs.isEmpty) {
     (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).map(newMsg => {
-      Thread.sleep(543+nextInt(654*2))
+      Thread.sleep(777+nextInt(777*2))
       sendMessage(chan, newMsg)
       lastMsg = newMsg
     })
@@ -114,6 +117,7 @@ class haibot extends PircBot {
   
   var shutdown = false
   override def onDisconnect() {
+    println("onDisconnect: event triggered.")
     var backoff = 1000
     while (!this.isConnected && !shutdown) {
       try {
@@ -121,11 +125,11 @@ class haibot extends PircBot {
         this.joinChannel(chan)
       } catch {
         case e: IOException => 
-          println("it was not possible to connect to the server.")
+          println("onDisconnect: it was not possible to reconnect to the server.")
         case e: IrcException =>
-          println("the server would not let us join it.")
+          println("onDisconnect: the server would not let us join it.")
         case e: NickAlreadyInUseException =>
-          println("our nick is already in use on the server.")
+          println("onDisconnect: our nick is already in use on the server.")
           this.setName(name+"_")
       }
       if(backoff < 60000) backoff += 1000
@@ -134,8 +138,9 @@ class haibot extends PircBot {
   }
 
   override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
+    Thread.sleep(1000)
     if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
-      Thread.sleep(1000)
+      startTime = now
       if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
       users.foreach(getMsgs)
     } else {
@@ -233,7 +238,7 @@ class haibot extends PircBot {
       speak("meh.")
     
     // ex aww_bot
-    } else if(URLs.size > 0) { 
+    } else if(!URLs.isEmpty) { 
       val words = URLsWords.map(_.toLowerCase).toSet
        
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
@@ -241,7 +246,7 @@ class haibot extends PircBot {
           Seq("a","d").random+maybe"a"+"w"*3~6+Seq(".","!"*1~3).random.maybe,
           maybe"lol,"+maybe"how"+" cute "+"!".maybe+Seq(":)", "^_^").random,
           "so. cute.",
-          if((words & Set("fluff","puff")).size > 0) Memes.so_fluffy else "aww!"
+          if(!(words & Set("fluff","puff")).isEmpty) Memes.so_fluffy else "aww!"
         )
       }
     } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && !(msg.contains("show")) && 0.5.prob) {
@@ -278,7 +283,7 @@ class haibot extends PircBot {
     }
     
     if(message.startsWith("@event ")) {
-      val dates = Date.getFutureDates(message) ++ Date.getFutureDates(URLsText)
+      val dates = getFutureDates(message) ++ getFutureDates(URLsText)
       //http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
       //TODO: how do I find the title, boilerpipe?
       val title = message 
@@ -360,7 +365,7 @@ class haibot extends PircBot {
       }
     } else if(message.startsWith("@no")) {
       tweetNegScore = tweetNegScore ++ Set(sender)
-    } else if(message.startsWith("@checktweets")) {
+    } else if(message.startsWithAny("@checktweets", "@tweets")) {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
       val names = message.drop("@follow ".size).replaceAll("@","").split(" ").distinct
@@ -381,10 +386,10 @@ class haibot extends PircBot {
       } else {
         speak("Notsure about this... no.", "Noep, something's not right here")
       }
-    } else if(URLs.filter(a=> a matches "https?://(www\\.)?twitter\\.com/.*/status(es)?/[0-9]*.*").size==1) {
-      val url = URLs.filter(a=> a matches "https?://(www\\.)?twitter\\.com/.*/status(es)?/[0-9]*.*").head
+    } else if(URLs.exists(_ matches Regex.tweet)) {
+      val Regex.tweet(tId) = URLs.find(_ matches Regex.tweet).head
       tweetMsg = null
-      tweetId = url.substring(url.lastIndexOf("/")+1).takeWhile(_.toString matches "[0-9]")
+      tweetId = tId
       tweetScore = Set(sender)
       tweetNegScore = Set()
       tweetPlsScore = Set()
@@ -394,7 +399,7 @@ class haibot extends PircBot {
         "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random++("."+maybe"..").maybe,
         Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
         "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe"it"+maybe".",
-        "Someone "+"please".maybe+"confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
+        "Someone "+maybe"please "+"confirm "+Seq("this", "it", "").random+", and I'll retweet it"+maybe".")
     } else if(message.startsWith("@world ")) {
       val tweet = message.drop("@world ".length)
       if(tweet.size>=1 && tweet.size<=140) {
@@ -417,51 +422,57 @@ class haibot extends PircBot {
       }
     } else if(message.startsWith("@msg ")) {
       message.split(" ").toList match {
-        case "@msg"::nick22::msg =>           
-          val nick = nick22.replaceAll(":,.@", "")
-          val force = msg.length>0 && msg(0)=="-f"
-          val msg2 = if(force) msg.tail else msg
+        case "@msg"::rawNick::rawMsg =>           
+          val nick = rawNick.replaceAll(":,.@", "")
+          val force = !rawMsg.isEmpty && rawMsg.head == "-f"
+          val msg = (if(force) rawMsg.tail else rawMsg).mkString(" ")
           if(!force && (nick == name || nick == sender)) {
             speak(
               "Oh, you...",
-              if(sender.isBot) "Knock it off!" else "Knock it off, meatbag!",
+              if(sender.isBot) "Knock it off, bro!" else "Knock it off, meatbag!",
               Memes.it_was_you,
               Memes.NO_U
             )
           } else if(!force && users.contains(nick)) {
             speak(
               (if(sender.isGirl) "woman, " else "dude, ")+nick+" is right here...",
-              "hey, "+nick+": "+msg2.mkString(" ").toUpperCase
+              "hey, "+nick+": "+msg.toUpperCase+"!"*1~3
             )
-          } else if(msgs.isKey(nick) && msg2.size>0) { //TODO: Stranger-danger, case sensitivity :)
-            msgs + (nick.dropRight(1).toLowerCase, msg2.mkString(" "))
+          } else if(msg.isEmpty) {
+            speak("hmm... but what should I tell "+(if(nick.isGirl) "her" else "him")+"?")
+          } else if(!msgs.isKey(nick)) {
+            speak(s"no offence, but that doesn't really sound like a real name to me.")
+          } else {
+            msgs + (nick, msg.mkString(" "))
             var say = List(
-              "o".maybe+"k"+".".maybe, 
+              maybe"o"+"k"+".".maybe, 
               "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
               "ay"+"-ay".maybe+Seq(" cap'n", "captain").random.maybe+"!", 
               Seq("sure", "ok").random+", I'll tell "+(if(nick.isGirl) "her" else "him")+".".maybe)
-            val dw = if(0.5.prob) "d" else "w"
-            if(force) say.map(s=> s"I ${dw}on't like it, but "+s)
-            speak(say:_*)
-          } else { //TODO msg types, confusion levels, rephrase lastMsg with filler words and synonyms(wordnet), novelty levels for weights
-            def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
-            speak(s"Sorry, I$fillers don't know what to do with this.")
+            
+            speak((if(force) say.map(s => ("I "+Seq("w","d").random+"on't like it, but ").maybe + s) else say):_*)
           }
-         case _ =>
-          def fillers = Seq("", " still", " really", " kind of", " unfortunately").random
-          speak(s"Sorry, I$fillers don't know what to do with this.")
+        case _ =>
+          val butI = (maybe"but"+"I ").maybe
+          val filler = Seq("", butI+"still", butI+"really", butI+"kind of", butI+" unfortunately").random
+          speak(s"Sorry, $filler don't know what to do with this.")
       }
     } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
-    } else if(message.startsWith("@reword ")) {
-      val mssg = message.substring("@reword ".length)
-      var nuMsg = WordNet.rephrase(mssg)
-      for(i <- 1 to 3) if(nuMsg==mssg || nuMsg == lastMsg) nuMsg = WordNet.rephrase(mssg)
-      
-      speak(if(nuMsg==mssg || nuMsg == lastMsg) "Sorry, I've got nothing..." else nuMsg)
+    } else if(message.startsWithAny("@reword ", "@rephrase ")) {
+      val toReword = message.dropWhile(_ != ' ').tail
+      var rephrased = WordNet.rephrase(toReword)
+      def isRepost = (rephrased == toReword || rephrased == lastMsg)
+
+      var maxIters = 5
+      while(maxIters > 0 && isRepost) {
+        rephrased = WordNet.rephrase(toReword)
+        maxIters -= 1
+      }
+
+      speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
     } else if(message.startsWith("@context ")) {
-      val mssg = message.substring("@context ".length)
-      if(Regex.URL.findAllIn(message).toList.size > 0) {
+      if(!URLs.isEmpty) {
          val words = URLsWords.mkString(" ")
           
         println(words)
@@ -474,15 +485,24 @@ class haibot extends PircBot {
         else
           speak("I have no idea...", "I don't know what this is about.")
       } else {
-        speak("Give me some links...", "I require an URL.", "Try that one with a link.")
+        speak("Give me a link...", "I require an URL.", "Try that with a link.")
       }
       
+    } else if(message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") {
+      val mytime = getSinceString(startTime)
+
+      val serverTimeReg = ".*?up ((?:[0-9]+ days,[ ]*)?(?:[0-9:]+)),.*".r ;
+      val serverTimeReg(servertime) = ("uptime".!!).trim.replaceAll("[ ]+", " ")
+
+      speak(maybe"Well, "+"I"+Seq("'ve", " have").random+" been "+Seq("up",maybe"up and "+"running","going").random+s" for $mytime"+maybe" already"+s", but my server has been running for $servertime"+maybe".")
     }
-    checkTwitter()
+    
+    // checks twitter only every few minutes, and only if people are talking on channel
+    checkTwitter() 
   }
   
   var lastPrivMsg = HashMap[String, String]().withDefaultValue("")
-  def speakPriv(message:String, nick:String,msgs:String*) = {
+  def speakPriv(message:String, nick:String, msgs:String*) = {
   
     import sys.process._
     val nickClean = nick.replaceAll("[^a-zA-Z]", "")
@@ -576,7 +596,8 @@ class haibot extends PircBot {
         )
       case "since"::x => 
         speakPriv(message, sender,
-          "What did you do before that?"
+          "What did you do before that?",
+          "Are you sure it wasn't "+Seq("sooner", "later").random+"?"
         )
       case "for"::"instance"::x => 
           if(x.length > 1) 
@@ -622,12 +643,13 @@ class haibot extends PircBot {
           //  speak(
           //    "Let's talk more about you being "+memNoun.get+".")
           //} else
-          "Let's change the topic.",
-          "Let's change the topic...",
+          Seq("Perhaps", "Maybe").random+maybe" you're right",
+          "Let's change the topic"+"."*0~3,
           //if(memVerb.isDefined) {
           //  speak(
           //    "Let's talk about "+memVerb.get+" some more.")
           //} else
+          "You think so?",
           "Why is that?",
           "Please tell me more.")
         }

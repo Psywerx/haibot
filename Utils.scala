@@ -40,7 +40,8 @@ object Utils {
              1 + distance(s1, s2.init),
              1 + distance(s1.init, s2.init)
           ).min
-    }  
+    }
+    def matches(r:util.matching.Regex) = s.matches(r.toString)
   }
   
   implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args:Any*):String = sc.parts.iterator.mkString("").maybe }
@@ -66,6 +67,8 @@ object Utils {
   /// Some regexes
   object Regex {
     val URL = """(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""".r
+    
+    val tweet = "https?://(?:www\\.)?twitter\\.com/.*/status(?:es)?/([0-9]+).*".r
     
     // do something like this http://stackoverflow.com/questions/3389348/parse-any-date-in-java
     val Date = (
@@ -121,6 +124,36 @@ object Utils {
           .filter(date => date.after(now)) // only future dates
       }.distinct.sortWith((a,b) => b.after(a))
     }
+    
+    private val timeDivisor = 1000000L*1000L
+    def since(time: Int): Int = now-time
+    def now = (System.nanoTime()/timeDivisor).toInt
+    def time(func: => Unit) = {
+      val startTime = now
+      func
+      now-startTime
+    }
+    private val sinceTimes = HashMap[Int,Int]()
+    def since(timeRef: AnyRef): Int = {
+      val time = sinceTimes.getOrElseUpdate(timeRef.hashCode, 0)
+      val nowTime = now
+      sinceTimes(timeRef.hashCode) = nowTime
+      
+      nowTime-time
+    }
+    
+    // used for uptime
+    private def pad(i: Int, p: Int = 2) = "0"*(p-i.toString.size)+i.toString
+    def getSinceString(time:Int):String = {
+        val secs = since(time)
+        val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
+        
+        ((days match {
+          case 0 => ""
+          case 1 => s"$days day "
+          case _ => s"$days days "
+        }) + (if(secs < 90) s"$secs seconds" else s"$hours:$minutes"))
+      }    
   }
   
   /// Ya, rly
@@ -155,25 +188,6 @@ object Utils {
     }
   }
 
-  
-  /// Time functions in ms
-  var timeDivisor = 1000000L
-  def now = (System.nanoTime()/timeDivisor).toInt
-  def since(time:Int):Int = now-time
-  private val sinceTimes = HashMap[Int,Int]()
-  def since(timeRef:AnyRef):Int = {
-    val time = sinceTimes.getOrElseUpdate(timeRef.hashCode, 0)
-    val nnow = now
-    sinceTimes(timeRef.hashCode) = nnow
-    
-    nnow-time
-  }
-  def time(func: => Unit) = {
-    val startTime = now
-    func
-    now-startTime
-  }
-  
   /// Wordnet stuff - also in bash, and on prolog data
   object WordNet {
     //These take a while at startup... make them lazy if it bothers you
