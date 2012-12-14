@@ -11,6 +11,10 @@ object Utils {
   val folder = "utils/"
   //TODO: pack each thing up with imports it needs, so you can copy-paste and such
 
+  def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative}
+  def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
+  def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
+
   /// Pimped types
   implicit class PimpString(val s:String) { 
     def replaceAll(m:(String,String)*):String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
@@ -71,6 +75,54 @@ object Utils {
       "").r
   }
   
+  object Date {
+    //wish I knew a better way.
+    import java.util.Date
+    import java.text._
+    
+    private val dateFormats = List[(util.matching.Regex, SimpleDateFormat)](
+      ("""\d{1,2}[.]\d{1,2}[.]\d{4}""".r, new SimpleDateFormat("dd.MM.yyyy")),
+      ("""\d{1,2}-\d{1,2}-\d{4}""".r, new SimpleDateFormat("dd-MM-yyyy")),
+      ("""\d{4}-\d{1,2}-\d{1,2}""".r, new SimpleDateFormat("yyyy-MM-dd")),
+      ("""\d{1,2}/\d{1,2}/\d{4}""".r, new SimpleDateFormat("MM/dd/yyyy")),
+      ("""\d{4}/\d{1,2}/\d{1,2}""".r, new SimpleDateFormat("yyyy/MM/dd")),
+      ("""\d{1,2}\s[a-z]{3}\s\d{4}""".r, new SimpleDateFormat("dd MMM yyyy")),
+      ("""\d{1,2}\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
+      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")),
+      ("""\d{1,2}[.]\d{1,2}[.]\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
+      ("""\d{1,2}-\d{1,2}-\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
+      ("""\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("yyyy-MM-dd HH:mm")),
+      ("""\d{1,2}/\d{1,2}/\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("MM/dd/yyyy HH:mm")),
+      ("""\d{4}/\d{1,2}/\d{1,2}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("yyyy/MM/dd HH:mm")),
+      ("""\d{1,2}\s[a-z]{3}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd MMM yyyy HH:mm")),
+      ("""\d{1,2}\s[a-z]{4,}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd MMMM yyyy HH:mm")),
+      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd. MMMM yyyy HH:mm"))
+    )
+
+    private def deLocale(dateStr:String) = dateStr
+      .replaceAll("januar(ja|jem)?", "january")
+      .replaceAll("februar(ja|jem)?", "february")
+      .replaceAll("marec|marc(a|em)?", "march")
+      .replaceAll("april(a|om)?", "april")
+      .replaceAll("maj(a|em)?", "may")
+      .replaceAll("junij(a|em)?", "june")
+      .replaceAll("julij(a|em)?", "july")
+      .replaceAll("avgust(a|om)?", "august")
+      .replaceAll("september|septemb(ra|rom)", "september")
+      .replaceAll("oktober|oktob(ra|rom)", "october")
+      .replaceAll("november|novemb(ra|rom)", "november")
+      .replaceAll("december|decemb(ra|rom)", "december")
+
+    def getFutureDates(text:String): List[Date] = {
+      val now = new Date
+      dateFormats.flatMap { case (regex, format) => 
+        text.findAll(regex)
+          .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
+          .filter(date => date.after(now)) // only future dates
+      }.distinct.sortWith((a,b) => b.after(a))
+    }
+  }
+  
   /// Ya, rly
   object Memes {
     val NO_U = """http://bit.ly/yaJI5L"""
@@ -81,6 +133,7 @@ object Utils {
 
   object Net {
     import de.l3s.boilerpipe.extractors._
+    import java.net._
     val extractor = KeepEverythingExtractor.INSTANCE
     
     def badExts = io.Source.fromFile(folder+"badexts.db").getLines.toBuffer
@@ -88,15 +141,17 @@ object Utils {
       urls.map(
         _.findAll(Regex.URL).map(url => 
           try {
-            if(!url.endsWithAny(badExts:_*))
+            if(!url.endsWithAny(badExts:_*)) 
               extractor.getText(new URL(url))
             else 
               ""
           } catch { 
-            case _ => "" 
+            case e: Exception => 
+              e.printStackTrace()
+              "" 
           }
-        ).reduce(_+" "+_)
-      ).reduce(_+" "+_)
+        ).fold("")(_+" "+_)
+      ).fold("")(_+" "+_)
     }
   }
 

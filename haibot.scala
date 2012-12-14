@@ -112,6 +112,27 @@ class haibot extends PircBot {
     getMsgs(newNick)
   }
   
+  var shutdown = false
+  override def onDisconnect() {
+    var backoff = 1000
+    while (!this.isConnected && !shutdown) {
+      try {
+        this.reconnect()
+        this.joinChannel(chan)
+      } catch {
+        case e: IOException => 
+          println("it was not possible to connect to the server.")
+        case e: IrcException =>
+          println("the server would not let us join it.")
+        case e: NickAlreadyInUseException =>
+          println("our nick is already in use on the server.")
+          this.setName(name+"_")
+      }
+      if(backoff < 60000) backoff += 1000
+      Thread.sleep(backoff)
+    }
+  }
+
   override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
     if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
       Thread.sleep(1000)
@@ -142,15 +163,18 @@ class haibot extends PircBot {
     // Oh look, AI
     if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
       speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
-      exit(0)
-    } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ") && (0.35.prob || (0.85.prob && mentions.contains(name)))) {
-      var responses = ListBuffer[String]("ohai :)", "hello!", "hi!", "hi there")
-      if(mentions.contains(name)) 
-        responses ++= List(s"ohai $sender!", s"hai $sender!",s"hi $sender!")
-      if(!mentions.contains(name) && mentions.size>0) 
-        responses += "o hai "+mentions.toSeq.random
+      shutdown = true
+      sys.exit(0)
+    } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
+      var hai = Seq("ohai", "o hai", "hello", "hi"+maybe"there")
+      if(mentions.contains(name) && 0.7.prob) 
+        hai = hai.map(_ + s" $sender")
+      if(!mentions.contains(name) && !mentions.isEmpty && 0.7.prob) 
+        hai = hai.map(_ + mentions.toSeq.random)
+        
+      hai = hai.map(_ + Seq(" :)", "!",Seq(""," ^_^").random.maybe).random)
       
-      speak(responses:_*)
+      speak(hai:_*)
     } else if(message.contains(name+"++") && 0.65.prob) {
       speak(
         "yaay, I did good!",
@@ -177,15 +201,15 @@ class haibot extends PircBot {
     } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && 0.6.prob) {
       speak(
         "oooh, is that a regex? I "+Seq("<3","love").random+" regexes!",
-        "Regex! My favorite thing!"+maybe"!"*0~2,
+        "Regex! My favorite thing!"+"!"*0~2,
         "m"*2~4+", regexes!",
-        maybe"wow, "+"I wonder what that matches"+maybe"."*0~3
+        maybe"wow, "+"I wonder what that matches"+"."*0~3
       )
       
     // naughty part
-    } else if(msg.contains("i need an adult") && 0.88.prob) { 
+    } else if(msg.contains("i need an adult") && 0.9.prob) { 
       speak("I am an adult"+"!"*1~4)
-    } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,4) && 0.7.prob) { 
+    } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,5) && 0.75.prob) { 
       speak(
         "how does "+sentences(0).trim+" feel?",
         "having sex with "+sentences(0).substring(sentences(0).indexOf(" ")+1).trim+"?",
@@ -193,14 +217,13 @@ class haibot extends PircBot {
       )
     } else if(msg.containsAny("but sex", "butt sex") && 0.75.prob) { 
       speak("did someone mention butt sex?")
-    } else if(msg.startsWithAny("shut", "fuck") && msg.containsAny("up", "you") && msg.containsAny((List(name) ++ bots):_*) && 0.8.prob) {
-      // SHUT YOU haibot! :)
+    } else if(msg.containsAny("shutup", "shut up", "fuck you") && msg.containsAny((List(name) ++ bots):_*) && 0.85.prob) {
       speak(
-        "Please, don't insult the robot race.",
+        "Please, don't insult the robot race"+"."*0~3,
         Memes.NO_U,
         "NO U!",
-        "This wouldn't happen if you made us better...",
-        "Yeah, blame it on the bots"
+        "This wouldn't happen if you made us better"+"."*0~3,
+        "Yeah, blame it on the bots"+"."*0~3
       )
     } else if(msg.containsAny(sheSaid:_*) && 0.66.prob) {
       speak("that's what she said!")
@@ -235,19 +258,19 @@ class haibot extends PircBot {
           "did you try with pathogen?")
       } else if(0.27.prob) {
         speak(
-          "I am confused about this "+Seq("also", "too").random+".",
-          "This "+Seq("puzzles", "confuses").random+" me "+Seq("also", "too").random+".",
+          Seq("I am","I'm").random+"confused about this "+Seq("also", "too").random+".",
+          "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
           Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
           "Don't worry"+maybe" about it"+", you'll figure it out "+Seq("eventually", "with time").random+("."+maybe"..").maybe,
           "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
           (if(!mentions.isEmpty && 0.8.prob) 
             Seq("I don't know","I have no idea").random+
-            Seq(", ", "...").random+" but " +
+            Seq(", ", "...").random+" but " + maybe"yes, " +
             mentions.toSeq.random +
             " might."
            else
-            Seq("Have you tried ","Did you try ").random +
-            Seq("searhing the ","looking on the ","querying the").random +
+            Seq("Have you tried ","Did you try ", "Have you attempted ").random +
+            Seq("searching the ","looking on the ","querying the ").random +
             Seq("internet"+maybe"s","intarwebs","cyberspace","electronic noosphere","information super-highway").random + "?"
           )
           )
@@ -255,8 +278,8 @@ class haibot extends PircBot {
     }
     
     if(message.startsWith("@event ")) {
-      val dates = message.findAll(Regex.Date) ++ URLsText.findAll(Regex.Date)
-      
+      val dates = Date.getFutureDates(message) ++ Date.getFutureDates(URLsText)
+      //http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
       //TODO: how do I find the title, boilerpipe?
       val title = message 
         .replaceAll(Regex.Date.toString, "")
@@ -264,16 +287,17 @@ class haibot extends PircBot {
         .substring("@event ".length).trim
         
       var status = ListBuffer[String]()
-      if(title.size==0) status += "title"
-      if(dates.size==0) status += "date"
-      if(URLs.size==0) status += "URL"
+      if(title.isEmpty) status += "title"
+      if(dates.isEmpty) status += "date"
+      if(URLs.isEmpty) status += "URL"
       
       if(status.size>0) {
         val itthem = if(status.size==1) "it" else "them"
         speak("I don't have "+status.mkString(", ")+s" for this. Paste $itthem in text form, pls.")
       } else {
-        speak("Is this right? "+dates(0)+" -- "+title)
-        events + (dates(0).replaceAll("[/.]","_"), title+" "+URLs.mkString(" "))
+        speak("Yeah, looks OK, but I'm not gonna save it anywhere or anything :)")
+        //speak("Is this right? "+dates(0)+" -- "+title)
+        //events + (dates(0).replaceAll("[/. ]","_"), title+" "+URLs.mkString(" "))
       }
     } else if(message.startsWith("@events")) {
       events.*.foreach(event => 
