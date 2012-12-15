@@ -191,7 +191,7 @@ class haibot extends PircBot {
         "scoar!",
         if(0.2.prob) s"$sender++" else "yaaay!"
       )
-    } else if(msg.startsWith("yes "+name.makeEasy) && 0.65.prob) {
+    } else if(msg.startsWith("yes "+name) && 0.65.prob) {
       speak(
         "I knew it!",
         "woohoo!",
@@ -224,9 +224,9 @@ class haibot extends PircBot {
       )
     } else if(msg.containsAny("but sex", "butt sex") && 0.75.prob) { 
       speak("did someone mention butt sex?")
-    } else if(msg.containsAny("shutup", "shut up", "fuck you") && msg.containsAny((List(name) ++ bots):_*) && 0.85.prob) {
+    } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn") && ((mentions.contains(name) && 0.9.prob) || ((mentions & bots).size > 0 && 0.8.prob))) {
       speak(
-        "Please, don't insult the robot race"+"."*0~3,
+        "U MAD, BRO?"+maybe" :P",
         Memes.NO_U,
         "NO U!",
         "This wouldn't happen if you made us better"+"."*0~3,
@@ -556,6 +556,10 @@ class haibot extends PircBot {
       val serverTimeReg(servertime) = ("uptime".!!).trim.replaceAll("[ ]+", " ")
 
       speak(maybe"Well, "+"I"+Seq("'ve", " have").random+" been "+Seq("up",maybe"up and "+"running","going").random+s" for $mytime"+maybe" already"+s", but my server has been running for $servertime"+maybe".")
+    } else if(message matches "@?"+name+"[:, ]{0,3}help.*") {
+      speak(
+        ("Sorry, "+maybe"but ").maybe+Seq("I'm", "I am").random+" not "+Seq("very", "too").random+" helpful"+"."*0~3
+      )
     }
     
     // checks twitter only every few minutes, and only if people are talking on channel
