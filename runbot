@@ -2,8 +2,23 @@
 
 echo "Hai!"
 
+#classpath
+cp="."
+
 #pircbot
-cp="pircbot.jar:."
+pb="pircbot-1.5.0"
+if [ ! -e "lib/$pb/pircbot.jar" ]; then
+    echo "trying to get $pb"
+    mkdir lib &> /dev/null
+    cd lib
+    wget http://www.jibble.org/files/$pb.zip &> /dev/null
+    unzip $pb.zip &> /dev/null
+    rm $pb.zip &> /dev/null
+    cd ..
+    [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit
+    echo "sucessfully got $pb"
+fi
+cp+=":lib/$pb/pircbot.jar"
 
 #boilerpipe
 bp="boilerpipe-1.2.0"

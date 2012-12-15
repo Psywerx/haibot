@@ -30,6 +30,7 @@ utils/
     
 
 And the used libs were:
+    pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
     WordNet - lexical db for English (prolog version) -- autodownloaded
     bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
