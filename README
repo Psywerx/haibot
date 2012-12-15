@@ -9,8 +9,8 @@ I realize it's a lot to ask, but you must work to get to know this guy ;)
 Also, your computer can probably get hacked through this bot :)
 
 Last time I updated this README the extra files were:
-.haibot - IRC & other settings... "key value", keys are: folder,name,serv,chan,owner
-<folder from .haibot>/
+.config - IRC & other settings... "key value", keys are: folder,name,serv,chan,owner
+<folder from .config>/
     msgs.db - used for @msgs, can be empty
     events.db - used for @event, can be empty (also doesn't really work)
     lasttweets.db - used by the twitter part, will be autopopulated if t is setup

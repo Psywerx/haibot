@@ -62,7 +62,7 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    scalac -Xlint -Yinline-warnings -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala
+    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala
 }
 
 run() {

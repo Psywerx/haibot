@@ -14,9 +14,10 @@ object haibot extends App { new haibot }
 
 class haibot extends PircBot {
   var startTime = now
-  val config = Store(".haibot").*.toMap
-  val (folder,name,chan,serv,owner) = (
+  val config = Store(".config").*.toMap
+  val (folder,login,name,chan,serv,owner) = (
     config("folder"), 
+    config("login"), 
     config("name"), 
     config("chan"), 
     config("serv"), 
@@ -24,6 +25,7 @@ class haibot extends PircBot {
   )
   
   this.setVerbose(true)
+  this.setLogin(login)
   this.setName(name)
   this.connect(serv) //TODO handle failure and disconnects
   this.joinChannel(chan)
@@ -118,7 +120,7 @@ class haibot extends PircBot {
   var shutdown = false
   override def onDisconnect() {
     println("onDisconnect: event triggered.")
-    var backoff = 1000
+    var backoff = 5000
     while (!this.isConnected && !shutdown) {
       try {
         this.reconnect()
@@ -132,7 +134,7 @@ class haibot extends PircBot {
           println("onDisconnect: our nick is already in use on the server.")
           this.setName(name+"_")
       }
-      if(backoff < 60000) backoff += 1000
+      if(backoff < 60000) backoff += 5000
       Thread.sleep(backoff)
     }
   }
@@ -338,11 +340,44 @@ class haibot extends PircBot {
         tweetNames = Array()
       } else if(tweetMsg == null && (tweetId matches "[0-9]*") && limiter) {
         val ret = Seq("t", "retweet", tweetId).!
+        
+        var successResponses = List("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
+
+        //try facebook too
+        val tweetDetails = withAlternative(
+          (Seq("t", "status", tweetId).!!)
+            .split("\n")
+            .map(line => line.splitAt("Screen name  ".size))
+            .map(line => (line._1.trim, line._2))
+            .toMap,
+          Map[String,String]()
+        ).withDefaultValue("")
+        
+        if(tweetDetails("Text") != "") {
+          val ret2 = Seq("fbcmd", "PPOST", "361394543950153", "IMG",
+            "",
+            "http://i.imgur.com/BF90s.png",
+            "http://i.imgur.com/BF90s.png",
+            tweetDetails("Screen name"),
+            "https://twitter.com/statuses/"+tweetId,
+            "via Twitter",
+            tweetDetails("Text")).!
+          
+          if(tweetDetails("Screen name") != "") {
+            successResponses = successResponses ++ List(
+              "Retweeted "+Seq("that","the").random+" lovely tweet by "+tweetDetails("Screen name")+maybe"!",
+              "I've retweeted the lovely tweet by "+tweetDetails("Screen name")+maybe"!",
+              "I've retweeted the tweet out of "+Seq("this","that").random+"tweet by "+tweetDetails("Screen name")+maybe"!",
+              "I hope "+tweetDetails("Screen name")+" is pleased with this retweet."
+            )
+          }
+        }
+        
         if(ret==0) 
-          speak("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
+          speak(successResponses:_*)
         else
           speak("Failed to retweet :/")
-          
+
         tweetScore = Set()
         tweetNegScore = Set()
         tweetPlsScore = Set()
@@ -352,7 +387,7 @@ class haibot extends PircBot {
         val ret2 = Seq("fbcmd", "PPOST", "361394543950153", tweetMsg).!
         
         (ret,ret2) match {
-          case (0,0) => speak("It is done.", "It's done", "I tweeted it, and facebook'd it!", "Posted it.")
+          case (0,0) => speak("It is done.", "It's done", "I tweeted it"+maybe", and facebook'd it"+"!", "Posted it.")
           case (0,_) => speak("Tweeted it, but facebooking failed!")
           case (_,0) => speak("Facebook'd it, but tweeting failed!")
           case (_,_) => speak("Failed to post anywhere :(")
@@ -395,7 +430,7 @@ class haibot extends PircBot {
       tweetPlsScore = Set()
       tweetLim = 2
       speak(
-        Seq("Want me to","Should I").random+"retweet "+Seq("this","that").random+"?",
+        Seq("Want me to","Should I").random+" retweet "+Seq("this","that").random+"?",
         "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random++("."+maybe"..").maybe,
         Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
         "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe"it"+maybe".",
