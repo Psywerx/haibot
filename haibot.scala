@@ -160,7 +160,7 @@ class haibot extends PircBot {
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
     val mentions = msg.split(" ").toSet & users
-    val URLs = Regex.URL.findAllIn(message).toSet
+    val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs.toList:_*)
     lazy val URLsWords = URLsText
       .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
@@ -263,7 +263,7 @@ class haibot extends PircBot {
           "use pathogen.",
           "have you tried using pathogen?",
           "did you try with pathogen?")
-      } else if(0.27.prob) {
+      } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
           Seq("I am","I'm").random+"confused about this "+Seq("also", "too").random+".",
           "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
@@ -284,7 +284,23 @@ class haibot extends PircBot {
       }
     }
     
-    if(message.startsWith("@event ")) {
+    
+    if(message.startsWithAny("@shorten ", "@bitly ")) {
+      if(!URLs.isEmpty) {
+        val bitlyURLs = URLs.flatMap(Net.Bitly.shorten)
+        if(bitlyURLs.size < URLs.size) {
+          if(bitlyURLs.isEmpty) {
+            speak("Sorry, couldn't shorten any of these...")
+          } else {
+            speak("Couldn't shorten all of these, but here"+maybe" you go"+": "+bitlyURLs.mkString(" "))
+          }
+        } else {
+          speak("Here"+maybe" you go"+": "+bitlyURLs.mkString(" "))
+        }
+      } else {
+        speak("Give me a link...", "I require an URL.", "Try that with a link.")
+      }
+    } else if(message.startsWith("@event ")) {
       val dates = getFutureDates(message) ++ getFutureDates(URLsText)
       //http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
       //TODO: how do I find the title, boilerpipe?
@@ -354,11 +370,11 @@ class haibot extends PircBot {
         ).withDefaultValue("")
         
         if(tweetDetails("Text") != "") {
-          val ret2 = Seq("fbcmd", "PPOST", "361394543950153", "IMG",
+        
+          // fbcmd as 361394543950153 POST "" "HairyFotr" "http://www.twitter.com/HairyFotr/status/279256274632327168/" "via Twitter" "Showed a friends kid a half-made game demo yesterday - he played it for like an hour and thought-up dozens of ideas :) #kids"
+          val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST",
             "",
-            "http://i.imgur.com/BF90s.png",
-            "http://i.imgur.com/BF90s.png",
-            tweetDetails("Screen name"),
+            tweetDetails("Screen name").drop(1),
             "https://twitter.com/statuses/"+tweetId,
             "via Twitter",
             tweetDetails("Text")).!
@@ -384,7 +400,7 @@ class haibot extends PircBot {
         tweetMsg = ""
       } else if(tweetMsg != null && tweetMsg.size>=1 && tweetMsg.size<=140 && limiter) {
         val ret = Seq("t", "update", tweetMsg).!
-        val ret2 = Seq("fbcmd", "PPOST", "361394543950153", tweetMsg).!
+        val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST", tweetMsg).!
         
         (ret,ret2) match {
           case (0,0) => speak("It is done.", "It's done", "I tweeted it"+maybe", and facebook'd it"+"!", "Posted it.")
@@ -433,11 +449,21 @@ class haibot extends PircBot {
         Seq("Want me to","Should I").random+" retweet "+Seq("this","that").random+"?",
         "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random++("."+maybe"..").maybe,
         Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
-        "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe"it"+maybe".",
-        "Someone "+maybe"please "+"confirm "+Seq("this", "it", "").random+", and I'll retweet it"+maybe".")
+        "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
+        "Someone "+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
     } else if(message.startsWith("@world ")) {
-      val tweet = message.drop("@world ".length)
-      if(tweet.size>=1 && tweet.size<=140) {
+      var tweet = message.drop("@world ".length).trim
+      if(!URLs.isEmpty && tweet.size > 140) {
+        var shortTweet = tweet
+        for(url <- URLs) {
+          val bitlyUrl = Net.Bitly.shorten(url)
+          if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url.asInstanceOf[CharSequence], bitlyUrl.get.asInstanceOf[CharSequence])
+        }
+        println(s"Shortened tweet from ${tweet.size} to ${shortTweet.size}")
+        tweet = shortTweet
+      }
+      
+      if(tweet.size >= 1 && tweet.size <= 140) {
         speak(
           "Someone "+Seq("pls","please","").random+" confirm"+".".maybe,
           Seq("Does anyone "+maybe"else "+maybe"here "+"think", "Anyone "+maybe"else "+maybe"here "+"thinks").random+" it's a good idea to "+Seq("tweet","post").random+Seq(" this"," that").random+"?"+maybe" :)",

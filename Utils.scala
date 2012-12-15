@@ -186,6 +186,25 @@ object Utils {
         ).fold("")(_+" "+_)
       ).fold("")(_+" "+_)
     }
+    
+    
+    object Bitly {
+      import com.rosaloves.bitlyj._
+      import com.rosaloves.bitlyj.Bitly._
+      
+      lazy val bitly = as("o_3n05dn6ovb", "R_3d1852f18b08ed98152219575159973a")
+
+      def shorten(s:String): Option[String] = {
+        try {
+          val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
+          if(out != null) Some((out.getShortUrl)) else None
+        } catch {
+          case e: Throwable =>
+            e.printStackTrace
+            None
+        }
+      }
+    }
   }
 
   /// Wordnet stuff - also in bash, and on prolog data

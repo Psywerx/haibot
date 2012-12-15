@@ -16,6 +16,7 @@ if [ ! -e "lib/$bp/$bp.jar" ]; then
     rm $bp-bin.tar.gz &> /dev/null
     cd ..
     [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit
+    echo "sucessfully got $bp"
 fi
 cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
 
@@ -39,10 +40,24 @@ if [ ! -e "lib/prolog/wn_ant.db" ]; then
     fi
     cd ..
     [ ! -e "lib/prolog" ] && echo "getting $wn failed" && exit
+    echo "sucessfully got $wn"
 fi
 
-if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t the twitter client."; fi
-if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd the twitter client."; fi
+#bitlyj
+bitly="bitlyj-2.0.0"
+if [ ! -e "lib/$bitly.jar" ]; then
+    echo "trying to get $bitly"
+    mkdir lib &> /dev/null
+    cd lib
+    wget http://bitlyj.googlecode.com/files/$bitly.jar &> /dev/null
+    cd ..
+    [ ! -e "lib/$bitly.jar" ] && echo "getting $bitly failed" && exit
+    echo "sucessfully got $bitly"
+fi
+cp+=":lib/$bitly.jar"
+
+if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t - the twitter client."; fi
+if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd - the facebook client."; fi
 
 args="$1"
 bot="haibot"

@@ -32,5 +32,6 @@ utils/
 And the used libs were:
     boilerpipe - the article extractor library -- autodownloaded
     WordNet - lexical db for English (prolog version) -- autodownloaded
+    bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
     t - twitter CLI client -- you need to set it up manually
-    fbcmd - facebook CLI client -- also manually.
+    fbcmd - facebook CLI client 2.0 -- also manually.
