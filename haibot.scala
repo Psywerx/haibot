@@ -31,7 +31,7 @@ class haibot extends PircBot {
   this.joinChannel(chan)
 
   val msgs = Store(folder+"msgs.db")
-  def getMsgs(nick:String) = (msgs ?- nick.toLowerCase.dropRight(1)).foreach(msg=> speak(nick+": "+msg))
+  def getMsgs(nick:String) = (msgs ?- nick.toLowerCase).foreach(msg=> speak(nick+": "+msg))
 
   val events = Store(folder+"events.db")
 
@@ -374,10 +374,10 @@ class haibot extends PircBot {
           // fbcmd as 361394543950153 POST "" "HairyFotr" "http://www.twitter.com/HairyFotr/status/279256274632327168/" "via Twitter" "Showed a friends kid a half-made game demo yesterday - he played it for like an hour and thought-up dozens of ideas :) #kids"
           val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST",
             "",
-            tweetDetails("Screen name").drop(1),
+            " "+tweetDetails("Screen name"),
             "https://twitter.com/statuses/"+tweetId,
             "via Twitter",
-            tweetDetails("Text")).!
+            " "+tweetDetails("Text")).!
           
           if(tweetDetails("Screen name") != "") {
             successResponses = successResponses ++ List(
@@ -450,7 +450,7 @@ class haibot extends PircBot {
         "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random++("."+maybe"..").maybe,
         Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
         "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
-        "Someone "+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
+        "Someone"+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
     } else if(message.startsWith("@world ")) {
       var tweet = message.drop("@world ".length).trim
       if(!URLs.isEmpty && tweet.size > 140) {
@@ -502,9 +502,9 @@ class haibot extends PircBot {
           } else if(msg.isEmpty) {
             speak("hmm... but what should I tell "+(if(nick.isGirl) "her" else "him")+"?")
           } else if(!msgs.isKey(nick)) {
-            speak(s"no offence, but that doesn't really sound like a real name to me.")
+            speak(s"no offence, but that doesn't sound like a real name to me.")
           } else {
-            msgs + (nick, msg.mkString(" "))
+            msgs + (nick, msg)
             var say = List(
               maybe"o"+"k"+".".maybe, 
               "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
