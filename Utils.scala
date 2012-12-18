@@ -23,7 +23,7 @@ object Utils {
     def startsWithAny(strs:String*) = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
     def endsWithAny(strs:String*)   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
     def sentences = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
-    def makeEasy = s.toLowerCase.map(a=>("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll(", ", " ")
+    def makeEasy = s.toLowerCase.map(a=>("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll("[,:] ", " ")
     def maybe = if(0.5.prob) s else ""
     def findAll(r:Regex) = r.findAllIn(s).toList
     def removeAll(rem:String) = s.filterNot(rem contains _)
@@ -83,7 +83,16 @@ object Utils {
     import java.util.Date
     import java.text._
     
+    private val timeReg = """[\s,]{0,2}(ob\s)?((\d{1,2}:\d{2})|(\d{1,2}h))"""
     private val dateFormats = List[(util.matching.Regex, SimpleDateFormat)](
+      (("""\d{1,2}[.]\d{1,2}[.]\d{4}""" + timeReg).r, new SimpleDateFormat("dd.MM.yyyy HH:mm")),
+      (("""\d{1,2}-\d{1,2}-\d{4}""" + timeReg).r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
+      (("""\d{4}-\d{1,2}-\d{1,2}""" + timeReg).r, new SimpleDateFormat("yyyy-MM-dd HH:mm")),
+      (("""\d{1,2}/\d{1,2}/\d{4}""" + timeReg).r, new SimpleDateFormat("MM/dd/yyyy HH:mm")),
+      (("""\d{4}/\d{1,2}/\d{1,2}""" + timeReg).r, new SimpleDateFormat("yyyy/MM/dd HH:mm")),
+      (("""\d{1,2}\s[a-z]{3}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd MMM yyyy HH:mm")),
+      (("""\d{1,2}\s[a-z]{4,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd MMMM yyyy HH:mm")),
+      (("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd. MMMM yyyy HH:mm")),
       ("""\d{1,2}[.]\d{1,2}[.]\d{4}""".r, new SimpleDateFormat("dd.MM.yyyy")),
       ("""\d{1,2}-\d{1,2}-\d{4}""".r, new SimpleDateFormat("dd-MM-yyyy")),
       ("""\d{4}-\d{1,2}-\d{1,2}""".r, new SimpleDateFormat("yyyy-MM-dd")),
@@ -91,38 +100,38 @@ object Utils {
       ("""\d{4}/\d{1,2}/\d{1,2}""".r, new SimpleDateFormat("yyyy/MM/dd")),
       ("""\d{1,2}\s[a-z]{3}\s\d{4}""".r, new SimpleDateFormat("dd MMM yyyy")),
       ("""\d{1,2}\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
-      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")),
-      ("""\d{1,2}[.]\d{1,2}[.]\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
-      ("""\d{1,2}-\d{1,2}-\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
-      ("""\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("yyyy-MM-dd HH:mm")),
-      ("""\d{1,2}/\d{1,2}/\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("MM/dd/yyyy HH:mm")),
-      ("""\d{4}/\d{1,2}/\d{1,2}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("yyyy/MM/dd HH:mm")),
-      ("""\d{1,2}\s[a-z]{3}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd MMM yyyy HH:mm")),
-      ("""\d{1,2}\s[a-z]{4,}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd MMMM yyyy HH:mm")),
-      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}\s\d{1,2}:\d{2}""".r, new SimpleDateFormat("dd. MMMM yyyy HH:mm"))
+      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy"))
     )
 
-    private def deLocale(dateStr:String) = dateStr
-      .replaceAll("januar(ja|jem)?", "january")
-      .replaceAll("februar(ja|jem)?", "february")
-      .replaceAll("marec|marc(a|em)?", "march")
-      .replaceAll("april(a|om)?", "april")
-      .replaceAll("maj(a|em)?", "may")
-      .replaceAll("junij(a|em)?", "june")
-      .replaceAll("julij(a|em)?", "july")
-      .replaceAll("avgust(a|om)?", "august")
-      .replaceAll("september|septemb(ra|rom)", "september")
-      .replaceAll("oktober|oktob(ra|rom)", "october")
-      .replaceAll("november|novemb(ra|rom)", "november")
-      .replaceAll("december|decemb(ra|rom)", "december")
+    private def deLocale(dateStr:String) = 
+      dateStr
+        .replaceAll("januar(ja|jem)?", "january")
+        .replaceAll("februar(ja|jem)?", "february")
+        .replaceAll("marec|marc(a|em)?", "march")
+        .replaceAll("april(a|om)?", "april")
+        .replaceAll("maj(a|em)?", "may")
+        .replaceAll("junij(a|em)?", "june")
+        .replaceAll("julij(a|em)?", "july")
+        .replaceAll("avgust(a|om)?", "august")
+        .replaceAll("september|septemb(ra|rom)", "september")
+        .replaceAll("oktober|oktob(ra|rom)", "october")
+        .replaceAll("november|novemb(ra|rom)", "november")
+        .replaceAll("december|decemb(ra|rom)", "december")
+        .replaceAll("h$", ":00")
+        .replaceAll("[,\\s]ob[\\s]", " ")
+        .replaceAll("[,\\s]+", " ")
 
-    def getFutureDates(text:String): List[Date] = {
-      val now = new Date
+    def getDates(text:String, filter:(Date => Boolean) = (d:Date) => true): List[Date] = {
       dateFormats.flatMap { case (regex, format) => 
         text.findAll(regex)
           .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
-          .filter(date => date.after(now)) // only future dates
+          .filter(filter) 
       }.distinct.sortWith((a,b) => b.after(a))
+    }
+
+    def getFutureDates(text:String): List[Date] = {
+      val nowDate = new Date
+      getDates(text, _.after(nowDate))
     }
     
     private val timeDivisor = 1000000L*1000L
@@ -144,16 +153,17 @@ object Utils {
     
     // used for uptime
     private def pad(i: Int, p: Int = 2) = "0"*(p-i.toString.size)+i.toString
-    def getSinceString(time:Int):String = {
-        val secs = since(time)
-        val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
-        
-        ((days match {
-          case 0 => ""
-          case 1 => s"$days day "
-          case _ => s"$days days "
-        }) + (if(secs < 90) s"$secs seconds" else s"$hours:$minutes"))
-      }    
+    def getSinceZeroString(time:Int):String = {
+      val secs = time
+      val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
+      
+      ((days match {
+        case 0 => ""
+        case 1 => s"$days day "
+        case _ => s"$days days "
+      }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"$minutes min" else s"$hours:$minutes"))
+    }
+    def getSinceString(time:Int):String = getSinceZeroString(since(time))
   }
   
   /// Ya, rly

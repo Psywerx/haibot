@@ -14,6 +14,8 @@ object haibot extends App { new haibot }
 
 class haibot extends PircBot {
   var startTime = now
+  var joinTimes = HashMap[String, Int]().withDefaultValue(-1)
+  
   val config = Store(".config").*.toMap
   val (folder,login,name,chan,serv,owner) = (
     config("folder"), 
@@ -152,14 +154,15 @@ class haibot extends PircBot {
         "hi, you"+maybe"!",
         s"I've missed you, $sender"+maybe".")
       getMsgs(sender)
+      joinTimes(sender.toLowerCase) = now
     }
   }
-                                  
+
   override def onMessage(channel:String, sender:String, login:String, hostname:String, message:String) = {
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
-    val mentions = msg.split(" ").toSet & users
+    val mentions = message.replaceAll("[,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs.toList:_*)
     lazy val URLsWords = URLsText
@@ -502,9 +505,9 @@ class haibot extends PircBot {
           } else if(msg.isEmpty) {
             speak("hmm... but what should I tell "+(if(nick.isGirl) "her" else "him")+"?")
           } else if(!msgs.isKey(nick)) {
-            speak(s"no offence, but that doesn't sound like a real name to me.")
+            speak("no offence, but that doesn't sound like a real name to me.")
           } else {
-            msgs + (nick, msg)
+            msgs + (nick.toLowerCase, msg)
             var say = List(
               maybe"o"+"k"+".".maybe, 
               "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
@@ -549,13 +552,35 @@ class haibot extends PircBot {
         speak("Give me a link...", "I require an URL.", "Try that with a link.")
       }
       
-    } else if(message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") {
+    } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
+      || (message.startsWithAny("uptime ", "@uptime") && !mentions.isEmpty)
+      || (message.startsWithAny(users.toSeq:_*) && message.split(" ").size <= 5 && message.contains("uptime"))) {
+              
       val mytime = getSinceString(startTime)
+      
+      mentions foreach { user => 
+        if(user == name) {
+          val servertime = withAlternative(
+            getSinceZeroString(("cat /proc/uptime".!!).trim.takeWhile(_ != '.').toInt),
+            "who knows how long.."
+          )
 
-      val serverTimeReg = ".*?up ((?:[0-9]+ days,[ ]*)?(?:[0-9:]+)),.*".r ;
-      val serverTimeReg(servertime) = ("uptime".!!).trim.replaceAll("[ ]+", " ")
-
-      speak(maybe"Well, "+"I"+Seq("'ve", " have").random+" been "+Seq("up",maybe"up and "+"running","going").random+s" for $mytime"+maybe" already"+s", but my server has been running for $servertime"+maybe".")
+          speak(maybe"Well, "+"I"+Seq("'ve", " have").random+" been "+Seq("in here", "up", maybe"up and "+"running", "going").random+s" for $mytime"+maybe" already"+s", but my server has been running for $servertime"+maybe".")
+        } else {
+          if(joinTimes(user.toLowerCase) == -1) {
+            speak(
+              s"$user has been "+Seq("up","in here","online").random+s" for at least as long as I have, which is >$mytime"+maybe".",
+              s"$user has been here "+maybe"even "+s"longer than I have... and I've been here for $mytime"+maybe"."
+            )
+          } else {
+            val usertime = getSinceString(joinTimes(user.toLowerCase))
+            speak(
+              s"$user has been "+Seq("up","in here","online").random+s" for $usertime"+maybe" already"+maybe".",
+              s"$user is "+Seq("up","in here","online").random+s" for $usertime"+maybe" already"+maybe"."
+            )
+          }
+        }
+      }
     } else if(message matches "@?"+name+"[:, ]{0,3}help.*") {
       speak(
         ("Sorry, "+maybe"but ").maybe+Seq("I'm", "I am").random+" not "+Seq("very", "too").random+" helpful"+"."*0~3
