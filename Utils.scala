@@ -161,7 +161,7 @@ object Utils {
         case 0 => ""
         case 1 => s"$days day "
         case _ => s"$days days "
-      }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"$minutes min" else s"$hours:$minutes"))
+      }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
     }
     def getSinceString(time:Int):String = getSinceZeroString(since(time))
   }
@@ -276,7 +276,7 @@ object Utils {
           .flatMap(w=> List(w, w.replaceAll("ability$", "able")))
           .flatMap(w=> List(w, w.replaceAll("s$|er$|est$|ed$|ing$|d$", "")))
           //.flatMap(w=> List(w, w.replaceAll("^un|^im|^in", "")))
-          .filter(_.size>=4)
+          .filter(_.size >= 4)
       ).distinct
       
     def preprocess(w:String):List[String] = 
@@ -284,7 +284,7 @@ object Utils {
     
     def getMapFromwn(dbName:String) = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e=> e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
     val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e=> e -> getMapFromwn(s"wn_$e.db")).toMap
-    val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet ++ Set("answer", "test", "issue", "start", "publication")
+    val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
     
     var weights = getWeights
     def getWeights = {
@@ -294,7 +294,7 @@ object Utils {
       out
     }
     
-    def context(in:String):String = {
+    def context(in:String, count:Int = 3): Option[String] = {
       try {
         val scores = HashMap[String, Double]()
         def score(str:String,add:Double) = if(!(stoplist contains str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
@@ -318,24 +318,24 @@ object Utils {
         
         getWeights
         
-        wn.foreach(wndb=> 
-          words.foreach(elt=>           
-            wndb._2(elt._1).foreach(id2=> 
-              wn_sById(id2).foreach(elt=> 
+        wn.foreach(wndb => 
+          words.foreach(elt => 
+            wndb._2(elt._1).foreach(id2 => 
+              wn_sById(id2).foreach(elt => 
                 score(elt._2, weights(wndb._1))
               )
             )
           )
         )
         
-        scores.toList.sortWith(_._2 > _._2).take(30).filterNot(e=> 
-          scores.exists(a=> 
-            (a._1!=e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
+        Some(scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e => 
+          scores.exists(a => 
+            (a._1 != e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
             (a._1.startsWith(e._1.take(4)) || (e._1 contains a._1))
-          )//take out similars
-        ).map(e=> e._1).take(3).mkString(", ") //sort and convert to string
+          )// take out similar words
+        ).take(count).map(_._1).mkString(", ")) //sort and convert to string
       } catch {
-        case e:Exception => e.printStackTrace; ""
+        case e:Exception => e.printStackTrace; None
       }
     }
   }

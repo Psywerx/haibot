@@ -180,7 +180,7 @@ class haibot extends PircBot {
       if(mentions.contains(name) && 0.7.prob) 
         hai = hai.map(_ + s" $sender")
       if(!mentions.contains(name) && !mentions.isEmpty && 0.7.prob) 
-        hai = hai.map(_ + mentions.toSeq.random)
+        hai = hai.map(_ + " " + mentions.toSeq.random)
         
       hai = hai.map(_ + Seq(" :)", "!",Seq(""," ^_^").random.maybe).random)
       
@@ -511,7 +511,7 @@ class haibot extends PircBot {
             var say = List(
               maybe"o"+"k"+".".maybe, 
               "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
-              "ay"+"-ay".maybe+Seq(" cap'n", "captain").random.maybe+"!", 
+              "ay"+"-ay".maybe+Seq(" cap'n", " captain").random.maybe+"!", 
               Seq("sure", "ok").random+", I'll tell "+(if(nick.isGirl) "her" else "him")+".".maybe)
             
             speak((if(force) say.map(s => ("I "+Seq("w","d").random+"on't like it, but ").maybe + s) else say):_*)
@@ -535,19 +535,21 @@ class haibot extends PircBot {
       }
 
       speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if(message.startsWith("@context ")) {
+    } else if(message.startsWithAny("@context ", "@tldr", "@tl;dr")) {
       if(!URLs.isEmpty) {
          val words = URLsWords.mkString(" ")
           
         println(words)
-        val context = WordNet.context(words)
-        if(context!="")
-          speak(
-            s"I think it's about $context.",
-            s"It might be about $context.",
-            s"It could be about $context.")
-        else
-          speak("I have no idea...", "I don't know what this is about.")
+        WordNet.context(words, 5) match {
+          case Some(context) =>
+            speak(
+              s"I'd say it's about $context.",
+              s"I think it's about $context.",
+              s"It might be about $context.",
+              s"It could be about $context.")
+          case None =>
+            speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
+        }
       } else {
         speak("Give me a link...", "I require an URL.", "Try that with a link.")
       }
