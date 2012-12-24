@@ -62,6 +62,8 @@ class haibot extends PircBot {
     def isBot = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
   }
   
+  var lastMsgs = List[String]()
+  
   var twitterCheck = 0
   val twitterCheckInterval = 7*60
   def checkTwitter(force:Boolean = false) = {
@@ -169,6 +171,7 @@ class haibot extends PircBot {
       .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
       .split("\\s")
       .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
+    lazy val recentContext = ((URLsText + ". " + lastMsgs.mkString(". ") + ". " + message).replaceAll(Regex.URL.toString, "").replaceAll("@[a-z]+[ ,:]", "").replaceAll("^[ .]+","").trim)
     
     // Oh look, AI
     if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
@@ -450,7 +453,7 @@ class haibot extends PircBot {
       tweetLim = 2
       speak(
         Seq("Want me to","Should I").random+" retweet "+Seq("this","that").random+"?",
-        "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random++("."+maybe"..").maybe,
+        "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random+"."*0~3,
         Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
         "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
         "Someone"+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
@@ -472,7 +475,7 @@ class haibot extends PircBot {
           Seq("Does anyone "+maybe"else "+maybe"here "+"think", "Anyone "+maybe"else "+maybe"here "+"thinks").random+" it's a good idea to "+Seq("tweet","post").random+Seq(" this"," that").random+"?"+maybe" :)",
           "Do you "+Seq("guise"+(if(!(girls & users).isEmpty) maybe" and gals" else ""), "people").random+" agree that I should "+Seq("tweet","post").random+Seq(" this"," that").random+"?",
           "I need a vote"+", before I post this".maybe+".".maybe,
-          "Someone "+Seq("simply", "should").random.maybe.maybe+"say @yes or @no."+".. @maybe works too.".maybe.maybe.maybe)
+          "Someone "+maybe"should "+maybe"simply "+"say @yes or @no."+".. @maybe works too.".maybe.maybe)
         tweetMsg = tweet
         tweetScore = Set(sender)
         tweetNegScore = Set()
@@ -481,7 +484,7 @@ class haibot extends PircBot {
         if(tweetLim>2) {
           speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
         }
-       } else {
+      } else {
         speak("That's too long to tweet, you twit! ("+tweet.size+" char)")
       }
     } else if(message.startsWith("@msg ")) {
@@ -535,57 +538,40 @@ class haibot extends PircBot {
       }
 
       speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if(message.startsWithAny("@context ", "@tldr", "@tl;dr", "@keyword")) {
-      if(!URLs.isEmpty) {
-        val text = URLsWords.mkString(" ")
-          
-        println(text)
+    } else if(message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) {
+      val text: String = recentContext
+      
+      println(text)
         
-        /*spawn { 
-          WordNet.keywords(text, 4) match {
-            case Some(wordList) =>
-              val keywords = wordList.mkString(", ")
-              speak(
-                s"I'd say it's about $keywords.",
-                s"I think it's about $keywords.",
-                s"It might be about $keywords.",
-                s"It could be about $keywords.")
-            case None =>
-              speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
-          }
-        }*/
-        
-        spawn {
-          Net.Zemanta.suggestKeywords(text) match {
-            case Some(wordList) =>
-              val keywords = wordList.take(4).mkString(", ").toLowerCase
-              speak(
-                s"I'd say it's about $keywords.",
-                s"I think it's about $keywords.",
-                s"It might be about $keywords.",
-                s"It could be about $keywords.")
-            case None =>
-              speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
-          }
+      spawn {
+        //TODO: Move these to top and use them lazily elsewhere too
+        Net.Zemanta.suggestKeywords(text, 3~4).orElse(WordNet.keywords(text, 3~4)).map(_.mkString(", ").toLowerCase) match {
+          case Some(keywords) =>
+            speak(
+              s"I'd say it's about $keywords.",
+              s"I think it's about $keywords.",
+              s"It might be about $keywords.",
+              s"It could be about $keywords.")
+          case None =>
+            speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
         }
-        
-      } else {
-        speak("Give me a link...", "I require an URL.", "Try that with a link.")
       }
     } else if(message.startsWithAny("@suggest")) {
-      val countReg = """@suggest[(]([1-5])[)].*""".r
-      val count = message match {
-        case countReg(cnt) => cnt.toInt
+      val cntReg = """@suggest[(]([1-5])[)].*""".r
+      val cnt = message match {
+        case cntReg(count) => count.toInt
         case _ => 2
       }
-      val text = (message.drop("@suggest".size).dropWhile(_.toString matches "[0-9()]") + URLsWords.mkString(" "))
+      
+      val text: String = recentContext
+      println(text)
       
       spawn {
         Net.Zemanta.suggestArticles(text) match {
           case Some(articleList) =>
-            val articles = (articleList.groupBy(_.url) -- URLs).values.flatten
-            if(articles.size > 0) {
-              articles.take(count).foreach { article => 
+            val articles = (articleList.groupBy(_.url) -- URLs).values.flatten.take(cnt)
+            if(!articles.isEmpty) {
+              articles.foreach { article => 
                 speak(article.title + " " + Net.Bitly.tryShorten(article.url))
               }
             } else {
@@ -632,6 +618,10 @@ class haibot extends PircBot {
     
     // checks twitter only every few minutes, and only if people are talking on channel
     checkTwitter() 
+
+    //last msgs
+    lastMsgs = lastMsgs :+ message
+    if(lastMsgs.size > 7) lastMsgs = lastMsgs.tail
   }
   
   var lastPrivMsg = HashMap[String, String]().withDefaultValue("")

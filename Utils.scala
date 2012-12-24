@@ -180,7 +180,7 @@ object Utils {
     val extractor = KeepEverythingExtractor.INSTANCE
     
     def badExts = io.Source.fromFile(folder+"badexts.db").getLines.toBuffer
-    def scrapeURLs(urls:String*):String = { //TODO: ni se mi dal :)
+    def scrapeURLs(urls:String*):String = {
       urls.map(
         _.findAll(Regex.URL).map(url => 
           try {
@@ -194,7 +194,7 @@ object Utils {
               "" 
           }
         ).fold("")(_+" "+_)
-      ).fold("")(_+" "+_)
+      ).fold("")(_+" "+_).trim
     }
     
     object Zemanta {
@@ -204,7 +204,7 @@ object Utils {
       import scala.collection.JavaConversions.mapAsJavaMap
       import scala.collection.JavaConversions.asScalaBuffer
       
-      def suggestKeywords(text:String): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name))
+      def suggestKeywords(text:String, cnt:Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name).take(cnt))
       def suggestArticles(text:String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
       
       def suggest(text:String):Option[ZemantaResult] = {
