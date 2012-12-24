@@ -9,7 +9,7 @@ I realize it's a lot to ask, but you must work to get to know this guy ;)
 Also, your computer can probably get hacked through this bot :)
 
 Last time I updated this README the extra files were:
-.config - IRC & other settings... "key value", keys are: folder,name,serv,chan,owner
+.config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
 <folder from .config>/
     msgs.db - used for @msgs, can be empty
     events.db - used for @event, can be empty (also doesn't really work)
@@ -24,6 +24,8 @@ Last time I updated this README the extra files were:
     dontmention.db - don't mention these names, because it might annoy them.
     girls.db - to phrase certain replies correctly. Not trying to be creepy :)
 utils/
+    bitlyapikey - bitly api key
+    zemapikey - zemanta api key
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing
     weights - some weights for wordnet tables
@@ -32,6 +34,7 @@ utils/
 And the used libs were:
     pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
+    Zemanta - contextual intelligence for everyone -- autodownloaded
     WordNet - lexical db for English (prolog version) -- autodownloaded
     bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
     t - twitter CLI client -- you need to set it up manually
