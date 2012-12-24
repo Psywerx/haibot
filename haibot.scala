@@ -249,7 +249,7 @@ class haibot extends PircBot {
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
         speak(
           Seq("a","d").random+maybe"a"+"w"*3~6+Seq(".","!"*1~3).random.maybe,
-          maybe"lol,"+maybe"how"+" cute "+"!".maybe+Seq(":)", "^_^").random,
+          maybe"lol,"+maybe" how"+" cute"+"!".maybe+Seq(" :)", " ^_^").random,
           "so. cute.",
           if(!(words & Set("fluff","puff")).isEmpty) Memes.so_fluffy else "aww!"
         )
@@ -268,7 +268,7 @@ class haibot extends PircBot {
           "did you try with pathogen?")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
-          Seq("I am","I'm").random+"confused about this "+Seq("also", "too").random+".",
+          Seq("I am","I'm").random+" confused about this "+Seq("also", "too").random+".",
           "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
           Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
           "Don't worry"+maybe" about it"+", you'll figure it out "+Seq("eventually", "with time").random+("."+maybe"..").maybe,
@@ -386,7 +386,7 @@ class haibot extends PircBot {
             successResponses = successResponses ++ List(
               "Retweeted "+Seq("that","the").random+" lovely tweet by "+tweetDetails("Screen name")+maybe"!",
               "I've retweeted the lovely tweet by "+tweetDetails("Screen name")+maybe"!",
-              "I've retweeted the tweet out of "+Seq("this","that").random+"tweet by "+tweetDetails("Screen name")+maybe"!",
+              "I've retweeted the tweet out of "+Seq("this","that").random+" tweet by "+tweetDetails("Screen name")+maybe"!",
               "I hope "+tweetDetails("Screen name")+" is pleased with this retweet."
             )
           }
@@ -535,25 +535,66 @@ class haibot extends PircBot {
       }
 
       speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if(message.startsWithAny("@context ", "@tldr", "@tl;dr")) {
+    } else if(message.startsWithAny("@context ", "@tldr", "@tl;dr", "@keyword")) {
       if(!URLs.isEmpty) {
-         val words = URLsWords.mkString(" ")
+        val text = URLsWords.mkString(" ")
           
-        println(words)
-        WordNet.context(words, 5) match {
-          case Some(context) =>
-            speak(
-              s"I'd say it's about $context.",
-              s"I think it's about $context.",
-              s"It might be about $context.",
-              s"It could be about $context.")
-          case None =>
-            speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
+        println(text)
+        
+        /*spawn { 
+          WordNet.keywords(text, 4) match {
+            case Some(wordList) =>
+              val keywords = wordList.mkString(", ")
+              speak(
+                s"I'd say it's about $keywords.",
+                s"I think it's about $keywords.",
+                s"It might be about $keywords.",
+                s"It could be about $keywords.")
+            case None =>
+              speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
+          }
+        }*/
+        
+        spawn {
+          Net.Zemanta.suggestKeywords(text) match {
+            case Some(wordList) =>
+              val keywords = wordList.take(4).mkString(", ").toLowerCase
+              speak(
+                s"I'd say it's about $keywords.",
+                s"I think it's about $keywords.",
+                s"It might be about $keywords.",
+                s"It could be about $keywords.")
+            case None =>
+              speak("I have no idea"+"."*0~3, "I don't know what this is about"+"."*0~3)
+          }
         }
+        
       } else {
         speak("Give me a link...", "I require an URL.", "Try that with a link.")
       }
+    } else if(message.startsWithAny("@suggest")) {
+      val countReg = """@suggest[(]([1-5])[)].*""".r
+      val count = message match {
+        case countReg(cnt) => cnt.toInt
+        case _ => 2
+      }
+      val text = (message.drop("@suggest".size).dropWhile(_.toString matches "[0-9()]") + URLsWords.mkString(" "))
       
+      spawn {
+        Net.Zemanta.suggestArticles(text) match {
+          case Some(articleList) =>
+            val articles = (articleList.groupBy(_.url) -- URLs).values.flatten
+            if(articles.size > 0) {
+              articles.take(count).foreach { article => 
+                speak(article.title + " " + Net.Bitly.tryShorten(article.url))
+              }
+            } else {
+              speak("Sorry, I've got nothing...")
+            }
+          case None =>
+            speak("Sorry, I've got nothing...")
+        }
+      }
     } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
       || (message.startsWithAny("uptime ", "@uptime") && !mentions.isEmpty)
       || (message.startsWithAny(users.toSeq:_*) && message.split(" ").size <= 5 && message.contains("uptime"))) {

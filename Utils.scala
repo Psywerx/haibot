@@ -197,12 +197,47 @@ object Utils {
       ).fold("")(_+" "+_)
     }
     
-    
+    object Zemanta {
+      import com.zemanta.api.Zemanta;
+      import com.zemanta.api.ZemantaResult;
+      import com.zemanta.api.suggest.{Article,Keyword}
+      import scala.collection.JavaConversions.mapAsJavaMap
+      import scala.collection.JavaConversions.asScalaBuffer
+      
+      def suggestKeywords(text:String): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name))
+      def suggestArticles(text:String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
+      
+      def suggest(text:String):Option[ZemantaResult] = {
+        try {
+          val apiKey = io.Source.fromFile(folder+"zemapikey").getLines.next.trim
+          val zem = new Zemanta(apiKey, "http://api.zemanta.com/services/rest/0.0/");	
+          val request = new java.util.HashMap[String, String](Map(
+            "method" -> "zemanta.suggest",
+            "api_key" -> apiKey,
+            "text" -> text,
+            "format" -> "xml"
+          ))
+
+          val zemResult = zem.suggest(request)
+          if(!zemResult.isError) {
+	          Some(zemResult)
+          } else {
+            None
+          }
+        } catch {
+          case e:Exception => 
+            e.printStackTrace
+            None
+        }
+      }
+    }
+
     object Bitly {
       import com.rosaloves.bitlyj._
       import com.rosaloves.bitlyj.Bitly._
+      private val apiKey = io.Source.fromFile(folder+"bitlyapikey").getLines.next.trim.split(" ")
       
-      lazy val bitly = as("o_3n05dn6ovb", "R_3d1852f18b08ed98152219575159973a")
+      lazy val bitly = as(apiKey(0), apiKey(1))
 
       def shorten(s:String): Option[String] = {
         try {
@@ -214,6 +249,10 @@ object Utils {
             None
         }
       }
+      
+      // try, or else return original
+      def tryShorten(s:String): String = shorten(s).orElse(Some(s)).get
+      
     }
   }
 
@@ -294,7 +333,7 @@ object Utils {
       out
     }
     
-    def context(in:String, count:Int = 3): Option[String] = {
+    def keywords(in:String, count:Int = 3): Option[List[String]] = {
       try {
         val scores = HashMap[String, Double]()
         def score(str:String,add:Double) = if(!(stoplist contains str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
@@ -328,12 +367,14 @@ object Utils {
           )
         )
         
-        Some(scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e => 
+        val out = (scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e => 
           scores.exists(a => 
             (a._1 != e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
             (a._1.startsWith(e._1.take(4)) || (e._1 contains a._1))
           )// take out similar words
-        ).take(count).map(_._1).mkString(", ")) //sort and convert to string
+        ).take(count).map(_._1)) //sort and convert to string
+        
+        if(out.size > 0) Some(out) else None
       } catch {
         case e:Exception => e.printStackTrace; None
       }

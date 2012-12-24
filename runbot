@@ -20,6 +20,25 @@ if [ ! -e "lib/$pb/pircbot.jar" ]; then
 fi
 cp+=":lib/$pb/pircbot.jar"
 
+#zemanta
+zem="zemapi"
+if [ ! -e "lib/$zem/$zem-java.jar" ]; then
+    echo "trying to get $zem"
+    mkdir lib &> /dev/null
+    cd lib
+    mkdir $zem &> /dev/null
+    cd $zem
+    zemzip="zemapi-februar2012-java.zip"
+    wget http://developer.zemanta.com/media/files/code/$zemzip &> /dev/null
+    unzip $zemzip &> /dev/null
+    rm $zemzip &> /dev/null
+    cd ..
+    cd ..
+    [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit
+    echo "sucessfully got $zem"
+fi
+cp+=":lib/$zem/$zem-java.jar"
+
 #boilerpipe
 bp="boilerpipe-1.2.0"
 if [ ! -e "lib/$bp/$bp.jar" ]; then
@@ -98,6 +117,7 @@ compile() {
 run() {
     runcmd="scala -cp $cp haibot.$bot"
     case "$args" in
+        -s) echo "dropping into scala console" && scala -cp $cp;;
         -c) echo "not gonna run $bot.";;
         -f) echo "running $bot..." && $runcmd;;
          *) echo "putting $bot into background..." && { $runcmd &>> $logdir/$bot.log & }
