@@ -4,18 +4,22 @@ import collection.mutable.{HashSet,ListBuffer,HashMap}
 import java.io._
 import java.net._
 import math._
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.concurrent.util._
+import scala.concurrent.duration._
+import scala.util._
 import scala.util.matching._
 import scala.util.Random._
 
+
 object Utils {
   val folder = "utils/"
-  //TODO: pack each thing up with imports it needs, so you can copy-paste and such
-
+  
   def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative}
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
-
-  /// Pimped types
+  
   implicit class PimpString(val s:String) { 
     def replaceAll(m:(String,String)*):String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
     // TODO: containsPercent:Double for fuzzy reasoning
@@ -27,34 +31,29 @@ object Utils {
     def maybe = if(0.5.prob) s else ""
     def findAll(r:Regex) = r.findAllIn(s).toList
     def removeAll(rem:String) = s.filterNot(rem contains _)
+    def matches(r:Regex) = s.matches(r.toString)
     def distance(s2:String):Int = distance(s,s2)
-    private def distance(s1:String,s2:String): Int = (s1,s2) match {
-      case ("",s2) => s2.size
-      case (s1,"") => s1.size
-      case (s1,s2) => 
-        if(s1.last == s2.last) 
-          distance(s1.init, s2.init)
-        else
-          Seq(
-             1 + distance(s1.init, s2),
-             1 + distance(s1, s2.init),
-             1 + distance(s1.init, s2.init)
-          ).min
+    def distance(s1: String, s2: String): Int = {
+      val memo = scala.collection.mutable.Map[(List[Char],List[Char]),Int]()
+      def min(a:Int, b:Int, c:Int) = Math.min( Math.min( a, b ), c)
+      def sd(s1: List[Char], s2: List[Char]): Int = {
+        if (memo.contains((s1,s2)) == false)
+          memo((s1,s2)) = (s1, s2) match {
+            case (_, Nil) => s1.length
+            case (Nil, _) => s2.length
+            case (c1::t1, c2::t2)  => min( sd(t1,s2) + 1, sd(s1,t2) + 1,
+                                           sd(t1,t2) + (if (c1==c2) 0 else 1) )
+          }
+        memo((s1,s2))
+      }
+
+      sd( s1.toList, s2.toList )
     }
-    def matches(r:util.matching.Regex) = s.matches(r.toString)
   }
   
   implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args:Any*):String = sc.parts.iterator.mkString("").maybe }
   implicit class PimpInt(val i:Int) extends AnyVal { def ~(j:Int) = nextInt(j-i+1)+i }
 
-  // hashmap with default value
-  /*class HashMapDef[A,B](defVal:B) extends HashMap[A,B] {
-    override def default(key:A) = defVal
-  }
-  implicit class HashMap2Def[A,B](hm:HashMap[A,B]) { //TODO: copy values or something
-    def withDefaultValue(defVal:B) = new HashMapDef[A,B](defVal)
-  }*/
-  
   implicit class Seqs[A](val s:Seq[A]) { 
     def random = s(nextInt(s.size)) 
     def randomOption = if(s.size > 0) Some(s(nextInt(s.size))) else None
@@ -64,27 +63,25 @@ object Utils {
   implicit class F(val f:Float) { def prob = nextFloat<f }
   implicit class I(val i:Int) { def isBetween(min:Int,max:Int) = i >= min && i <= max}
 
-  /// Some regexes
   object Regex {
     val URL = """(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""".r
-    
     val tweet = "https?://(?:www\\.)?twitter\\.com/.*/status(?:es)?/([0-9]+).*".r
-    
-    // do something like this http://stackoverflow.com/questions/3389348/parse-any-date-in-java
-    val Date = (
-      """([0-9]{2}[/.][0-9]{2}[/.][0-9]{2,4})""" + // 00/00/yyyy
-      """|([A-Z][a-z]{2,10} [0-9]{1,2}, [0-9]{4})""" + // meetup May 30, 2012
-      """|([0-9]{1,2} [A-Z][a-z]{2,10} [0-9]{4})""" + // facebook 7 July 2012
-      "").r
   }
-  
+
+  object Memes {
+    val NO_U = """http://bit.ly/yaJI5L"""
+    val oh_you = """http://bit.ly/MvTwUG"""
+    val so_fluffy = """http://bit.ly/MG5Hfx"""
+    val it_was_you = """http://bit.ly/zg0jQt"""
+  }
+    
   object Date {
     //wish I knew a better way.
     import java.util.Date
     import java.text._
     
     private val timeReg = """[\s,]{0,2}(ob\s)?((\d{1,2}:\d{2})|(\d{1,2}h))"""
-    private val dateFormats = List[(util.matching.Regex, SimpleDateFormat)](
+    private val dateFormats = List[(matching.Regex, SimpleDateFormat)](
       (("""\d{1,2}[.]\d{1,2}[.]\d{4}""" + timeReg).r, new SimpleDateFormat("dd.MM.yyyy HH:mm")),
       (("""\d{1,2}-\d{1,2}-\d{4}""" + timeReg).r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
       (("""\d{4}-\d{1,2}-\d{1,2}""" + timeReg).r, new SimpleDateFormat("yyyy-MM-dd HH:mm")),
@@ -166,12 +163,117 @@ object Utils {
     def getSinceString(time:Int):String = getSinceZeroString(since(time))
   }
   
-  /// Ya, rly
-  object Memes {
-    val NO_U = """http://bit.ly/yaJI5L"""
-    val oh_you = """http://bit.ly/MvTwUG"""
-    val so_fluffy = """http://bit.ly/MG5Hfx"""
-    val it_was_you = """http://bit.ly/zg0jQt"""
+  object OCR {
+    import sys.process._
+    import scala.util.Random._
+    import collection.mutable.{Buffer,HashSet}
+    import scala.concurrent._
+    import ExecutionContext.Implicits.global
+    import scala.concurrent.util._
+    import scala.concurrent.duration._
+
+
+    def stringFilter(s:String): String = {
+        s.toLowerCase
+        .replaceAll("[,.!?-_:;]", " ")
+        .replaceAll("[^a-zA-Z\\s]", "")
+        .replaceAll("\\s+", " ").trim.split(" ")
+        .flatMap(a=> if(a.trim.size <= 1 && (a.trim != "i" && a.trim != "a")) None else Some(a.trim))
+        .mkString(" ")
+    }
+
+    def fromFile(name:String) = {
+      val file = io.Source.fromFile(name)
+      val out = file.mkString
+      file.close
+      out
+    }
+
+    def OCR(path: String): Option[String] = {
+      val engineCnt = 6
+      val dst = "/tmp/ocr"
+      val tmpFile = path.replaceAll("[^a-zA-Z]", "").take(7)+nextInt(1000)+("."+path.reverse.takeWhile(_ != '.').replaceAll("[^a-zA-Z.]", "").take(7).reverse).replaceAll("[.]+", ".")
+
+      try { (s"mkdir -p $dst").!! } catch { case e:Exception => return None }
+      
+      val results = (0 until engineCnt).flatMap { engine =>
+        try {
+          //println(s"$dst/$tmpFile.txt")
+          try { (s"""[ -e $dst/$tmpFile.txt ]""" #&&  s"""rm $dst/$tmpFile.txt""").!! } catch { case e:Exception => }
+
+          val ocr = future {
+            // preprocess
+            val params = (engine match {
+              case 0 => "-normalize, -colorspace Gray, -brightness-contrast -5, -normalize, -negate, -fuzz 35%, -floodfill 0x50% Black, -brightness-contrast -5, -black-threshold 24%"
+              case 1 => "-brightness-contrast -3, -normalize, -threshold 68%, -brightness-contrast -10, -negate, -brightness-contrast +5"
+              case 2 => "-black-threshold 33%, -normalize, -negate, -auto-gamma, -white-threshold 65%"
+              case 3 => "-threshold 55%, -gamma 0.97"
+              case 4 => "-contrast, -colorspace Gray"
+              case 5 => "-colorspace Gray, -white-threshold 5%"
+            }).replaceAll(",","")
+        
+            (s"""convert $path ${params} $dst/$tmpFile""").!
+            
+            // OCR
+            engine match {
+              case 0 | 3 => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
+              case 1 | 4 => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
+              case 2 | 5 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
+            }
+          }
+          
+          Await.result(ocr, 20.seconds)
+          
+          Some(stringFilter(fromFile(s"$dst/$tmpFile.txt")))
+        } catch {
+          case e:Exception => 
+            println(s"EXCEPTION in $path ... $e")
+            None
+        }
+      }
+      
+      def commonWords(strings:Seq[String]) = {
+        strings
+          .map(_.split(" ").distinct)
+          .reduce(_ ++ _)
+          .groupBy(a=> a)
+          .filter(a=> a._2.size > 1).keys
+          .filter(word => word.size >= 2).toSet
+      }
+          
+      def bestResult(results:Seq[String]):Option[String] = {
+        if(results.size == 0) return None
+        if(results.size == 1) return Some(results.head)
+        
+        val common = commonWords(results)
+        
+        val attrs = results.map(result => 
+          (result, Array(
+            result.size, 
+            result.split(" ").count(word =>  (common contains word)), 
+            result.split(" ").count(word => !(common contains word))
+          ))
+        )
+        
+        val SIZE = 0
+        val COMMON = 1 
+        val UNCOMMON = 2
+        
+        Option(attrs.sortWith{ case ((_,a),(_,b)) => 
+          if(a(COMMON) == b(COMMON)) {
+            if(a(UNCOMMON) == b(UNCOMMON)) 
+              (a(SIZE) > b(SIZE))
+            else
+              (a(UNCOMMON) > b(UNCOMMON)) 
+          } else {
+            (a(COMMON) > b(COMMON)) 
+          }
+        }.head._1)
+      }
+
+      println(results.mkString("\n"))    
+      bestResult(results)
+    }
   }
 
   object Net {
@@ -195,6 +297,26 @@ object Utils {
           }
         ).fold("")(_+" "+_)
       ).fold("")(_+" "+_).trim
+    }
+    
+    def download(url:String, outFile:String):Boolean = {
+      try {
+        import java.io._
+        import java.nio._
+        import java.nio.channels._
+
+        Await.ready(future {
+          val Url = new URL(url)
+          val rbc = Channels.newChannel(Url.openStream())
+          val fos = new FileOutputStream(outFile)
+          fos.getChannel.transferFrom(rbc, 0, 1 << 24)
+          fos.close
+        }, 30.seconds)
+        
+        true
+      } catch {
+        case e:Exception => false
+      }
     }
     
     object Zemanta {

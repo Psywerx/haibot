@@ -252,7 +252,7 @@ class haibot extends PircBot {
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
         speak(
           Seq("a","d").random+maybe"a"+"w"*3~6+Seq(".","!"*1~3).random.maybe,
-          maybe"lol,"+maybe" how"+" cute"+"!".maybe+Seq(" :)", " ^_^").random,
+          maybe"lol, "+maybe"how "+"cute"+"!".maybe+Seq(" :)", " ^_^").random,
           "so. cute.",
           if(!(words & Set("fluff","puff")).isEmpty) Memes.so_fluffy else "aww!"
         )
@@ -291,7 +291,23 @@ class haibot extends PircBot {
     }
     
     
-    if(message.startsWithAny("@shorten ", "@bitly ")) {
+    if(message.startsWithAny("@ocr ", "@read ")) {
+      val pics = URLs.filter(_.endsWithAny(".jpg", ".png"))
+      if(pics.isEmpty) {
+        speak("Sorry, I don't see any pics... I only read jpegs and pngs.")
+      } else for(pic <- pics) {
+
+        val tmpFile = "/tmp/ocr."+pic.takeRight(3)
+        if(Net.download(pic, tmpFile)) {
+          OCR.OCR(tmpFile) match {
+            case Some(guess) if(guess.split(" ").exists(_.size > 2)) => speak("My best guess is: "+guess)
+            case _ => speak("Sorry, no idea, but I'm still learning to read.")
+          }
+        } else {
+          speak("Sorry, no idea...")
+        }
+      }
+    } else if(message.startsWithAny("@shorten ", "@bitly ")) {
       if(!URLs.isEmpty) {
         val bitlyURLs = URLs.flatMap(Net.Bitly.shorten)
         if(bitlyURLs.size < URLs.size) {
@@ -311,7 +327,7 @@ class haibot extends PircBot {
       //http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
       //TODO: how do I find the title, boilerpipe?
       val title = message 
-        .replaceAll(Regex.Date.toString, "")
+        //.replaceAll(Regex.Date.toString, "")
         .replaceAll(Regex.URL.toString, "")
         .substring("@event ".length).trim
         

@@ -92,6 +92,10 @@ cp+=":lib/$bitly.jar"
 
 if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t - the twitter client."; fi
 if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd - the facebook client."; fi
+if [ "`which tesseract`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install tesseract"; fi
+if [ "`which gocr`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install gocr"; fi
+if [ "`which cuneiform`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install cuneiform"; fi
+if [ "`which convert`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install imagemagick"; fi
 
 args="$1"
 bot="haibot"
@@ -111,14 +115,15 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala
+    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala `ls test.scala`
 }
 
 run() {
     runcmd="scala -cp $cp haibot.$bot"
     case "$args" in
+        -c) echo "not gonna run $bot...";;
         -s) echo "dropping into scala console" && scala -cp $cp;;
-        -c) echo "not gonna run $bot.";;
+        -t) echo "running tests" && scala -cp $cp haibot.test;;
         -f) echo "running $bot..." && $runcmd;;
          *) echo "putting $bot into background..." && { $runcmd &>> $logdir/$bot.log & }
     esac
