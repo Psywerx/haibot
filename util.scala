@@ -1,4 +1,4 @@
-package haibot
+package org.psywerx
 
 import collection.mutable.{HashSet,ListBuffer,HashMap}
 import java.io._
@@ -8,13 +8,13 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.util._
 import scala.concurrent.duration._
-import scala.util._
+import scala.util.matching
 import scala.util.matching._
 import scala.util.Random._
 
 
-object Utils {
-  val folder = "utils/"
+object util {
+  val folder = "util/"
   
   def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative}
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
@@ -163,119 +163,6 @@ object Utils {
     def getSinceString(time:Int):String = getSinceZeroString(since(time))
   }
   
-  object OCR {
-    import sys.process._
-    import scala.util.Random._
-    import collection.mutable.{Buffer,HashSet}
-    import scala.concurrent._
-    import ExecutionContext.Implicits.global
-    import scala.concurrent.util._
-    import scala.concurrent.duration._
-
-
-    def stringFilter(s:String): String = {
-        s.toLowerCase
-        .replaceAll("[,.!?-_:;]", " ")
-        .replaceAll("[^a-zA-Z\\s]", "")
-        .replaceAll("\\s+", " ").trim.split(" ")
-        .flatMap(a=> if(a.trim.size <= 1 && (a.trim != "i" && a.trim != "a")) None else Some(a.trim))
-        .mkString(" ")
-    }
-
-    def fromFile(name:String) = {
-      val file = io.Source.fromFile(name)
-      val out = file.mkString
-      file.close
-      out
-    }
-
-    def OCR(path: String): Option[String] = {
-      val engineCnt = 6
-      val dst = "/tmp/ocr"
-      val tmpFile = path.replaceAll("[^a-zA-Z]", "").take(7)+nextInt(1000)+("."+path.reverse.takeWhile(_ != '.').replaceAll("[^a-zA-Z.]", "").take(7).reverse).replaceAll("[.]+", ".")
-
-      try { (s"mkdir -p $dst").!! } catch { case e:Exception => return None }
-      
-      val results = (0 until engineCnt).flatMap { engine =>
-        try {
-          //println(s"$dst/$tmpFile.txt")
-          try { (s"""[ -e $dst/$tmpFile.txt ]""" #&&  s"""rm $dst/$tmpFile.txt""").!! } catch { case e:Exception => }
-
-          val ocr = future {
-            // preprocess
-            val params = (engine match {
-              case 0 => "-normalize, -colorspace Gray, -brightness-contrast -5, -normalize, -negate, -fuzz 35%, -floodfill 0x50% Black, -brightness-contrast -5, -black-threshold 24%"
-              case 1 => "-brightness-contrast -3, -normalize, -threshold 68%, -brightness-contrast -10, -negate, -brightness-contrast +5"
-              case 2 => "-black-threshold 33%, -normalize, -negate, -auto-gamma, -white-threshold 65%"
-              case 3 => "-threshold 55%, -gamma 0.97"
-              case 4 => "-contrast, -colorspace Gray"
-              case 5 => "-colorspace Gray, -white-threshold 5%"
-            }).replaceAll(",","")
-        
-            (s"""convert $path ${params} $dst/$tmpFile""").!
-            
-            // OCR
-            engine match {
-              case 0 | 3 => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
-              case 1 | 4 => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-              case 2 | 5 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-            }
-          }
-          
-          Await.result(ocr, 20.seconds)
-          
-          Some(stringFilter(fromFile(s"$dst/$tmpFile.txt")))
-        } catch {
-          case e:Exception => 
-            println(s"EXCEPTION in $path ... $e")
-            None
-        }
-      }
-      
-      def commonWords(strings:Seq[String]) = {
-        strings
-          .map(_.split(" ").distinct)
-          .reduce(_ ++ _)
-          .groupBy(a=> a)
-          .filter(a=> a._2.size > 1).keys
-          .filter(word => word.size >= 2).toSet
-      }
-          
-      def bestResult(results:Seq[String]):Option[String] = {
-        if(results.size == 0) return None
-        if(results.size == 1) return Some(results.head)
-        
-        val common = commonWords(results)
-        
-        val attrs = results.map(result => 
-          (result, Array(
-            result.size, 
-            result.split(" ").count(word =>  (common contains word)), 
-            result.split(" ").count(word => !(common contains word))
-          ))
-        )
-        
-        val SIZE = 0
-        val COMMON = 1 
-        val UNCOMMON = 2
-        
-        Option(attrs.sortWith{ case ((_,a),(_,b)) => 
-          if(a(COMMON) == b(COMMON)) {
-            if(a(UNCOMMON) == b(UNCOMMON)) 
-              (a(SIZE) > b(SIZE))
-            else
-              (a(UNCOMMON) > b(UNCOMMON)) 
-          } else {
-            (a(COMMON) > b(COMMON)) 
-          }
-        }.head._1)
-      }
-
-      println(results.mkString("\n"))    
-      bestResult(results)
-    }
-  }
-
   object Net {
     import de.l3s.boilerpipe.extractors._
     import java.net._
@@ -322,12 +209,13 @@ object Utils {
     object Zemanta {
       import com.zemanta.api.Zemanta;
       import com.zemanta.api.ZemantaResult;
-      import com.zemanta.api.suggest.{Article,Keyword}
+      import com.zemanta.api.suggest.{Article,Keyword,Image}
       import scala.collection.JavaConversions.mapAsJavaMap
       import scala.collection.JavaConversions.asScalaBuffer
       
       def suggestKeywords(text:String, cnt:Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name).take(cnt))
       def suggestArticles(text:String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
+      def suggestImages(text:String): Option[List[Image]] = suggest(text).map(_.getConfidenceSortedImages(true).toList)
       
       def suggest(text:String):Option[ZemantaResult] = {
         try {

@@ -95,6 +95,7 @@ if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fb
 if [ "`which tesseract`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install tesseract"; fi
 if [ "`which gocr`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install gocr"; fi
 if [ "`which cuneiform`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install cuneiform"; fi
+if [ "`which ocrad`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install ocrad"; fi
 if [ "`which convert`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install imagemagick"; fi
 
 args="$1"
@@ -115,7 +116,7 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp Utils.scala $bot.scala `ls test.scala`
+    fsc -Xlint -deprecation -optimise -feature -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
 }
 
 run() {
@@ -129,7 +130,7 @@ run() {
     esac
 }
 
-if [[ $bot.scala -nt $outdir/haibot/$bot.class ]] || [[ Utils.scala -nt $outdir/haibot/Utils.class ]] || [[ "$args" == "-c" ]]; then
+if [[ $bot.scala -nt $outdir/org/psywerx/$bot/$bot.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/$bot/util.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/$bot/OCR.class ]] || [[ "$args" == "-c" ]]; then
     compile && run
 else
     run

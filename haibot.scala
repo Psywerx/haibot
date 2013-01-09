@@ -1,6 +1,8 @@
-package haibot
-import Utils._
-import Utils.Date._
+package org.psywerx.haibot
+
+import org.psywerx.util._
+import org.psywerx.util.Date._
+import org.psywerx.OCR
 
 import org.jibble.pircbot._
 import collection.mutable.{HashSet,ListBuffer,HashMap}
@@ -179,7 +181,7 @@ class haibot extends PircBot {
       shutdown = true
       sys.exit(0)
     } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
-      var hai = Seq("ohai", "o hai", "hello", "hi"+maybe"there")
+      var hai = Seq("ohai", "o hai", "hello", "hi"+maybe" there")
       if(mentions.contains(name) && 0.7.prob) 
         hai = hai.map(_ + s" $sender")
       if(!mentions.contains(name) && !mentions.isEmpty && 0.7.prob) 
@@ -278,7 +280,7 @@ class haibot extends PircBot {
           "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
           (if(!mentions.isEmpty && 0.8.prob) 
             Seq("I don't know","I have no idea").random+
-            Seq(", ", "...").random+" but " + maybe"yes, " +
+            Seq(", ", "... ").random+"but " + maybe"yes, " +
             mentions.toSeq.random +
             " might."
            else
@@ -292,7 +294,12 @@ class haibot extends PircBot {
     
     
     if(message.startsWithAny("@ocr ", "@read ")) {
-      val pics = URLs.filter(_.endsWithAny(".jpg", ".png"))
+      val imgurReg = "(https?://)(?:www[.])?(imgur.com/)(?:(?:gallery/)|(?:r/[a-z]+/))?([A-Za-z0-9]+)".r
+      def toImgur(url:String):String = url match {
+        case imgurReg(protocol, domain, img) => protocol+"i."+domain+img+".png"
+        case _ => url
+      }
+      val pics = URLs.map(toImgur).filter(_.endsWithAny(".jpg", ".png"))
       if(pics.isEmpty) {
         speak("Sorry, I don't see any pics... I only read jpegs and pngs.")
       } else for(pic <- pics) {
@@ -459,7 +466,7 @@ class haibot extends PircBot {
       } else {
         speak("Notsure about this... no.", "Noep, something's not right here")
       }
-    } else if(URLs.exists(_ matches Regex.tweet)) {
+    } else if(URLs.exists(_ matches Regex.tweet) && !sender.isBot) {
       val Regex.tweet(tId) = URLs.find(_ matches Regex.tweet).head
       tweetMsg = null
       tweetId = tId
@@ -474,15 +481,19 @@ class haibot extends PircBot {
         "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
         "Someone"+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
     } else if(message.startsWith("@world ")) {
-      var tweet = message.drop("@world ".length).trim
-      if(!URLs.isEmpty && tweet.size > 140) {
-        var shortTweet = tweet
-        for(url <- URLs) {
-          val bitlyUrl = Net.Bitly.shorten(url)
-          if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url.asInstanceOf[CharSequence], bitlyUrl.get.asInstanceOf[CharSequence])
+      val tweet = {
+        var out = message.drop("@world ".length).trim
+        if(!URLs.isEmpty && out.size > 140) {
+          var shortTweet = out
+          for(url <- URLs) {
+            val bitlyUrl = Net.Bitly.shorten(url)
+            if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url.asInstanceOf[CharSequence], bitlyUrl.get.asInstanceOf[CharSequence])
+          }
+          println(s"Shortened tweet from ${out.size} to ${shortTweet.size}")
+          out = shortTweet
         }
-        println(s"Shortened tweet from ${tweet.size} to ${shortTweet.size}")
-        tweet = shortTweet
+        
+        out
       }
       
       if(tweet.size >= 1 && tweet.size <= 140) {
@@ -506,7 +517,7 @@ class haibot extends PircBot {
     } else if(message.startsWith("@msg ")) {
       message.split(" ").toList match {
         case "@msg"::rawNick::rawMsg =>           
-          val nick = rawNick.replaceAll(":,.@", "")
+          val nick = rawNick.replaceAll("[:,.@]", "")
           val force = !rawMsg.isEmpty && rawMsg.head == "-f"
           val msg = (if(force) rawMsg.tail else rawMsg).mkString(" ")
           if(!force && (nick == name || nick == sender)) {
