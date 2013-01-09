@@ -116,11 +116,11 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    fsc -Xlint -deprecation -optimise -feature -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
+    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
 }
 
 run() {
-    runcmd="scala -cp $cp haibot.$bot"
+    runcmd="scala -cp $cp org.psywerx.$bot.$bot"
     case "$args" in
         -c) echo "not gonna run $bot...";;
         -s) echo "dropping into scala console" && scala -cp $cp;;
@@ -130,7 +130,7 @@ run() {
     esac
 }
 
-if [[ $bot.scala -nt $outdir/org/psywerx/$bot/$bot.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/$bot/util.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/$bot/OCR.class ]] || [[ "$args" == "-c" ]]; then
+if [[ $bot.scala -nt $outdir/org/psywerx/$bot/$bot.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/util.class ]] || [[ Utils.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ "$args" == "-c" ]]; then
     compile && run
 else
     run

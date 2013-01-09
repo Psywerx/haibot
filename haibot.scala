@@ -6,7 +6,7 @@ import org.psywerx.OCR
 
 import org.jibble.pircbot._
 import collection.mutable.{HashSet,ListBuffer,HashMap}
-import util.Random._
+import scala.util.Random._
 import java.io._
 import java.net._
 import scala.concurrent.ops._
