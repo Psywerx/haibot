@@ -9,7 +9,10 @@ import collection.mutable.{HashSet,ListBuffer,HashMap}
 import scala.util.Random._
 import java.io._
 import java.net._
-import scala.concurrent.ops._
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.concurrent.util._
+import scala.concurrent.duration._
 import sys.process._
 
 object haibot extends App { new haibot }
@@ -117,6 +120,12 @@ class haibot extends PircBot {
       lastMsg = newMsg
     })
   }
+  def speakFast(msgs:String*) = if(!msgs.isEmpty) {
+    (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).map(newMsg => {
+      sendMessage(chan, newMsg)
+      lastMsg = newMsg
+    })
+  }
   
   override def onNickChange(oldNick:String, login:String, hostname:String, newNick:String) = {
     //TODO: keep note of this stuff... you'll know who's who, so you don't end up like http://myapokalips.com/show/23
@@ -146,13 +155,14 @@ class haibot extends PircBot {
   }
 
   override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
-    Thread.sleep(1000)
-    if(sender == name) spawn { //why spawn a new thread? because pircbot doesn't have user info here yet
+    if(sender == name) future { //why spawn a new thread? because pircbot doesn't have user info here yet, but does immediately after
+      Thread.sleep(1000)
       startTime = now
       if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
       users.foreach(getMsgs)
     } else {
-      if(sender.startsWith(owner) && 0.10.prob) speak(
+      Thread.sleep(1000)
+      if(sender.startsWith(owner) && 0.05.prob) speak(
         "welcome, father"+maybe".",
         "welcome back!",
         "hi, you"+maybe"!",
@@ -169,15 +179,21 @@ class haibot extends PircBot {
     val mentions = message.replaceAll("[,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs.toList:_*)
-    lazy val URLsWords = URLsText
-      .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
-      .split("\\s")
-      .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
-    lazy val recentContext = ((URLsText + ". " + lastMsgs.mkString(". ") + ". " + message).replaceAll(Regex.URL.toString, "").replaceAll("@[a-z]+[ ,:]", "").replaceAll("^[ .]+","").trim)
+    lazy val URLsWords = 
+      URLsText
+        .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
+        .split("\\s")
+        .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
+    lazy val recentContext = 
+      (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
+        .replaceAll(Regex.URL.toString, "")
+        .replaceAll("@[a-z]+[ ,:]", "")
+        .replaceAll("^[ .]+","")
+        .trim
     
     // Oh look, AI
     if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
-      speak(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
+      speakFast(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
       shutdown = true
       sys.exit(0)
     } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
@@ -301,18 +317,23 @@ class haibot extends PircBot {
       }
       val pics = URLs.map(toImgur).filter(_.endsWithAny(".jpg", ".png"))
       if(pics.isEmpty) {
-        speak("Sorry, I don't see any pics... I only read jpegs and pngs.")
+        speakFast(maybe"Sorry, "+"I don't see any pics... I only read jpegs and pngs.")
       } else for(pic <- pics) {
 
         val tmpFile = "/tmp/ocr."+pic.takeRight(3)
         if(Net.download(pic, tmpFile)) {
           OCR.OCR(tmpFile) match {
-            case Some(guess) if(guess.split(" ").exists(_.size > 2)) => speak("My best guess is: "+guess)
-            case _ => speak("Sorry, no idea, but I'm still learning to read.")
+            case Some(guess) if(guess.split(" ").exists(_.size > 2)) => 
+              speakFast(
+                s"I think it says: $guess",
+                s"My best guess is: $guess")
+            case _ =>
+              speakFast("Sorry, no idea, but I'm still learning "+maybe"how "+"to read.")
           }
         } else {
-          speak("Sorry, no idea...")
+          speakFast("Sorry, no idea...")
         }
+        (s"rm $tmpFile").!
       }
     } else if(message.startsWithAny("@shorten ", "@bitly ")) {
       if(!URLs.isEmpty) {
@@ -570,7 +591,7 @@ class haibot extends PircBot {
       
       println(text)
         
-      spawn {
+      future {
         //TODO: Move these to top and use them lazily elsewhere too
         Net.Zemanta.suggestKeywords(text, 3~4).orElse(WordNet.keywords(text, 3~4)).map(_.mkString(", ").toLowerCase) match {
           case Some(keywords) =>
@@ -593,7 +614,7 @@ class haibot extends PircBot {
       val text: String = recentContext
       println(text)
       
-      spawn {
+      future {
         Net.Zemanta.suggestArticles(text) match {
           case Some(articleList) =>
             val articles = (articleList.groupBy(_.url) -- URLs).values.flatten.take(cnt)

@@ -12,7 +12,6 @@ import scala.util.matching
 import scala.util.matching._
 import scala.util.Random._
 
-
 object util {
   val folder = "util/"
   
@@ -132,8 +131,8 @@ object util {
     }
     
     private val timeDivisor = 1000000L*1000L
-    def since(time: Int): Int = now-time
     def now = (System.nanoTime()/timeDivisor).toInt
+    def since(time: Int): Int = now-time
     def time(func: => Unit) = {
       val startTime = now
       func
@@ -270,10 +269,11 @@ object util {
   object WordNet {
     //These take a while at startup... make them lazy if it bothers you
     //format is (id,word,type)... I should probably keep type
-    type wn_s = (Int,String,Char)
-    val wn_sAll = io.Source.fromFile("lib/prolog/wn_s.db").getLines.toList.map(_.split(",")).map(e=> (e(0).toInt,e(2).init.tail.replaceAll("''","'"),e(3)(0)))
-    val wn_sById = wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]())
-    val wn_sByWord = wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]())
+    type wn_s = (Int,String)
+    val (wn_sById, wn_sByWord) = {
+      val wn_sAll = io.Source.fromFile("lib/prolog/wn_s2.db").getLines.map(a => (a.take(9).toInt, a.drop(11).init.replaceAll("''","'"))).toList
+      (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
+    }
     
     val wordReg = """([^a-zA-Z0-9 .'/-]*)([a-zA-Z0-9 .'/-]{3,})([^a-zA-Z0-9 .'/-]*)""".r
     val capitals = """[A-Z][a-zA-Z0-9 .'/-]*"""
@@ -285,8 +285,8 @@ object util {
       case wordReg(prefix,word,suffix) => 
         val (capital, allcaps, alllower) = (word matches capitals, word matches caps, word matches lower)
         val part = if(!(allcaps || alllower)) {
-          val upper = word.count(e=> e.toString==e.toString.toUpperCase).toFloat
-          val lower = word.count(e=> e.toString==e.toString.toLowerCase).toFloat
+          val upper = word.count(e=> e.toString == e.toString.toUpperCase).toFloat
+          val lower = word.count(e=> e.toString == e.toString.toLowerCase).toFloat
           upper/(upper+lower)
         } else {
           0f
@@ -318,7 +318,6 @@ object util {
     }
     def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
     
-    
     def stem(w:String):List[String] = // bad excuse for a stemmer :)
       (List(w) ++ 
         w.split("-")
@@ -332,7 +331,7 @@ object util {
       stem(w).flatMap(e=> List(e, e.toLowerCase)).distinct
     
     def getMapFromwn(dbName:String) = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e=> (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e=> e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
-    val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e=> e -> getMapFromwn(s"wn_$e.db")).toMap
+    val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e => e -> getMapFromwn(s"wn_$e.db")).toMap
     val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
     
     var weights = getWeights
@@ -363,7 +362,7 @@ object util {
               Nil
             }
           case _ => Nil
-        }).filter(e=> e._3=='v' || e._3=='n')
+        })//.filter(e=> e._3=='v' || e._3=='n')
         
         getWeights
         

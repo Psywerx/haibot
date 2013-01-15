@@ -10,12 +10,14 @@ object OCR {
   import scala.concurrent.duration._
 
 
-  def stringFilter(s:String): String = {
-      s.toLowerCase
+  val allowedSingleLetters = Set("i", "a", "e", "o", "y", "u")
+  def stringFilter(str:String): String = {
+    str
+      .toLowerCase
       .replaceAll("[,.!?-_:;]", " ")
       .replaceAll("[^a-zA-Z\\s]", "")
-      .replaceAll("\\s+", " ").trim.split(" ")
-      .flatMap(a=> if(a.trim.size <= 1 && (a.trim != "i" && a.trim != "a")) None else Some(a.trim))
+      .replaceAll("\\s+", " ").trim.split(" ").map(_.trim)
+      .filter(word => (word.size >= 2 || allowedSingleLetters.contains(word)))
       .mkString(" ")
   }
 
@@ -35,10 +37,9 @@ object OCR {
     
     val results = (0 until engineCnt).flatMap { engine =>
       try {
-        //println(s"$dst/$tmpFile.txt")
         (s"""rm $dst/$tmpFile.txt""").!
 
-        val ocr = future {
+        Await.result(future {
           // preprocess
           val params = "-resize 640x640> " + (engine match {
             case 0 => "-deskew 79%, -brightness-contrast -1, -colorspace Gray, -white-threshold 96%"
@@ -48,37 +49,39 @@ object OCR {
             case 4 => "-morphology Edge Diamond -blur 1x2 -unsharp 2x3 -sigmoidal-contrast 5x50% -fuzz 45% -floodfill 0x50% Black"
           }).replaceAll(", "," ")
       
-          (s"""convert $path ${params} $dst/$tmpFile"""+(if(engine%4==3)".pnm"else"")).!
+          (s"""convert $path $params $dst/$tmpFile"""+(if(engine==3)".pnm"else"")).!
           
           // OCR
           engine match {
-            case 0 => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
-            case 1 => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
+            case 0   => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
+            case 1   => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
             case 2|4 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-            case 3 => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!              
+            case 3   => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!              
           }
-        }
-        
-        Await.result(ocr, 22.seconds)
+        }, 20.seconds)
         
         Some(stringFilter(fromFile(s"$dst/$tmpFile.txt")))
       } catch {
-        case e:Exception => 
+        case e: Exception => 
           println(s"EXCEPTION in $path ... $e")
           None
+      } finally {
+        (s"""rm $dst/$tmpFile.txt""").!
+        (s"""rm $dst/$tmpFile""").!
+        (s"""rm $dst/$tmpFile.pnm""").!
       }
     }
     
-    def commonWords(strings:Seq[String]) = {
+    def commonWords(strings: Seq[String]) = {
       strings
         .map(_.split(" ").distinct)
         .reduce(_ ++ _)
         .groupBy(a=> a)
-        .filter(a=> a._2.size > 1).keys
-        .filter(word => word.size >= 2).toSet
+        .filter(_._2.size >= 2).keys // at least 2 occurences of word
+        .filter(_.size >= 2).toSet   // word at least length 2
     }
         
-    def bestResult(results:Seq[String]):Option[String] = {
+    def selectResult(results:Seq[String]): Option[String] = {
       if(results.size == 0) return None
       if(results.size == 1) return Some(results.head)
       
@@ -99,7 +102,7 @@ object OCR {
       val UNCOMMON = 2
       val AVGLEN = 3
       
-      Some(attrs.sortWith{ case ((_,a),(_,b)) => 
+      Some(attrs.sortWith { case ((_,a),(_,b)) => 
         if(a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
@@ -109,7 +112,7 @@ object OCR {
     }
 
     println(results.mkString("\n"))    
-    bestResult(results)
+    selectResult(results)
   }
 }
 
