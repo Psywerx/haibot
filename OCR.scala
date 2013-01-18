@@ -46,7 +46,7 @@ object OCR {
             case 1 => "-auto-level, -sigmoidal-contrast 8x79%, -negate, -enhance, -fuzz 25%, -trim"
             case 2 => "-negate -sigmoidal-contrast 14x16% -threshold 25% -background gray0 -deskew 8% -sigmoidal-contrast 8x84% -threshold 40% -contrast-stretch 0x65%"
             case 3 => "-white-threshold 96% -negate -contrast -contrast-stretch 3x40% -brightness-contrast 50 -adaptive-blur 1x1 -contrast-stretch 2x27% -threshold 40% -brightness-contrast -80 -virtual-pixel Edge +distort SRT -0.2 -brightness-contrast +90 -unsharp 10x2 -auto-gamma -gamma 0.7 -gamma 1.25"
-            case 4 => "-morphology Edge Diamond -blur 1x2 -unsharp 2x3 -sigmoidal-contrast 5x50% -fuzz 45% -floodfill 0x50% Black"
+            case 4 => "-negate, -sigmoidal-contrast 14x16%, -threshold 24%, -background gray0, -deskew 8%, -sigmoidal-contrast 8x84%"
           }).replaceAll(", "," ")
       
           (s"""convert $path $params $dst/$tmpFile"""+(if(engine==3)".pnm"else"")).!

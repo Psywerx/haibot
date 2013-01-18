@@ -535,7 +535,8 @@ class haibot extends PircBot {
       } else {
         speak("That's too long to tweet, you twit! ("+tweet.size+" char)")
       }
-    } else if(message.startsWith("@msg ")) {
+    }
+    if(message.startsWith("@msg ")) {
       message.split(" ").toList match {
         case "@msg"::rawNick::rawMsg =>           
           val nick = rawNick.replaceAll("[:,.@]", "")
