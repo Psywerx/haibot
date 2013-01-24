@@ -1,14 +1,21 @@
---------
- haibot 
---------
 
-A sort-of cool IRC bot.
-Databases not included as that would take the magic out of him.
+# haibot 
+
+An awesome IRC bot that will make your IRC channel _better_.
+
+Databases not included to ensure the bot has his own special charm for every channel's culture.
+
 Check the sources for what it does and what you might need to start it.
 I realize it's a lot to ask, but you must work to get to know this guy ;)
-Also, your computer can probably get hacked through this bot :)
 
-Last time I updated this README the extra files were:
+
+PS: your computer can probably get hacked through this bot :)
+
+
+## Charm module and other configs
+
+Files ending in `.db` are the charm secret sauce. Configure responsibly.
+
 .config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
 <folder from .config>/
     msgs.db - used for @msgs, can be empty
@@ -28,10 +35,10 @@ utils/
     zemapikey - zemanta api key
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing
-    weights - some weights for wordnet tables
+    weights - some weights for wordnet 
     
+## Dependencies
 
-And the used libs were:
     pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
     Zemanta - contextual intelligence for everyone -- autodownloaded
