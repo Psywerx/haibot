@@ -1,21 +1,19 @@
 --------
  haibot 
 --------
-
 "An awesome IRC bot that will make your IRC channel _better_." -Swizec Teller
-
-Databases not included to ensure haibot has his own special magic for every channel.
 
 Check the sources for what he's about and what you might need to start him.
 I realize it's a lot to ask, but you must work to get to know this guy ;)
+Databases not included to ensure each haibot has his own special magic.
 Also, your computer can probably get hacked through this bot :)
 
-You're probably wondering about the special magic that makes him tick.
-Here's a seceret: The magic is config and .db files... use this knowledge wisely.
+You're probably wondering about the special magic that makes him tick, right?
+Here's the secret: The magic is config and .db files!
 
 .config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
 <folder from .config>/
-    msgs.db - used for @msgs, can be empty
+    msgs.db - used for @msgs, can/should be empty
     events.db - used for @event, can be empty (also doesn't really work)
     lasttweets.db - used by the twitter part, will be autopopulated if t is setup
     trusted.db - list of names that can maybe do a bit more than the unknowns.
