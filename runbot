@@ -122,7 +122,7 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    scalac -Xlint -deprecation -optimise -feature -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
+    scalac -Ywarn-value-discard -Ywarn-dead-code -Xlint -deprecation -optimise -feature -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
 }
 
 run() {

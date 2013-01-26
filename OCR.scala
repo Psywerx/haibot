@@ -42,21 +42,24 @@ object OCR {
         Await.result(future {
           // preprocess
           val params = "-resize 640x640> " + (engine match {
-            case 0 => "-deskew 79%, -brightness-contrast -1, -colorspace Gray, -white-threshold 96%"
-            case 1 => "-auto-level, -sigmoidal-contrast 8x79%, -negate, -enhance, -fuzz 25%, -trim"
-            case 2 => "-negate -sigmoidal-contrast 14x16% -threshold 25% -background gray0 -deskew 8% -sigmoidal-contrast 8x84% -threshold 40% -contrast-stretch 0x65%"
-            case 3 => "-white-threshold 96% -negate -contrast -contrast-stretch 3x40% -brightness-contrast 50 -adaptive-blur 1x1 -contrast-stretch 2x27% -threshold 40% -brightness-contrast -80 -virtual-pixel Edge +distort SRT -0.2 -brightness-contrast +90 -unsharp 10x2 -auto-gamma -gamma 0.7 -gamma 1.25"
-            case 4 => "-negate, -sigmoidal-contrast 14x16%, -threshold 24%, -background gray0, -deskew 8%, -sigmoidal-contrast 8x84%"
+            //general
+            case 0 => "-negate, -sigmoidal-contrast 14x16%, -threshold 25%, -background gray0, -deskew 8%, -sigmoidal-contrast 8x84%, -threshold 40%, -contrast-stretch 0x65%"
+            case 1 => "-shear 1.0x1.0, -deskew 60%, -negate, -morphology Convolve Diamond:1, -swirl 0.2, -auto-gamma, -threshold 58%, -scale 100%x97%, -colorspace Gray, -sigmoidal-contrast 12x80%"
+            case 2 => "-virtual-pixel Dither, +distort SRT -0.3, +contrast, -white-threshold 90%, -threshold 63%, -colorspace Gray, -gravity center, -extent 110%x104%, -negate"
+            case 3 => "-scale 107%, -negate, -scale 112%x100%, -liquid-rescale 99%x101%, -sharpen 3x6, -contrast-stretch 0x38%, -threshold 12%, -deskew 70%"
+            //memes
+            case 4 => "-negate -sigmoidal-contrast 14x12% -scale 115%x102% -threshold 24% -background gray0 -deskew 9% -threshold 47%"
+            case 5 => "-shear 3.12x2.79 -deskew 62% -negate -morphology Convolve Diamond:1 -swirl -0.3 -auto-gamma -white-threshold 55% -scale 100%x94% -colorspace Gray -sigmoidal-contrast 12x80%"
           }).replaceAll(", "," ")
-      
+          
           (s"""convert $path $params $dst/$tmpFile"""+(if(engine==3)".pnm"else"")).!
           
           // OCR
           engine match {
-            case 0   => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
-            case 1   => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-            case 2|4 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-            case 3   => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!              
+            case 0     => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
+            case 1     => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
+            case 2|4|5 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
+            case 3     => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!              
           }
         }, 20.seconds)
         

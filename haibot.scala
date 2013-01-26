@@ -38,7 +38,9 @@ class haibot extends PircBot {
   this.joinChannel(chan)
 
   val msgs = Store(folder+"msgs.db")
-  def getMsgs(nick:String) = (msgs ?- nick.toLowerCase).foreach(msg=> speak(nick+": "+msg))
+  def getMsgs(nick:String) = (msgs ?- nick.toLowerCase).foreach { msg => 
+    if(msg.startsWithAny("++", nick+"++")) speak(nick+"++" + msg.dropWhile(_ != '+').drop(1)) else speak(nick+": "+msg)
+  }
 
   val events = Store(folder+"events.db")
 
@@ -538,43 +540,64 @@ class haibot extends PircBot {
     }
     if(message.startsWith("@msg ")) {
       message.split(" ").toList match {
-        case "@msg"::rawNick::rawMsg =>           
-          val nick = rawNick.replaceAll("[:,.@]", "")
-          val force = !rawMsg.isEmpty && rawMsg.head == "-f"
-          val msg = (if(force) rawMsg.tail else rawMsg).mkString(" ")
-          if(!force && (nick == name || nick == sender)) {
-            speak(
-              "Oh, you...",
-              if(sender.isBot) "Knock it off, bro!" else "Knock it off, meatbag!",
-              Memes.it_was_you,
-              Memes.NO_U
-            )
-          } else if(!force && users.contains(nick)) {
-            speak(
-              (if(sender.isGirl) "woman, " else "dude, ")+nick+" is right here...",
-              "hey, "+nick+": "+msg.toUpperCase+"!"*1~3
-            )
-          } else if(msg.isEmpty) {
-            speak("hmm... but what should I tell "+(if(nick.isGirl) "her" else "him")+"?")
-          } else if(!msgs.isKey(nick)) {
-            speak("no offence, but that doesn't sound like a real name to me.")
-          } else {
-            msgs + (nick.toLowerCase, msg)
+        case "@msg"::rawNicks::rawMsg => 
+          val msg = rawMsg.mkString(" ").trim
+          //TODO: possible bug if name and name++ are both present, and probably others ;)
+          var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).toSet
+          var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
+          nicks = nicks.map(_.replaceAll("[+]", "")) 
+          val isHere = nicks.filter(users.contains)
+          val errNicks = nicks.filter(nick => !msgs.isKey(nick))
+          val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
+          toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
+          val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set())
+          
+          def themForm(nicks: Set[String]) = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
+          
+          if(!isHere.isEmpty) {
+            if((isHere contains name) || (isHere contains sender)) {
+              speak(
+                "wat.",
+                "Oh, you...",
+                if(sender.isBot) "Knock it off, bro!" else "Knock it off, meatbag!",
+                Memes.it_was_you,
+                Memes.NO_U)
+            } else {
+              speak(
+                (if(sender.isGirl) "woman, " else "dude, ")+isHere.mkString(", ")+(if(isHere.size == 1) " is " else " are ")+"right here..."
+              )
+            }
+          }
+          if(!errNicks.isEmpty) {
+            speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size==1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
+          }
+          if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).isEmpty) {
+            speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
+          }
+          if(!toMsgNicks.isEmpty) {
+            for(nick <- toMsgNicks) {
+              val toMsg = ((if(toPlusNicks contains nick)"++ "else"") + msg).trim
+              if(!toMsg.isEmpty) msgs + (nick.toLowerCase, toMsg)
+            }
+            
             var say = List(
               maybe"o"+"k"+".".maybe, 
               "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
               "ay"+"-ay".maybe+Seq(" cap'n", " captain").random.maybe+"!", 
-              Seq("sure", "ok").random+", I'll tell "+(if(nick.isGirl) "her" else "him")+".".maybe)
+              Seq("sure", "ok").random+", I'll tell "+themForm(toMsgNicks)+".".maybe
+            )
+              
+            if(dontMsgNicks.size > 0) {
+              say.map(_ + " (except for the ppl I just complained about :))")
+            }
             
-            speak((if(force) say.map(s => ("I "+Seq("w","d").random+"on't like it, but ").maybe + s) else say):_*)
+            speak(say:_*)
           }
         case _ =>
           val butI = (maybe"but"+"I ").maybe
           val filler = Seq("", butI+"still", butI+"really", butI+"kind of", butI+" unfortunately").random
           speak(s"Sorry, $filler don't know what to do with this.")
       }
-    } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
-      speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if(message.startsWithAny("@reword ", "@rephrase ")) {
       val toReword = message.dropWhile(_ != ' ').tail
       var rephrased = WordNet.rephrase(toReword)
@@ -630,11 +653,13 @@ class haibot extends PircBot {
             speak("Sorry, I've got nothing...")
         }
       }
+    } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
+      speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
       || (message.startsWithAny("uptime ", "@uptime") && !mentions.isEmpty)
       || (message.startsWithAny(users.toSeq:_*) && message.split(" ").size <= 5 && message.contains("uptime"))) {
-              
-      val mytime = getSinceString(startTime)
+      
+      val mytime = withAlternative(getSinceString(startTime), "who knows how long..")
       
       mentions foreach { user => 
         if(user == name) {
@@ -674,13 +699,13 @@ class haibot extends PircBot {
   }
   
   var lastPrivMsg = HashMap[String, String]().withDefaultValue("")
-  def speakPriv(message:String, nick:String, msgs:String*) = {
+  def speakPriv(message:String, nick:String, msgs:String*): Unit = {
   
     import sys.process._
     val nickClean = nick.replaceAll("[^a-zA-Z]", "")
     (Seq("echo", nickClean+" "+message) #>> new File("logs/chat_"+nickClean+".log")).!!
   
-    shuffle(msgs.toBuffer - lastPrivMsg(nick)).headOption.map(newMsg => {
+    shuffle(msgs.toBuffer - lastPrivMsg(nick)).headOption.foreach(newMsg => {
       Thread.sleep(500+nextInt(500*2))
       sendMessage(nick, newMsg)
       lastPrivMsg(nick) = newMsg
