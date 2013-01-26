@@ -39,7 +39,7 @@ class haibot extends PircBot {
 
   val msgs = Store(folder+"msgs.db")
   def getMsgs(nick:String) = (msgs ?- nick.toLowerCase).foreach { msg => 
-    if(msg.startsWithAny("++", nick+"++")) speak(nick+"++" + msg.dropWhile(_ != '+').drop(1)) else speak(nick+": "+msg)
+    if(msg.startsWithAny("++", nick+"++")) speak(nick+"++" + msg.dropWhile(_ != '+').drop(2)) else speak(nick+": "+msg)
   }
 
   val events = Store(folder+"events.db")
@@ -571,7 +571,7 @@ class haibot extends PircBot {
           if(!errNicks.isEmpty) {
             speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size==1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
           }
-          if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).isEmpty) {
+          if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).size > 0) {
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
           }
           if(!toMsgNicks.isEmpty) {
