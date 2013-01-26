@@ -1,17 +1,19 @@
 --------
  haibot 
 --------
+"An awesome IRC bot that will make your IRC channel _better_." -Swizec Teller
 
-A sort-of cool IRC bot.
-Databases not included as that would take the magic out of him.
-Check the sources for what it does and what you might need to start it.
+Check the sources for what he's about and what you might need to start him.
 I realize it's a lot to ask, but you must work to get to know this guy ;)
+Databases not included to ensure each haibot has his own special magic.
 Also, your computer can probably get hacked through this bot :)
 
-Last time I updated this README the extra files were:
+You're probably wondering about the special magic that makes him tick, right?
+Here's the secret: The magic is config and .db files!
+
 .config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
 <folder from .config>/
-    msgs.db - used for @msgs, can be empty
+    msgs.db - used for @msgs, can/should be empty
     events.db - used for @event, can be empty (also doesn't really work)
     lasttweets.db - used by the twitter part, will be autopopulated if t is setup
     trusted.db - list of names that can maybe do a bit more than the unknowns.
@@ -23,15 +25,14 @@ Last time I updated this README the extra files were:
     bots.db - the names of other known bots on the channel.
     dontmention.db - don't mention these names, because it might annoy them.
     girls.db - to phrase certain replies correctly. Not trying to be creepy :)
-utils/
+util/
     bitlyapikey - bitly api key
     zemapikey - zemanta api key
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing
-    weights - some weights for wordnet tables
+    weights - some weights for wordnet 
     
-
-And the used libs were:
+But there's more to haibot's magic than simple files - there's also dependencies:
     pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
     Zemanta - contextual intelligence for everyone -- autodownloaded
@@ -39,3 +40,4 @@ And the used libs were:
     bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
     t - twitter CLI client -- you need to set it up manually
     fbcmd - facebook CLI client 2.0 -- also manually.
+    ocrad gocr cuneiform tesseract-ocr - OCR engines -- use sudo apt-get?
