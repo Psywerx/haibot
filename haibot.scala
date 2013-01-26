@@ -382,6 +382,8 @@ class haibot extends PircBot {
       var rem = events ?- message.substring("-event ".length) //TODO: lolwat
       speak("I have removed "+rem.length+" event"+(if(rem.length!=1) "s" else ""))
     // Twitter/FB part
+    } else if(message.startWithAny("@#", "#@")) {
+      // Ignore
     } else if(message.startsWithAny("@yes", "@sure", "@maybe", "@please")) {
       if(message.startsWithAny("@yes", "@sure") || (message.startsWith("@maybe") && 0.5.prob))
         if(sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
