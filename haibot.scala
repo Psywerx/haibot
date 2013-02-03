@@ -38,13 +38,13 @@ class haibot extends PircBot {
   this.joinChannel(chan)
 
   val msgs = Store(folder+"msgs.db")
-  def getMsgs(nick:String) = (msgs ?- nick.toLowerCase).foreach { msg => 
+  def speakMsgs(nick:String): Unit = (msgs ?- nick.toLowerCase).foreach { msg => 
     if(msg.startsWithAny("++", nick+"++")) speak(nick+"++" + msg.dropWhile(_ != '+').drop(2)) else speak(nick+": "+msg)
   }
 
   val events = Store(folder+"events.db")
 
-  def fromFile(name:String) = {
+  def fromFile(name:String): List[String] = {
     val file = io.Source.fromFile(name)
     val out = file.getLines.toList
     file.close
@@ -73,27 +73,27 @@ class haibot extends PircBot {
   
   var twitterCheck = 0
   val twitterCheckInterval = 7*60
-  def checkTwitter(force:Boolean = false) = {
+  def checkTwitter(force:Boolean = false): Unit = {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       val mentions = (Seq("t", "mentions", "-n", "5").!!).trim
-      if(mentions(0)=='@') {
+      if(mentions(0) == '@') {
         val lastTweets = fromFile(folder+"lasttweets.db")
         val mentionsL = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw.trim))
         if(mentionsL.size > 0) {
           setLastTweets((mentionsL ++ lastTweets).take(10))
-          mentionsL.map(a => {
+          mentionsL.foreach{ a =>
             val (name,msg) = a.splitAt(a.indexOf(" "))
             speak(name.drop(1) + " on Twitter says:" + msg)
-          })
+          }
         }
       }
       twitterCheck = now
     }
   }
-  def setLastTweets(tw:Array[String]) = {
+  def setLastTweets(tw:Array[String]): Unit = {
     (Seq("echo", "-n") #> new File(folder+"lasttweets.db")).!!
     
-    tw.foreach(tweet=> (Seq("echo", tweet) #>> new File(folder+"lasttweets.db")).!!)
+    for(tweet <- tw) (Seq("echo", tweet) #>> new File(folder+"lasttweets.db")).!!
   }
   
   var tweetScore = Set[String]()
@@ -106,7 +106,7 @@ class haibot extends PircBot {
 
 
   var userList = Set[String]()
-  def users = {
+  def users: Set[String] = {
     if(since(userList) > 5) {
       userList = getUsers(chan).map(_.getNick).toSet
     }
@@ -115,23 +115,23 @@ class haibot extends PircBot {
   }
   
   var lastMsg = ""
-  def speak(msgs:String*) = if(!msgs.isEmpty) {
-    (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).map(newMsg => {
+  def speak(msgs:String*): Unit = if(msgs.size > 0) {
+    (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).foreach { newMsg =>
       Thread.sleep(777+nextInt(777*2))
       sendMessage(chan, newMsg)
       lastMsg = newMsg
-    })
+    }
   }
-  def speakFast(msgs:String*) = if(!msgs.isEmpty) {
-    (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).map(newMsg => {
+  def speakFast(msgs:String*): Unit = if(msgs.size > 0) {
+    (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).foreach { newMsg =>
       sendMessage(chan, newMsg)
       lastMsg = newMsg
-    })
+    }
   }
   
-  override def onNickChange(oldNick:String, login:String, hostname:String, newNick:String) = {
+  override def onNickChange(oldNick:String, login:String, hostname:String, newNick:String) {
     //TODO: keep note of this stuff... you'll know who's who, so you don't end up like http://myapokalips.com/show/23
-    getMsgs(newNick)
+    speakMsgs(newNick)
   }
   
   var shutdown = false
@@ -156,12 +156,12 @@ class haibot extends PircBot {
     }
   }
 
-  override def onJoin(channel:String, sender:String, login:String, hostname:String) = {
+  override def onJoin(channel:String, sender:String, login:String, hostname:String) {
     if(sender == name) future { //why spawn a new thread? because pircbot doesn't have user info here yet, but does immediately after
       Thread.sleep(1000)
       startTime = now
-      if(users.size > 1) speak("o hai!", if(users.size==2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
-      users.foreach(getMsgs)
+      if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
+      users.foreach(speakMsgs)
     } else {
       Thread.sleep(1000)
       if(sender.startsWith(owner) && 0.05.prob) speak(
@@ -169,12 +169,12 @@ class haibot extends PircBot {
         "welcome back!",
         "hi, you"+maybe"!",
         s"I've missed you, $sender"+maybe".")
-      getMsgs(sender)
+      speakMsgs(sender)
       joinTimes(sender.toLowerCase) = now
     }
   }
 
-  override def onMessage(channel:String, sender:String, login:String, hostname:String, message:String) = {
+  override def onMessage(channel:String, sender:String, login:String, hostname:String, message:String) {
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
@@ -195,14 +195,14 @@ class haibot extends PircBot {
     
     // Oh look, AI
     if(sender.startsWith(owner) && message.startsWithAny("@leave "+name, "@kill "+name, "@gtfo "+name, "@die "+name)) {
-      speakFast(if(users.size>2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!");
+      speakFast(if(users.size > 2) "bai guise!" else "good bye.", "buh-bye!", "au revoir!")
       shutdown = true
       sys.exit(0)
     } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
       var hai = Seq("ohai", "o hai", "hello", "hi"+maybe" there")
       if(mentions.contains(name) && 0.7.prob) 
         hai = hai.map(_ + s" $sender")
-      if(!mentions.contains(name) && !mentions.isEmpty && 0.7.prob) 
+      if(!mentions.contains(name) && mentions.size > 0 && 0.7.prob) 
         hai = hai.map(_ + " " + mentions.toSeq.random)
         
       hai = hai.map(_ + Seq(" :)", "!",Seq(""," ^_^").random.maybe).random)
@@ -266,7 +266,7 @@ class haibot extends PircBot {
       speak("meh.")
     
     // ex aww_bot
-    } else if(!URLs.isEmpty) { 
+    } else if(URLs.size > 0) {
       val words = URLsWords.map(_.toLowerCase).toSet
        
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
@@ -296,7 +296,7 @@ class haibot extends PircBot {
           Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
           "Don't worry"+maybe" about it"+", you'll figure it out "+Seq("eventually", "with time").random+("."+maybe"..").maybe,
           "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
-          (if(!mentions.isEmpty && 0.8.prob) 
+          (if(mentions.size > 0 && 0.8.prob) 
             Seq("I don't know","I have no idea").random+
             Seq(", ", "... ").random+"but " + maybe"yes, " +
             mentions.toSeq.random +
@@ -312,7 +312,7 @@ class haibot extends PircBot {
     
     
     if(message.startsWithAny("@ocr ", "@read ")) {
-      val imgurReg = "(https?://)(?:www[.])?(imgur.com/)(?:(?:gallery/)|(?:r/[a-z]+/))?([A-Za-z0-9]+)".r
+      val imgurReg = """(https?://)(?:www[.])?(imgur.com/)(?:(?:gallery/)|(?:r/[a-z]+/))?([A-Za-z0-9]+)""".r
       def toImgur(url:String):String = url match {
         case imgurReg(protocol, domain, img) => protocol+"i."+domain+img+".png"
         case _ => url
@@ -338,7 +338,7 @@ class haibot extends PircBot {
         (s"rm $tmpFile").!
       }
     } else if(message.startsWithAny("@shorten ", "@bitly ")) {
-      if(!URLs.isEmpty) {
+      if(URLs.size > 0) {
         val bitlyURLs = URLs.flatMap(Net.Bitly.shorten)
         if(bitlyURLs.size < URLs.size) {
           if(bitlyURLs.isEmpty) {
@@ -366,8 +366,8 @@ class haibot extends PircBot {
       if(dates.isEmpty) status += "date"
       if(URLs.isEmpty) status += "URL"
       
-      if(status.size>0) {
-        val itthem = if(status.size==1) "it" else "them"
+      if(status.size > 0) {
+        val itthem = if(status.size == 1) "it" else "them"
         speak("I don't have "+status.mkString(", ")+s" for this. Paste $itthem in text form, pls.")
       } else {
         speak("Yeah, looks OK, but I'm not gonna save it anywhere or anything :)")
@@ -375,12 +375,10 @@ class haibot extends PircBot {
         //events + (dates(0).replaceAll("[/. ]","_"), title+" "+URLs.mkString(" "))
       }
     } else if(message.startsWith("@events")) {
-      events.*.foreach(event => 
-        speak(event._1 + (if(event._2!=null) " "+event._2 else ""))
-      )
+      for(event <- events.*) speak(event._1 + (if(event._2 != null) " "+event._2 else ""))
     } else if(message.startsWith("-event ")) {
       var rem = events ?- message.substring("-event ".length) //TODO: lolwat
-      speak("I have removed "+rem.length+" event"+(if(rem.length!=1) "s" else ""))
+      speak("I have removed "+rem.length+" event"+(if(rem.length != 1) "s" else ""))
     // Twitter/FB part
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
@@ -396,10 +394,10 @@ class haibot extends PircBot {
       if(beggedBefore && 0.4.prob) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
       
       import sys.process._
-      def limiter = (!beggedBefore && message.startsWith("@please") && 0.25.prob) || (tweetScore.size-tweetNegScore.size>=tweetLim)      
-      if(tweetMsg == null && tweetId == null && tweetNames.size>0) {
+      def overLimit: Boolean = (tweetScore.size-tweetNegScore.size >= tweetLim) || (!beggedBefore && message.startsWith("@please") && 0.25.prob)
+      if(tweetMsg == null && tweetId == null && tweetNames.size > 0) {
         val ret = (Seq("t", "follow") ++ tweetNames).!
-        if(ret==0) 
+        if(ret == 0)
           speak("Follow'd!", "It's done", "It is done.")
         else
           speak("Failed to follow :/")
@@ -408,7 +406,7 @@ class haibot extends PircBot {
         tweetNegScore = Set()
         tweetPlsScore = Set()
         tweetNames = Array()
-      } else if(tweetMsg == null && (tweetId matches "[0-9]*") && limiter) {
+      } else if(tweetMsg == null && (tweetId matches "[0-9]*") && overLimit) {
         val ret = Seq("t", "retweet", tweetId).!
         
         var successResponses = List("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
@@ -443,7 +441,7 @@ class haibot extends PircBot {
           }
         }
         
-        if(ret==0) 
+        if(ret == 0)
           speak(successResponses:_*)
         else
           speak("Failed to retweet :/")
@@ -452,7 +450,7 @@ class haibot extends PircBot {
         tweetNegScore = Set()
         tweetPlsScore = Set()
         tweetMsg = ""
-      } else if(tweetMsg != null && tweetMsg.size>=1 && tweetMsg.size<=140 && limiter) {
+      } else if(tweetMsg != null && tweetMsg.size > 0 && tweetMsg.size <= 140 && overLimit) {
         val ret = Seq("t", "update", tweetMsg).!
         val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST", tweetMsg).!
         
@@ -474,7 +472,7 @@ class haibot extends PircBot {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
       val names = message.drop("@follow ".size).replaceAll("@","").split(" ").distinct
-      if(names.size>0 && names.size < 27) {
+      if(names.size > 0 && names.size < 27) {
         tweetMsg = null
         tweetId = null
         tweetNames = names
@@ -508,7 +506,7 @@ class haibot extends PircBot {
     } else if(message.startsWith("@world ")) {
       val tweet = {
         var out = message.drop("@world ".length).trim
-        if(!URLs.isEmpty && out.size > 140) {
+        if(URLs.size > 0 && out.size > 140) {
           var shortTweet = out
           for(url <- URLs) {
             val bitlyUrl = Net.Bitly.shorten(url)
@@ -533,7 +531,7 @@ class haibot extends PircBot {
         tweetNegScore = Set()
         tweetPlsScore = Set()
         tweetLim = if(sender.isTrusted) 2 else 3
-        if(tweetLim>2) {
+        if(tweetLim > 2) {
           speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
         }
       } else {
@@ -554,9 +552,9 @@ class haibot extends PircBot {
           toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
           val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set())
           
-          def themForm(nicks: Set[String]) = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
+          def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
           
-          if(!isHere.isEmpty) {
+          if(isHere.size > 0) {
             if((isHere contains name) || (isHere contains sender)) {
               speak(
                 "wat.",
@@ -570,16 +568,16 @@ class haibot extends PircBot {
               )
             }
           }
-          if(!errNicks.isEmpty) {
-            speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size==1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
+          if(errNicks.size > 0) {
+            speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
           }
           if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).size > 0) {
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
           }
-          if(!toMsgNicks.isEmpty) {
+          if(toMsgNicks.size > 0) {
             for(nick <- toMsgNicks) {
               val toMsg = ((if(toPlusNicks contains nick)"++ "else"") + msg).trim
-              if(!toMsg.isEmpty) msgs + (nick.toLowerCase, toMsg)
+              if(toMsg.size > 0) msgs + (nick.toLowerCase, toMsg)
             }
             
             var say = List(
@@ -603,7 +601,7 @@ class haibot extends PircBot {
     } else if(message.startsWithAny("@reword ", "@rephrase ")) {
       val toReword = message.dropWhile(_ != ' ').tail
       var rephrased = WordNet.rephrase(toReword)
-      def isRepost = (rephrased == toReword || rephrased == lastMsg)
+      def isRepost: Boolean = (rephrased == toReword || rephrased == lastMsg)
 
       var maxIters = 5
       while(maxIters > 0 && isRepost) {
@@ -644,7 +642,7 @@ class haibot extends PircBot {
         Net.Zemanta.suggestArticles(text) match {
           case Some(articleList) =>
             val articles = (articleList.groupBy(_.url) -- URLs).values.flatten.take(cnt)
-            if(!articles.isEmpty) {
+            if(articles.size > 0) {
               articles.foreach { article => 
                 speak(article.title + " " + Net.Bitly.tryShorten(article.url))
               }
@@ -658,7 +656,7 @@ class haibot extends PircBot {
     } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
-      || (message.startsWithAny("uptime ", "@uptime") && !mentions.isEmpty)
+      || (message.startsWithAny("uptime ", "@uptime") && mentions.size > 0)
       || (message.startsWithAny(users.toSeq:_*) && message.split(" ").size <= 5 && message.contains("uptime"))) {
       
       val mytime = withAlternative(getSinceString(startTime), "who knows how long..")
@@ -707,12 +705,12 @@ class haibot extends PircBot {
     val nickClean = nick.replaceAll("[^a-zA-Z]", "")
     (Seq("echo", nickClean+" "+message) #>> new File("logs/chat_"+nickClean+".log")).!!
   
-    shuffle(msgs.toBuffer - lastPrivMsg(nick)).headOption.foreach(newMsg => {
+    shuffle(msgs.toBuffer - lastPrivMsg(nick)).headOption.foreach { newMsg =>
       Thread.sleep(500+nextInt(500*2))
       sendMessage(nick, newMsg)
       lastPrivMsg(nick) = newMsg
       (Seq("echo", name+" "+newMsg) #>> new File("logs/chat_"+nickClean+".log")).!!
-    })
+    }
   }
 
   override def onPrivateMessage(sender:String, login:String, hostname:String, message:String) {
@@ -731,19 +729,19 @@ class haibot extends PircBot {
           "How do you do?",
           "Hi. How are you?")
       case "i"::"am"::x => 
-        if(x.length>0 && x(0).endsWith("ing")) { // doING something
-          val x2 = x.map(w=> if(List("my","mine").contains(w)) "your" else w)
+        if(x.size > 0 && x(0).endsWith("ing")) { // doING something
+          val x2 = x.map(w => if(List("my","mine").contains(w)) "your" else w)
           //Memory <= (IsVerbing, x2.mkString(" "))
           speakPriv(message, sender,
             "How does "+x2.mkString(" ")+" make you feel?",
             "How long have you been "+x2.mkString(" ")+"?")
-        } else if(x.length>0 && List("a","an","the").contains(x(0))) { // being A something
-          //Memory <= (IsNoun, x.mkString(" "));
+        } else if(x.size > 0 && List("a","an","the").contains(x(0))) { // being A something
+          //Memory <= (IsNoun, x.mkString(" "))
           speakPriv(message, sender,
             "How long have you been "+x.mkString(" ")+"?",
             "How does being "+x.mkString(" ")+" make you feel?")
-        } else if(x.length==1) {
-          //Memory <= (IsNoun, x.mkString(" "));
+        } else if(x.size == 1) {
+          //Memory <= (IsNoun, x.mkString(" "))
           speakPriv(message, sender,
             "How long have you been "+x.mkString(" ")+"?")
         } else {
@@ -752,7 +750,7 @@ class haibot extends PircBot {
             "How long have you been "+x.mkString(" ")+"?")
         }
       case "i"::"feel"::"like"::x => 
-          if(x.length>0 && x(0)=="my") 
+          if(x.size > 0 && x(0) == "my") 
             speakPriv(message, sender,
               "Why do you think your "+x.tail.mkString(" ")+"?")
           else 
@@ -762,7 +760,7 @@ class haibot extends PircBot {
       case "i"::"feel"::x => 
           speakPriv(message, sender,
             "How long have you been feeling"+x.mkString(" ")+"?",
-            if(x.length>1) "Does anyone else you know "+x(0)+" "+x.tail.mkString(" ")+"?" else
+            if(x.size > 1) "Does anyone else you know "+x(0)+" "+x.tail.mkString(" ")+"?" else
             "Why do you feel that way?")
       case "i"::"dont"::x => 
         speakPriv(message, sender,
@@ -799,7 +797,7 @@ class haibot extends PircBot {
           "Are you sure it wasn't "+Seq("sooner", "later").random+"?"
         )
       case "for"::"instance"::x => 
-          if(x.length > 1) 
+          if(x.size > 1) 
             speakPriv(message, sender,"Can you think of any other examples?") //for instance, bla bla bla
           else 
             speakPriv(message, sender, //"lets talk about something else" "for instance?"

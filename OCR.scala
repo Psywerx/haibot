@@ -21,7 +21,7 @@ object OCR {
       .mkString(" ")
   }
 
-  def fromFile(name:String) = {
+  def fromFile(name:String): String = {
     val file = io.Source.fromFile(name)
     val out = file.mkString
     file.close
@@ -29,6 +29,7 @@ object OCR {
   }
 
   def OCR(path: String): Option[String] = {
+    // TODO: put params in file, us mktemp for temp files, pay some more attention to security
     val engineCnt = 5
     val dst = "/tmp/ocr"
     val tmpFile = path.replaceAll("[^a-zA-Z]", "").take(7)+nextInt(1000)+("."+path.reverse.takeWhile(_ != '.').replaceAll("[^a-zA-Z.]", "").take(7).reverse).replaceAll("[.]+", ".")
@@ -38,6 +39,8 @@ object OCR {
     val results = (0 until engineCnt).flatMap { engine =>
       try {
         (s"""rm $dst/$tmpFile.txt""").!
+        (s"""rm $dst/$tmpFile""").!
+        (s"""rm $dst/$tmpFile.pnm""").!
 
         Await.result(future {
           // preprocess
@@ -52,7 +55,7 @@ object OCR {
             case 5 => "-shear 3.12x2.79 -deskew 62% -negate -morphology Convolve Diamond:1 -swirl -0.3 -auto-gamma -white-threshold 55% -scale 100%x94% -colorspace Gray -sigmoidal-contrast 12x80%"
           }).replaceAll(", "," ")
           
-          (s"""convert $path $params $dst/$tmpFile"""+(if(engine==3)".pnm"else"")).!
+          (s"""convert $path $params $dst/$tmpFile"""+(if(engine == 3)".pnm"else"")).!
           
           // OCR
           engine match {
@@ -63,23 +66,25 @@ object OCR {
           }
         }, 20.seconds)
         
-        Some(stringFilter(fromFile(s"$dst/$tmpFile.txt")))
+        val out = Some(stringFilter(fromFile(s"$dst/$tmpFile.txt")))
+
+        (s"""rm $dst/$tmpFile.txt""").!
+        (s"""rm $dst/$tmpFile""").!
+        (s"""rm $dst/$tmpFile.pnm""").!
+
+        out        
       } catch {
         case e: Exception => 
           println(s"EXCEPTION in $path ... $e")
           None
-      } finally {
-        (s"""rm $dst/$tmpFile.txt""").!
-        (s"""rm $dst/$tmpFile""").!
-        (s"""rm $dst/$tmpFile.pnm""").!
       }
     }
     
-    def commonWords(strings: Seq[String]) = {
+    def commonWords(strings: Seq[String]): Set[String] = {
       strings
         .map(_.split(" ").distinct)
         .reduce(_ ++ _)
-        .groupBy(a=> a)
+        .groupBy(a => a)
         .filter(_._2.size >= 2).keys // at least 2 occurences of word
         .filter(_.size >= 2).toSet   // word at least length 2
     }
