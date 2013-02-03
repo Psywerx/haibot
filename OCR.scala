@@ -11,7 +11,7 @@ object OCR {
 
 
   val allowedSingleLetters = Set("i", "a", "e", "o", "y", "u")
-  def stringFilter(str:String): String = {
+  def stringFilter(str: String): String = {
     str
       .toLowerCase
       .replaceAll("[,.!?-_:;]", " ")
@@ -21,7 +21,7 @@ object OCR {
       .mkString(" ")
   }
 
-  def fromFile(name:String): String = {
+  def fromFile(name: String): String = {
     val file = io.Source.fromFile(name)
     val out = file.mkString
     file.close
@@ -34,7 +34,7 @@ object OCR {
     val dst = "/tmp/ocr"
     val tmpFile = path.replaceAll("[^a-zA-Z]", "").take(7)+nextInt(1000)+("."+path.reverse.takeWhile(_ != '.').replaceAll("[^a-zA-Z.]", "").take(7).reverse).replaceAll("[.]+", ".")
 
-    try { (s"mkdir -p $dst").!! } catch { case e:Exception => return None }
+    try { (s"mkdir -p $dst").!! } catch { case e: Exception => return None }
     
     val results = (0 until engineCnt).flatMap { engine =>
       try {
@@ -89,7 +89,7 @@ object OCR {
         .filter(_.size >= 2).toSet   // word at least length 2
     }
         
-    def selectResult(results:Seq[String]): Option[String] = {
+    def selectResult(results: Seq[String]): Option[String] = {
       if (results.size == 0) return None
       if (results.size == 1) return Some(results.head)
       
@@ -110,13 +110,13 @@ object OCR {
       val UNCOMMON = 2
       val AVGLEN = 3
       
-      Some(attrs.sortWith { case ((_,a),(_,b)) => 
+      Some((attrs sortWith { case ((_,a),(_,b)) => 
         if (a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
           (a(COMMON) > b(COMMON)) 
         }
-      }.head._1)
+      } head)._1)
     }
 
     println(results.mkString("\n"))

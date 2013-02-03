@@ -37,13 +37,13 @@ class haibot extends PircBot {
   this.joinChannel(chan)
 
   val msgs = Store(folder+"msgs.db")
-  def speakMsgs(nick:String): Unit = (msgs ?- nick.toLowerCase) foreach { msg => 
+  def speakMsgs(nick: String): Unit = (msgs ?- nick.toLowerCase) foreach { msg => 
     if (msg.startsWithAny("++", nick+"++")) speak(nick+"++" + msg.dropWhile(_ != '+').drop(2)) else speak(nick+": "+msg)
   }
 
   val events = Store(folder+"events.db")
 
-  def fromFile(name:String): List[String] = {
+  def fromFile(name: String): List[String] = {
     val file = io.Source.fromFile(name)
     val out = file.getLines.toList
     file.close
@@ -61,7 +61,7 @@ class haibot extends PircBot {
   def trusted = fromFile(folder+"trusted.db").map(_.cleanNick).toSet
   def bots = fromFile(folder+"bots.db").map(_.cleanNick).toSet
   
-  implicit class IrcString(val s:String) { 
+  implicit class IrcString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_]|-nexus$","")
     def isGirl = girls.contains(s.cleanNick)
     def isTrusted = trusted.contains(s.cleanNick)
@@ -72,15 +72,19 @@ class haibot extends PircBot {
   
   var twitterCheck = 0
   val twitterCheckInterval = 7*60
-  def checkTwitter(force:Boolean = false) {
+  def checkTwitter(force: Boolean = false) {
     if (since(twitterCheck) > twitterCheckInterval || force) {
       val mentions = (Seq("t", "mentions", "-n", "5").!!).trim
       if (mentions(0) == '@') {
         val lastTweets = fromFile(folder+"lasttweets.db")
         val mentionsL = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw.trim))
         if (mentionsL.size > 0) {
-          setLastTweets((mentionsL ++ lastTweets).take(10))
-          mentionsL.foreach{ a =>
+          // Save the last few mentions
+          (Seq("echo", "-n") #> new File(folder+"lasttweets.db")).!!
+          for (tweet <- (mentionsL ++ lastTweets).take(10)) (Seq("echo", tweet) #>> new File(folder+"lasttweets.db")).!!
+
+          // Speak the new mentions
+          mentionsL foreach { a =>
             val (name,msg) = a.splitAt(a.indexOf(" "))
             speak(name.drop(1) + " on Twitter says:" + msg)
           }
@@ -88,11 +92,6 @@ class haibot extends PircBot {
       }
       twitterCheck = now
     }
-  }
-  def setLastTweets(tw:Array[String]) {
-    (Seq("echo", "-n") #> new File(folder+"lasttweets.db")).!!
-    
-    for (tweet <- tw) (Seq("echo", tweet) #>> new File(folder+"lasttweets.db")).!!
   }
   
   var tweetScore = Set[String]()
@@ -114,21 +113,21 @@ class haibot extends PircBot {
   }
   
   var lastMsg = ""
-  def speak(msgs:String*): Unit = if (msgs.size > 0) {
+  def speak(msgs: String*): Unit = if (msgs.size > 0) {
     (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).foreach { newMsg =>
       Thread.sleep(777+nextInt(777*2))
       sendMessage(chan, newMsg)
       lastMsg = newMsg
     }
   }
-  def speakFast(msgs:String*): Unit = if (msgs.size > 0) {
+  def speakFast(msgs: String*): Unit = if (msgs.size > 0) {
     (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg)).foreach { newMsg =>
       sendMessage(chan, newMsg)
       lastMsg = newMsg
     }
   }
   
-  override def onNickChange(oldNick:String, login:String, hostname:String, newNick:String) {
+  override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String) {
     //TODO: keep note of this stuff... you'll know who's who, so you don't end up like http://myapokalips.com/show/23
     speakMsgs(newNick)
   }
@@ -155,7 +154,7 @@ class haibot extends PircBot {
     }
   }
 
-  override def onJoin(channel:String, sender:String, login:String, hostname:String) {
+  override def onJoin(channel: String, sender: String, login: String, hostname: String) {
     if (sender == name) future { //why spawn a new thread? because pircbot doesn't have user info here yet, but does immediately after
       Thread.sleep(1000)
       startTime = now
@@ -173,7 +172,7 @@ class haibot extends PircBot {
     }
   }
 
-  override def onMessage(channel:String, sender:String, login:String, hostname:String, message:String) {
+  override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String) {
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
@@ -304,7 +303,7 @@ class haibot extends PircBot {
     
     if (message.startsWithAny("@ocr ", "@read ")) {
       val imgurReg = """(https?://)(?:www[.])?(imgur.com/)(?:(?:gallery/)|(?:r/[a-z]+/))?([A-Za-z0-9]+)""".r
-      def toImgur(url:String):String = url match {
+      def toImgur(url: String): String = url match {
         case imgurReg(protocol, domain, img) => protocol+"i."+domain+img+".png"
         case _ => url
       }
@@ -683,7 +682,7 @@ class haibot extends PircBot {
   }
   
   var lastPrivMsg = HashMap[String, String]().withDefaultValue("")
-  def speakPriv(message:String, nick:String, msgs:String*) {
+  def speakPriv(message: String, nick: String, msgs: String*) {
   
     import sys.process._
     val nickClean = nick.replaceAll("[^a-zA-Z]", "")
@@ -697,7 +696,7 @@ class haibot extends PircBot {
     }
   }
 
-  override def onPrivateMessage(sender:String, login:String, hostname:String, message:String) {
+  override def onPrivateMessage(sender: String, login: String, hostname: String, message: String) {
     if (users contains sender) message.makeEasy.replaceAll(
       "i'm" -> "i am", 
       "i've" -> "i have", 

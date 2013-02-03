@@ -122,7 +122,7 @@ compile() {
     echo "compiling $bot"
     rm -rf $outdir &> /dev/null
     mkdir $outdir &> /dev/null
-    scalac -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -deprecation -optimise -feature -unchecked -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
+    scalac -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -deprecation -optimise -feature -unchecked -d $outdir -cp $cp util.scala OCR.scala $bot.scala `ls test.scala`
 }
 
 run() {

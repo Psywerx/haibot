@@ -19,22 +19,22 @@ object util {
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
   
-  implicit class PimpString(val s:String) { 
-    def replaceAll(m:(String,String)*):String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
-    // TODO: containsPercent:Double for fuzzy reasoning
-    def containsAny(strs:String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
-    def startsWithAny(strs:String*): Boolean = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
-    def endsWithAny(strs:String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
+  implicit class PimpString(val s: String) { 
+    def replaceAll(m: (String, String)*): String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
+    // TODO: containsPercent: Double for fuzzy reasoning
+    def containsAny(strs: String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
+    def startsWithAny(strs: String*): Boolean = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
+    def endsWithAny(strs: String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
     def sentences: Array[String] = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
     def makeEasy: String = s.toLowerCase.map(a => ("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll("[,:] ", " ") // lazy way to make text processing easier
     def maybe: String = if (nextBoolean) s else ""
-    def findAll(r:Regex): List[String] = r.findAllIn(s).toList
-    //def removeAll(rem:String): String = s.filterNot(rem contains _) //notsure wat
-    def matches(r:Regex): Boolean = s.matches(r.toString)
-    def distance(s2:String):Int = distance(s,s2)
+    def findAll(r: Regex): List[String] = r.findAllIn(s).toList
+    //def removeAll(rem: String): String = s.filterNot(rem contains _) //notsure wat
+    def matches(r: Regex): Boolean = s.matches(r.toString)
+    def distance(s2: String): Int = distance(s,s2)
     def distance(s1: String, s2: String): Int = {
       val memo = scala.collection.mutable.Map[(List[Char],List[Char]),Int]()
-      def min(a:Int, b:Int, c:Int) = Math.min( Math.min( a, b ), c)
+      def min(a: Int, b: Int, c: Int) = Math.min( Math.min( a, b ), c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
         if (memo.contains((s1,s2)) == false)
           memo((s1,s2)) = (s1, s2) match {
@@ -53,17 +53,17 @@ object util {
     }
   }
   
-  implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args:Any*):String = sc.parts.iterator.mkString("").maybe }
-  implicit class PimpInt(val i:Int) extends AnyVal { def ~(j:Int) = nextInt(j-i+1)+i }
+  implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
+  implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int) = nextInt(j-i+1)+i }
 
-  implicit class Seqs[A](val s:Seq[A]) { 
+  implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size)) 
     def randomOption: Option[A] = if (s.size > 0) Some(random) else None
   }
 
-  implicit class D(val d:Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
-  implicit class F(val f:Float) { def prob: Boolean = nextFloat < f }
-  implicit class I(val i:Int) { def isBetween(min:Int,max:Int) = i >= min && i <= max}
+  implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
+  implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
+  implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max}
 
   object Regex {
     val URL = """(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""".r
@@ -101,7 +101,7 @@ object util {
       ("""\d{1,2}\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
       ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")))
 
-    private def deLocale(dateStr:String): String = 
+    private def deLocale(dateStr: String): String = 
       dateStr
         .replaceAll("januar(ja|jem)?", "january")
         .replaceAll("februar(ja|jem)?", "february")
@@ -119,21 +119,22 @@ object util {
         .replaceAll("[,\\s]ob[\\s]", " ")
         .replaceAll("[,\\s]+", " ")
 
-    def getDates(text:String, filter:(Date => Boolean) = (d:Date) => true): List[Date] = {
-      dateFormats.flatMap { case (regex, format) => 
-        text.findAll(regex)
+    def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] = {
+      (dateFormats flatMap { case (regex, format) => 
+        text
+          .findAll(regex)
           .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
           .filter(filter) 
-      }.distinct.sortWith((a,b) => b.after(a))
+      } distinct) sortWith { (a,b) => b after a }
     }
 
-    def getFutureDates(text:String): List[Date] = {
+    def getFutureDates(text: String): List[Date] = {
       val nowDate = new Date
       getDates(text, _.after(nowDate))
     }
     
     private val timeDivisor = 1000000L*1000L
-    def now: Int = (System.nanoTime()/timeDivisor).toInt
+    def now: Int = (System.nanoTime/timeDivisor).toInt
     def since(time: Int): Int = now-time
     def time(func: => Unit): Int = {
       val startTime = now
@@ -151,7 +152,7 @@ object util {
     
     // used for uptime
     private def pad(i: Int, p: Int = 2): String = "0"*(p-i.toString.size)+i.toString
-    def getSinceZeroString(time:Int):String = {
+    def getSinceZeroString(time: Int): String = {
       val secs = time
       val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
       
@@ -161,7 +162,7 @@ object util {
         case _ => s"$days days "
       }) + (if (secs < 90) s"$secs seconds" else if (minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
     }
-    def getSinceString(time:Int):String = getSinceZeroString(since(time))
+    def getSinceString(time: Int): String = getSinceZeroString(since(time))
   }
   
   object Net {
@@ -171,7 +172,7 @@ object util {
     
     //TODO: use file -i or some proper mime solution, this is risky as fuck
     def badExts: List[String] = io.Source.fromFile(folder+"badexts.db").getLines.toList
-    def scrapeURLs(urls:String*):String = {
+    def scrapeURLs(urls: String*): String = {
       urls.map(
         _.findAll(Regex.URL).map(url => 
           try {
@@ -188,7 +189,7 @@ object util {
       ).fold("")(_+" "+_).trim
     }
     
-    def download(url:String, outFile:String):Boolean = {
+    def download(url: String, outFile: String): Boolean = {
       try {
         import java.io._
         import java.nio._
@@ -204,7 +205,7 @@ object util {
         
         true
       } catch {
-        case e:Exception => false
+        case e: Exception => false
       }
     }
     
@@ -214,11 +215,11 @@ object util {
       import scala.collection.JavaConversions.mapAsJavaMap
       import scala.collection.JavaConversions.asScalaBuffer
       
-      def suggestKeywords(text:String, cnt:Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name).take(cnt))
-      def suggestArticles(text:String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
-      def suggestImages(text:String): Option[List[Image]] = suggest(text).map(_.getConfidenceSortedImages(true).toList)
+      def suggestKeywords(text: String, cnt: Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name).take(cnt))
+      def suggestArticles(text: String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
+      def suggestImages(text: String): Option[List[Image]] = suggest(text).map(_.getConfidenceSortedImages(true).toList)
       
-      def suggest(text:String):Option[ZemantaResult] = {
+      def suggest(text: String): Option[ZemantaResult] = {
         try {
           val apiKey = io.Source.fromFile(folder+"zemapikey").getLines.next.trim
           val zem = new Zemanta(apiKey, "http://api.zemanta.com/services/rest/0.0/");	
@@ -236,7 +237,7 @@ object util {
             None
           }
         } catch {
-          case e:Exception => 
+          case e: Exception => 
             e.printStackTrace
             None
         }
@@ -250,7 +251,7 @@ object util {
       
       lazy val bitly = as(apiKey(0), apiKey(1))
 
-      def shorten(s:String): Option[String] = {
+      def shorten(s: String): Option[String] = {
         try {
           val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
           if (out != null) Some((out.getShortUrl)) else None
@@ -262,7 +263,7 @@ object util {
       }
       
       // try, or else return original
-      def tryShorten(s:String): String = shorten(s).orElse(Some(s)).get
+      def tryShorten(s: String): String = shorten(s).orElse(Some(s)).get
       
     }
   }
@@ -271,7 +272,7 @@ object util {
   object WordNet {
     //These take a while at startup... make them lazy if it bothers you
     //format is (id,word,type)... I should probably keep type
-    type wn_s = (Int,String)
+    type wn_s = (Int, String)
     val (wn_sById, wn_sByWord) = {
       val wn_sAll = io.Source.fromFile("lib/prolog/wn_s2.db").getLines.map(a => (a.take(9).toInt, a.drop(11).init.replaceAll("''","'"))).toList
       (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
@@ -282,8 +283,8 @@ object util {
     val caps = """[A-Z0-9 .'/-]+"""
     val lower = """[a-z0-9 .'/-]+"""
     
-    def synonyms(strs:String*):List[String] = strs.map(synonym).toList
-    def synonym(str:String): String = str match {
+    def synonyms(strs: String*): List[String] = strs.map(synonym).toList
+    def synonym(str: String): String = str match {
       case wordReg(prefix,word,suffix) => 
         val (capital, allcaps, alllower) = (word matches capitals, word matches caps, word matches lower)
         val part = if (!(allcaps || alllower)) { // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
@@ -318,9 +319,9 @@ object util {
         }
       case _ => str
     }
-    def rephrase(s:String):String = synonyms(s.split(" "): _*).mkString(" ")
+    def rephrase(s: String): String = synonyms(s.split(" "): _*).mkString(" ")
     
-    def stem(w:String):List[String] = // bad excuse for a stemmer :)
+    def stem(w: String): List[String] = // bad excuse for a stemmer :)
       (List(w) ++ 
         w.split("-")
           .flatMap(w => List(w, w.replaceAll("ability$", "able")))
@@ -329,10 +330,10 @@ object util {
           .filter(_.size >= 4)
       ).distinct
       
-    def preprocess(w:String):List[String] = 
+    def preprocess(w: String): List[String] = 
       stem(w).flatMap(e => List(e, e.toLowerCase)).distinct
     
-    def getMapFromwn(dbName:String):Map[Int, List[Int]] = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e => (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
+    def getMapFromwn(dbName: String): Map[Int, List[Int]] = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e => (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
     val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e => e -> getMapFromwn(s"wn_$e.db")).toMap
     val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
     
@@ -343,17 +344,17 @@ object util {
       out
     }
     
-    def keywords(in:String, count:Int = 3): Option[List[String]] = {
+    def keywords(in: String, count: Int = 3): Option[List[String]] = {
       try {
         val scores = HashMap[String, Double]()
         def addToScore(str: String, add: Double) {
           if (!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
         }
         
-        val words = in.split(" ").toList.flatMap({
+        val words = in.split(" ").toList flatMap {
           case wordReg(prefix,word,suffix) => 
             if (word.size >= 3) {
-              preprocess(word).filter(w => wn_sByWord contains w).flatMap{ w =>
+              preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>
                 if (!(stoplist contains w)) {
                   addToScore(w,1)
                   wn_sByWord(w)
@@ -365,7 +366,7 @@ object util {
               Nil
             }
           case _ => Nil
-        })//.filter(e => e._3 == 'v' || e._3 == 'n')
+        } //filter (e => e._3 == 'v' || e._3 == 'n')
         
         val weights = getWeights
         
@@ -382,7 +383,7 @@ object util {
         
         if (out.size > 0) Some(out) else None
       } catch {
-        case e:Exception => e.printStackTrace; None
+        case e: Exception => e.printStackTrace; None
       }
     }
   }
@@ -391,19 +392,19 @@ object util {
   /// Store based on bash :) #softwareanarchitecture
   // talk about leaky abstractions...
   // also take it, or leave it :)
-  object Store { def apply(file:String): Store = new Store(file) }
-  class Store(file:String, keyFormat:String="""([-_a-zA-Z0-9]{1,16})""") {
+  object Store { def apply(file: String): Store = new Store(file) }
+  class Store(file: String, keyFormat: String="""([-_a-zA-Z0-9]{1,16})""") {
     import sys.process._
-    def isKey(s:String): Boolean = s matches keyFormat
-    def +=(k:String, v:String = null) = (Seq("echo", if (v != null) k+" "+v else k) #>> new File(file)).!!
-    def -=(k:String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
-    def ?(k:String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!!.split("\n").filter(_.size > 0).map(res => res.substring(min(res.length,k.length+1))).toList
+    def isKey(s: String): Boolean = s matches keyFormat
+    def +=(k: String, v: String = null) = (Seq("echo", if (v != null) k+" "+v else k) #>> new File(file)).!!
+    def -=(k: String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
+    def ?(k: String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!!.split("\n").filter(_.size > 0).map(res => res.substring(min(res.length,k.length+1))).toList
     def * = Seq("cat", file).!!.split("\n") filter { _.size > 0 } map { res => 
       val sep = res.indexOf(" ")
       if (sep == -1) (res, null) else (res.substring(0,sep), res.substring(sep+1))
     } toList
 
-    def ?-(key:String) = {
+    def ?-(key: String) = {
       val out = ?(key)
       this -= key
       out
