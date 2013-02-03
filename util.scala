@@ -27,7 +27,7 @@ object util {
     def endsWithAny(strs:String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
     def sentences: Array[String] = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
     def makeEasy: String = s.toLowerCase.map(a => ("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll("[,:] ", " ") // lazy way to make text processing easier
-    def maybe: String = if(nextBoolean) s else ""
+    def maybe: String = if (nextBoolean) s else ""
     def findAll(r:Regex): List[String] = r.findAllIn(s).toList
     //def removeAll(rem:String): String = s.filterNot(rem contains _) //notsure wat
     def matches(r:Regex): Boolean = s.matches(r.toString)
@@ -40,8 +40,11 @@ object util {
           memo((s1,s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
-            case (c1::t1, c2::t2)  => min( sd(t1,s2) + 1, sd(s1,t2) + 1,
-                                           sd(t1,t2) + (if(c1 == c2) 0 else 1) )
+            case (c1 :: t1, c2 :: t2) => 
+              min(
+                sd(t1,s2) + 1,
+                sd(s1,t2) + 1,
+                sd(t1,t2) + (if (c1 == c2) 0 else 1))
           }
         memo((s1,s2))
       }
@@ -55,7 +58,7 @@ object util {
 
   implicit class Seqs[A](val s:Seq[A]) { 
     def random: A = s(nextInt(s.size)) 
-    def randomOption: Option[A] = if(s.size > 0) Some(random) else None
+    def randomOption: Option[A] = if (s.size > 0) Some(random) else None
   }
 
   implicit class D(val d:Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
@@ -96,8 +99,7 @@ object util {
       ("""\d{4}/\d{1,2}/\d{1,2}""".r, new SimpleDateFormat("yyyy/MM/dd")),
       ("""\d{1,2}\s[a-z]{3}\s\d{4}""".r, new SimpleDateFormat("dd MMM yyyy")),
       ("""\d{1,2}\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
-      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy"))
-    )
+      ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")))
 
     private def deLocale(dateStr:String): String = 
       dateStr
@@ -148,7 +150,7 @@ object util {
     }
     
     // used for uptime
-    private def pad(i: Int, p: Int = 2) = "0"*(p-i.toString.size)+i.toString
+    private def pad(i: Int, p: Int = 2): String = "0"*(p-i.toString.size)+i.toString
     def getSinceZeroString(time:Int):String = {
       val secs = time
       val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
@@ -157,7 +159,7 @@ object util {
         case 0 => ""
         case 1 => s"$days day "
         case _ => s"$days days "
-      }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
+      }) + (if (secs < 90) s"$secs seconds" else if (minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
     }
     def getSinceString(time:Int):String = getSinceZeroString(since(time))
   }
@@ -173,7 +175,7 @@ object util {
       urls.map(
         _.findAll(Regex.URL).map(url => 
           try {
-            if(!url.endsWithAny(badExts:_*)) 
+            if (!url.endsWithAny(badExts: _*)) 
               extractor.getText(new URL(url))
             else 
               ""
@@ -228,7 +230,7 @@ object util {
           ))
 
           val zemResult = zem.suggest(request)
-          if(!zemResult.isError) {
+          if (!zemResult.isError) {
 	          Some(zemResult)
           } else {
             None
@@ -251,7 +253,7 @@ object util {
       def shorten(s:String): Option[String] = {
         try {
           val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
-          if(out != null) Some((out.getShortUrl)) else None
+          if (out != null) Some((out.getShortUrl)) else None
         } catch {
           case e: Throwable =>
             e.printStackTrace
@@ -284,7 +286,7 @@ object util {
     def synonym(str:String): String = str match {
       case wordReg(prefix,word,suffix) => 
         val (capital, allcaps, alllower) = (word matches capitals, word matches caps, word matches lower)
-        val part = if(!(allcaps || alllower)) { // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
+        val part = if (!(allcaps || alllower)) { // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
           val upper = word.count(e => e.toString == e.toString.toUpperCase).toDouble
           val lower = word.count(e => e.toString == e.toString.toLowerCase).toDouble
           upper/(upper+lower)
@@ -295,19 +297,19 @@ object util {
         val syns = wn_sByWord(word.toLowerCase) // find word
           .map(_._1).distinct.flatMap(e => wn_sById(e).map(_._2)) // query all synonyms by id
           .filter(e => e != word && e.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
-        if(syns.size > 0) {
+        if (syns.size > 0) {
           var out = syns.random
-          if(out.toLowerCase == word.toLowerCase)
+          if (out.toLowerCase == word.toLowerCase)
             out = word else
-          if(alllower) 
+          if (alllower) 
             out = out.toLowerCase else
-          if(allcaps) 
+          if (allcaps) 
             out = out.toUpperCase else
-          if(capital && part < 0.25) 
+          if (capital && part < 0.25) 
             out = out.head.toString.toUpperCase+out.tail else 
-          if(out matches lower) {
-            out = out.map(e => if(part.prob) e.toString.toUpperCase.head else e.toString.toLowerCase.head) //see part
-            if(capital) out = out.head.toString.toUpperCase+out.tail
+          if (out matches lower) {
+            out = out.map(e => if (part.prob) e.toString.toUpperCase.head else e.toString.toLowerCase.head) //see part
+            if (capital) out = out.head.toString.toUpperCase+out.tail
           }
           
           prefix+out+suffix
@@ -316,7 +318,7 @@ object util {
         }
       case _ => str
     }
-    def rephrase(s:String):String = synonyms(s.split(" "):_*).mkString(" ")
+    def rephrase(s:String):String = synonyms(s.split(" "): _*).mkString(" ")
     
     def stem(w:String):List[String] = // bad excuse for a stemmer :)
       (List(w) ++ 
@@ -344,14 +346,16 @@ object util {
     def keywords(in:String, count:Int = 3): Option[List[String]] = {
       try {
         val scores = HashMap[String, Double]()
-        def score(str:String,add:Double) = if(!(stoplist contains str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
-
+        def addToScore(str: String, add: Double) {
+          if (!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
+        }
+        
         val words = in.split(" ").toList.flatMap({
           case wordReg(prefix,word,suffix) => 
-            if(word.size >= 3) {
+            if (word.size >= 3) {
               preprocess(word).filter(w => wn_sByWord contains w).flatMap{ w =>
-                if(!(stoplist contains w)) {
-                  score(w,1)
+                if (!(stoplist contains w)) {
+                  addToScore(w,1)
                   wn_sByWord(w)
                 } else {
                   Nil
@@ -365,7 +369,9 @@ object util {
         
         val weights = getWeights
         
-        for(wndb <- wn; word <- words; id2 <- wndb._2(word._1); elt <- wn_sById(id2)) score(elt._2, weights(wndb._1))
+        for (wndb <- wn; word <- words; id2 <- wndb._2(word._1); elt <- wn_sById(id2)) {
+          addToScore(elt._2, weights(wndb._1)) // TODO: Shouldn't I be multiplying weights here?
+        }
         
         val out = (scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e => 
           scores.exists(a => 
@@ -374,7 +380,7 @@ object util {
           )// take out similar words
         ).take(count).map(_._1)) //sort and convert to string
         
-        if(out.size > 0) Some(out) else None
+        if (out.size > 0) Some(out) else None
       } catch {
         case e:Exception => e.printStackTrace; None
       }
@@ -389,17 +395,17 @@ object util {
   class Store(file:String, keyFormat:String="""([-_a-zA-Z0-9]{1,16})""") {
     import sys.process._
     def isKey(s:String): Boolean = s matches keyFormat
-    def +(k:String, v:String = null) = (Seq("echo", if(v != null) k+" "+v else k) #>> new File(file)).!!
-    def -(k:String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
+    def +=(k:String, v:String = null) = (Seq("echo", if (v != null) k+" "+v else k) #>> new File(file)).!!
+    def -=(k:String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
     def ?(k:String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!!.split("\n").filter(_.size > 0).map(res => res.substring(min(res.length,k.length+1))).toList
-    def * = Seq("cat", file).!!.split("\n").filter(_.size > 0).map{res => 
+    def * = Seq("cat", file).!!.split("\n") filter { _.size > 0 } map { res => 
       val sep = res.indexOf(" ")
-      if(sep == -1) (res, null) else (res.substring(0,sep), res.substring(sep+1))      
-    }.toList
+      if (sep == -1) (res, null) else (res.substring(0,sep), res.substring(sep+1))
+    } toList
 
     def ?-(key:String) = {
       val out = ?(key)
-      this.-(key)
+      this -= key
       out
     }
   }

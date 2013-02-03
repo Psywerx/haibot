@@ -55,14 +55,14 @@ object OCR {
             case 5 => "-shear 3.12x2.79 -deskew 62% -negate -morphology Convolve Diamond:1 -swirl -0.3 -auto-gamma -white-threshold 55% -scale 100%x94% -colorspace Gray -sigmoidal-contrast 12x80%"
           }).replaceAll(", "," ")
           
-          (s"""convert $path $params $dst/$tmpFile"""+(if(engine == 3)".pnm"else"")).!
+          (s"""convert $path $params $dst/$tmpFile"""+(if (engine == 3) ".pnm" else "")).!
           
           // OCR
           engine match {
             case 0     => (s"""tesseract $dst/$tmpFile $dst/$tmpFile""").!!
             case 1     => (s"""gocr -C a-zA-Z -i $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
             case 2|4|5 => (s"""cuneiform $dst/$tmpFile -o $dst/$tmpFile.txt""").!!
-            case 3     => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!              
+            case 3     => (s"""ocrad -lf --filter=letters --format=utf8 -o $dst/$tmpFile.txt $dst/$tmpFile.pnm""").!!
           }
         }, 20.seconds)
         
@@ -72,7 +72,7 @@ object OCR {
         (s"""rm $dst/$tmpFile""").!
         (s"""rm $dst/$tmpFile.pnm""").!
 
-        out        
+        out
       } catch {
         case e: Exception => 
           println(s"EXCEPTION in $path ... $e")
@@ -90,8 +90,8 @@ object OCR {
     }
         
     def selectResult(results:Seq[String]): Option[String] = {
-      if(results.size == 0) return None
-      if(results.size == 1) return Some(results.head)
+      if (results.size == 0) return None
+      if (results.size == 1) return Some(results.head)
       
       val common = commonWords(results)
       
@@ -111,7 +111,7 @@ object OCR {
       val AVGLEN = 3
       
       Some(attrs.sortWith { case ((_,a),(_,b)) => 
-        if(a(COMMON) == b(COMMON)) {
+        if (a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
           (a(COMMON) > b(COMMON)) 
@@ -119,7 +119,7 @@ object OCR {
       }.head._1)
     }
 
-    println(results.mkString("\n"))    
+    println(results.mkString("\n"))
     selectResult(results)
   }
 }
