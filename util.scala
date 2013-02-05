@@ -26,8 +26,8 @@ object util {
     def startsWithAny(strs: String*): Boolean = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
     def endsWithAny(strs: String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
     def sentences: Array[String] = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
-    def makeEasy: String = s.toLowerCase.map(a => ("čćžšđ".zip("cczsd").toMap).getOrElse(a, a)).replaceAll("[,:] ", " ") // lazy way to make text processing easier
-    def maybe: String = if (nextBoolean) s else ""
+    def makeEasy: String = s.toLowerCase.map(char => ("čćžšđ".zip("cczsd").toMap).getOrElse(char, char)).replaceAll("[,:] ", " ") // lazy way to make text processing easier
+    def maybe: String = if(nextBoolean) s else ""
     def findAll(r: Regex): List[String] = r.findAllIn(s).toList
     //def removeAll(rem: String): String = s.filterNot(rem contains _) //notsure wat
     def matches(r: Regex): Boolean = s.matches(r.toString)
@@ -36,7 +36,7 @@ object util {
       val memo = scala.collection.mutable.Map[(List[Char],List[Char]),Int]()
       def min(a: Int, b: Int, c: Int) = Math.min( Math.min( a, b ), c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
-        if (memo.contains((s1,s2)) == false)
+        if(memo.contains((s1,s2)) == false)
           memo((s1,s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
@@ -44,7 +44,7 @@ object util {
               min(
                 sd(t1,s2) + 1,
                 sd(s1,t2) + 1,
-                sd(t1,t2) + (if (c1 == c2) 0 else 1))
+                sd(t1,t2) + (if(c1 == c2) 0 else 1))
           }
         memo((s1,s2))
       }
@@ -58,7 +58,7 @@ object util {
 
   implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size)) 
-    def randomOption: Option[A] = if (s.size > 0) Some(random) else None
+    def randomOption: Option[A] = if(s.size > 0) Some(random) else None
   }
 
   implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
@@ -160,7 +160,7 @@ object util {
         case 0 => ""
         case 1 => s"$days day "
         case _ => s"$days days "
-      }) + (if (secs < 90) s"$secs seconds" else if (minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
+      }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
     }
     def getSinceString(time: Int): String = getSinceZeroString(since(time))
   }
@@ -176,7 +176,7 @@ object util {
       urls.map(
         _.findAll(Regex.URL).map(url => 
           try {
-            if (!url.endsWithAny(badExts: _*)) 
+            if(!url.endsWithAny(badExts: _*)) 
               extractor.getText(new URL(url))
             else 
               ""
@@ -231,7 +231,7 @@ object util {
           ))
 
           val zemResult = zem.suggest(request)
-          if (!zemResult.isError) {
+          if(!zemResult.isError) {
 	          Some(zemResult)
           } else {
             None
@@ -254,7 +254,7 @@ object util {
       def shorten(s: String): Option[String] = {
         try {
           val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
-          if (out != null) Some((out.getShortUrl)) else None
+          if(out != null) Some((out.getShortUrl)) else None
         } catch {
           case e: Throwable =>
             e.printStackTrace
@@ -274,46 +274,51 @@ object util {
     //format is (id,word,type)... I should probably keep type
     type wn_s = (Int, String)
     val (wn_sById, wn_sByWord) = {
-      val wn_sAll = io.Source.fromFile("lib/prolog/wn_s2.db").getLines.map(a => (a.take(9).toInt, a.drop(11).init.replaceAll("''","'"))).toList
+      val wn_sAll = io.Source.fromFile("lib/prolog/wn_s2.db").getLines.map(line => (line.take(9).toInt, line.drop(11).init.replaceAll("''","'"))).toList
       (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
     }
     
     val wordReg = """([^a-zA-Z0-9 .'/-]*)([a-zA-Z0-9 .'/-]{3,})([^a-zA-Z0-9 .'/-]*)""".r
-    val capitals = """[A-Z][a-zA-Z0-9 .'/-]*"""
-    val caps = """[A-Z0-9 .'/-]+"""
-    val lower = """[a-z0-9 .'/-]+"""
+    val capital = """[A-Z][a-zA-Z0-9 .'/-]*"""
+    val upperCase = """[A-Z0-9 .'/-]+"""
+    val lowerCase = """[a-z0-9 .'/-]+"""
     
     def synonyms(strs: String*): List[String] = strs.map(synonym).toList
     def synonym(str: String): String = str match {
-      case wordReg(prefix,word,suffix) => 
-        val (capital, allcaps, alllower) = (word matches capitals, word matches caps, word matches lower)
-        val part = if (!(allcaps || alllower)) { // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
-          val upper = word.count(e => e.toString == e.toString.toUpperCase).toDouble
-          val lower = word.count(e => e.toString == e.toString.toLowerCase).toDouble
-          upper/(upper+lower)
-        } else {
-          0d
-        }
+      case wordReg(prefix, word, suffix) => 
+        val (hasCapital, allUpper, allLower) = (word matches capital, word matches upperCase, word matches lowerCase)
+        val part = // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
+          if(allUpper) {
+            1d
+          } else if(allLower) {
+            0d
+          } else {
+            val upper = word.count(char => char == Character.toUpperCase(char)).toDouble
+            val lower = word.count(char => char == Character.toLowerCase(char)).toDouble
+            upper/(upper+lower)
+          }
 
-        val syns = wn_sByWord(word.toLowerCase) // find word
-          .map(_._1).distinct.flatMap(e => wn_sById(e).map(_._2)) // query all synonyms by id
-          .filter(e => e != word && e.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
-        if (syns.size > 0) {
-          var out = syns.random
-          if (out.toLowerCase == word.toLowerCase)
-            out = word else
-          if (alllower) 
-            out = out.toLowerCase else
-          if (allcaps) 
-            out = out.toUpperCase else
-          if (capital && part < 0.25) 
-            out = out.head.toString.toUpperCase+out.tail else 
-          if (out matches lower) {
-            out = out.map(e => if (part.prob) e.toString.toUpperCase.head else e.toString.toLowerCase.head) //see part
-            if (capital) out = out.head.toString.toUpperCase+out.tail
+        val synonyms = wn_sByWord(word.toLowerCase) // find word
+          .map(_._1).distinct.flatMap(id => wn_sById(id).map(_._2)) // query all synonyms by id
+          .filter(w => w != word && w.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
+        
+        if(synonyms.size > 0) {
+          var outWord = synonyms.random
+          
+          if(outWord.toLowerCase == word.toLowerCase)
+            outWord = word
+          else if(allLower) 
+            outWord = outWord.toLowerCase
+          else if(allUpper) 
+            outWord = outWord.toUpperCase
+          else if(hasCapital && part < 0.25)
+            outWord = outWord.capitalize
+          else if(outWord matches lowerCase) {
+            outWord = outWord.map(char => if(part.prob) Character.toUpperCase(char) else Character.toLowerCase(char)) //see part
+            if(hasCapital) outWord = outWord.capitalize
           }
           
-          prefix+out+suffix
+          prefix + outWord + suffix
         } else {
           str
         }
@@ -321,20 +326,22 @@ object util {
     }
     def rephrase(s: String): String = synonyms(s.split(" "): _*).mkString(" ")
     
-    def stem(w: String): List[String] = // bad excuse for a stemmer :)
-      (List(w) ++ 
-        w.split("-")
+    // bad excuse for a stemmer :)
+    // Note: adds the word itself in output
+    def stem(word: String): List[String] = 
+      (List(word) ++ 
+        word
+          .split("-")
           .flatMap(w => List(w, w.replaceAll("ability$", "able")))
           .flatMap(w => List(w, w.replaceAll("s$|er$|est$|ed$|ing$|d$", "")))
           //.flatMap(w => List(w, w.replaceAll("^un|^im|^in", "")))
           .filter(_.size >= 4)
       ).distinct
       
-    def preprocess(w: String): List[String] = 
-      stem(w).flatMap(e => List(e, e.toLowerCase)).distinct
+    def preprocess(word: String): List[String] = stem(word).flatMap(w => List(w, w.toLowerCase)).distinct
     
-    def getMapFromwn(dbName: String): Map[Int, List[Int]] = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(e => (e.take(9).toInt, e.drop(10).take(9).toInt)).groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
-    val wn = List("hyp","sim","ins","mm","ms","mp","at").map(e => e -> getMapFromwn(s"wn_$e.db")).toMap
+    def getMapFromwn(dbName: String): Map[Int, List[Int]] = io.Source.fromFile("lib/prolog/"+dbName).getLines.toList.map(line => (line.take(9).toInt, line.drop(10).take(9).toInt)).groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
+    val wnDbs = List("hyp","sim","ins","mm","ms","mp","at").map(db => db -> getMapFromwn(s"wn_$db.db")).toMap
     val stoplist = io.Source.fromFile(folder+"stoplist.db").getLines.toSet
     
     def getWeights: Map[String, Double] = {
@@ -348,15 +355,15 @@ object util {
       try {
         val scores = HashMap[String, Double]()
         def addToScore(str: String, add: Double) {
-          if (!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
+          if(!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
         }
         
         val words = in.split(" ").toList flatMap {
           case wordReg(prefix,word,suffix) => 
-            if (word.size >= 3) {
+            if(word.size >= 3) {
               preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>
-                if (!(stoplist contains w)) {
-                  addToScore(w,1)
+                if(!(stoplist contains w)) {
+                  addToScore(w, 1)
                   wn_sByWord(w)
                 } else {
                   Nil
@@ -370,18 +377,18 @@ object util {
         
         val weights = getWeights
         
-        for (wndb <- wn; word <- words; id2 <- wndb._2(word._1); elt <- wn_sById(id2)) {
-          addToScore(elt._2, weights(wndb._1)) // TODO: Shouldn't I be multiplying weights here?
+        for(db <- wnDbs; word <- words; wId <- db._2(word._1); relatedWord <- wn_sById(wId)) {
+          addToScore(relatedWord._2, weights(db._1))
         }
         
-        val out = (scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e => 
+        val out = (scores.toList.sortWith(_._2 > _._2).take(count+30).filterNot(e =>
           scores.exists(a => 
             (a._1 != e._1 && a._2 >= e._2 && a._1.size <= e._1.size) && 
             (a._1.startsWith(e._1.take(4)) || (e._1 contains a._1))
           )// take out similar words
         ).take(count).map(_._1)) //sort and convert to string
         
-        if (out.size > 0) Some(out) else None
+        if(out.size > 0) Some(out) else None
       } catch {
         case e: Exception => e.printStackTrace; None
       }
@@ -396,12 +403,12 @@ object util {
   class Store(file: String, keyFormat: String="""([-_a-zA-Z0-9]{1,16})""") {
     import sys.process._
     def isKey(s: String): Boolean = s matches keyFormat
-    def +=(k: String, v: String = null) = (Seq("echo", if (v != null) k+" "+v else k) #>> new File(file)).!!
+    def +=(k: String, v: String = null) = (Seq("echo", if(v != null) k+" "+v else k) #>> new File(file)).!!
     def -=(k: String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
-    def ?(k: String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!!.split("\n").filter(_.size > 0).map(res => res.substring(min(res.length,k.length+1))).toList
-    def * = Seq("cat", file).!!.split("\n") filter { _.size > 0 } map { res => 
+    def ?(k: String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!! split "\n" filter { _.size > 0 } map { res => res.substring(min(res.length,k.length+1)) } toList
+    def * = Seq("cat", file).!! split "\n" filter { _.size > 0 } map { res => 
       val sep = res.indexOf(" ")
-      if (sep == -1) (res, null) else (res.substring(0,sep), res.substring(sep+1))
+      if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     } toList
 
     def ?-(key: String) = {

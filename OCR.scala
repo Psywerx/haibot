@@ -36,7 +36,7 @@ object OCR {
 
     try { (s"mkdir -p $dst").!! } catch { case e: Exception => return None }
     
-    val results = (0 until engineCnt).flatMap { engine =>
+    val results = (0 until engineCnt) flatMap { engine =>
       try {
         (s"""rm $dst/$tmpFile.txt""").!
         (s"""rm $dst/$tmpFile""").!
@@ -55,7 +55,7 @@ object OCR {
             case 5 => "-shear 3.12x2.79 -deskew 62% -negate -morphology Convolve Diamond:1 -swirl -0.3 -auto-gamma -white-threshold 55% -scale 100%x94% -colorspace Gray -sigmoidal-contrast 12x80%"
           }).replaceAll(", "," ")
           
-          (s"""convert $path $params $dst/$tmpFile"""+(if (engine == 3) ".pnm" else "")).!
+          (s"""convert $path $params $dst/$tmpFile"""+(if(engine == 3) ".pnm" else "")).!
           
           // OCR
           engine match {
@@ -90,8 +90,8 @@ object OCR {
     }
         
     def selectResult(results: Seq[String]): Option[String] = {
-      if (results.size == 0) return None
-      if (results.size == 1) return Some(results.head)
+      if(results.size == 0) return None
+      if(results.size == 1) return Some(results.head)
       
       val common = commonWords(results)
       
@@ -111,7 +111,7 @@ object OCR {
       val AVGLEN = 3
       
       Some((attrs sortWith { case ((_,a),(_,b)) => 
-        if (a(COMMON) == b(COMMON)) {
+        if(a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
           (a(COMMON) > b(COMMON)) 
