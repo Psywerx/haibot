@@ -1,15 +1,14 @@
 package org.psywerx
 
+import sys.process._
+import scala.util.Random._
+import collection.mutable.{Buffer,HashSet}
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.concurrent.util._
+import scala.concurrent.duration._
+
 object OCR {
-  import sys.process._
-  import scala.util.Random._
-  import collection.mutable.{Buffer,HashSet}
-  import scala.concurrent._
-  import ExecutionContext.Implicits.global
-  import scala.concurrent.util._
-  import scala.concurrent.duration._
-
-
   val allowedSingleLetters = Set("i", "a", "e", "o", "y", "u")
   def stringFilter(str: String): String = {
     str
