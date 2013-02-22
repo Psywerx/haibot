@@ -180,7 +180,7 @@ object Net {
   import util._
   val extractor = KeepEverythingExtractor.INSTANCE
   
-  //TODO: use file -i or some proper mime solution, this is risky as fuck
+  //TODO: use download + file -i or some proper mime solution, this is risky as fuck
   def badExts: List[String] = fromFile(util.folder+"badexts.db")
   def scrapeURLs(urls: String*): String = {
     (urls flatMap { _.findAll(Regex.URL) } map { url => 
@@ -197,6 +197,7 @@ object Net {
     } fold "") { _+" "+_ } trim
   }
   
+  //TODO: tempDownload that takes a func of what to do with file and delete on finish
   def download(url: String, outFile: String): Boolean = {
     try {
       import java.io._
@@ -209,11 +210,11 @@ object Net {
         val fos = new FileOutputStream(outFile)
         fos.getChannel.transferFrom(rbc, 0, 1 << 24)
         fos.close
-      }, 30.seconds)
+      }, 20.seconds)
       
       true
     } catch {
-      case e: Exception => false
+      case e: Throwable => false
     }
   }
 }

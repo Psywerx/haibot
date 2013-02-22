@@ -373,8 +373,8 @@ class haibot extends PircBot {
     // Twitter/FB part
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
-    } else if(message.startsWithAny("@yes", "@sure", "@maybe", "@please")) {
-      if(message.startsWithAny("@yes", "@sure") || (message.startsWith("@maybe") && 0.5.prob))
+    } else if(message.startsWithAny("@yes", "@yep", "@sure", "@maybe", "@please")) {
+      if(message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWith("@maybe") && 0.5.prob))
         if(sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
       
       var beggedBefore = false
@@ -456,13 +456,13 @@ class haibot extends PircBot {
         tweetPlsScore = Set()
         tweetMsg = ""
       }
-    } else if(message.startsWith("@no")) {
+    } else if(message.startsWithAny("@no", "@nein")) {
       tweetNegScore = tweetNegScore ++ Set(sender)
     } else if(message.startsWithAny("@checktweets", "@tweets")) {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
       val names = message.drop("@follow ".size).replaceAll("@","").split(" ").distinct
-      if(names.size > 0 && names.size < 27) {
+      if(names forall { _ matches "^[A-Za-z0-9_]{1,20}$" }) {
         tweetMsg = null
         tweetId = null
         tweetNames = names
