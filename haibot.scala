@@ -293,8 +293,8 @@ class haibot extends PircBot {
           Seq("I am","I'm").random+" confused about this "+Seq("also", "too").random+"."*0~3,
           "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
           Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps"+Seq("at least a little", "in some way").random.maybe+"."*0~3,
-          Seq("I wouldn't", "Don't").random+" worry"+maybe" about it"+(Seq(" so", " too").random+" much").maybe+", "+maybe" I'm sure"+"you'll figure it out"+Seq(" eventually", " with time").random.maybe+"."*0~3,
-          "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
+          Seq("I wouldn't", "Don't").random+" worry"+maybe" about it"+(Seq(" so", " too").random+" much").maybe+","+maybe" I'm sure"+" you'll figure it out"+Seq(" eventually", " with time").random.maybe+"."*0~3,
+          "I guess that is some"+Seq("thing","what"," kind").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
           (if(mentions.size > 0 && 0.8.prob) 
             Seq("I don't know","I have no idea").random+
               Seq(", ", "... ").random+"but " + maybe"yes, " +
