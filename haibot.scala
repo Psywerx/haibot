@@ -269,24 +269,31 @@ class haibot extends PircBot {
           "so. cute.",
           if((words & Set("fluff","puff")).size > 0) Memes.so_fluffy else "aww!")
       }
-    } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && !(msg.contains("show")) && 0.5.prob) {
+    } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && !(msg.contains("show")) && (0.5 + (if(message contains "?") 0.2 else 0)).prob) {
       if(msg.contains("haskell") && !msg.contains("monad")) {
         speak(
           "have you tried with monads?",
           "did you try using a monad?",
           "make a monad out of it.",
           "have you tried adding more monads?")
+      } else if(msg.contains(" lisp")) {
+        speak(
+          "have you tried reversing the polarity of your polish notation?",
+          "have you tried adding more parentheses?",
+          "have you written any macros to address this?")
       } else if(msg.contains(" vim")) {
         speak(
           "use pathogen.",
           "have you tried using pathogen?",
           "did you try with pathogen?")
+      } else if(msg.containsAny(" folk","people") && 0.5.prob) {
+        speak("People are strange, I guess...")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
-          Seq("I am","I'm").random+" confused about this "+Seq("also", "too").random+".",
+          Seq("I am","I'm").random+" confused about this "+Seq("also", "too").random+"."*0~3,
           "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
-          Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps.",
-          "Don't worry"+maybe" about it"+", you'll figure it out "+Seq("eventually", "with time").random+("."+maybe"..").maybe,
+          Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps"+Seq("at least a little", "in some way").random.maybe+"."*0~3,
+          Seq("I wouldn't", "Don't").random+" worry"+maybe" about it"+(Seq(" so", " too").random+" much").maybe+", "+maybe" I'm sure"+"you'll figure it out"+Seq(" eventually", " with time").random.maybe+"."*0~3,
           "I guess that is some"+Seq("thing","what").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
           (if(mentions.size > 0 && 0.8.prob) 
             Seq("I don't know","I have no idea").random+
@@ -294,9 +301,9 @@ class haibot extends PircBot {
               mentions.toSeq.random +
               " might."
            else
-            Seq("Have you tried ","Did you try ", "Have you attempted ").random +
-              Seq("searching the ","looking on the ","querying the ").random +
-              Seq("internet"+maybe"s","intarwebs","cyberspace","electronic noosphere","information super-highway").random + "?"
+            Seq("Have you tried ","Did you try ", "Have you attempted ", "Did you attempt ").random +
+              Seq("searching the ","looking on the ","querying the ","inquiring upon the ").random +
+              Seq("internet"+maybe"s","intarweb"+maybe"s","ARPAnet"+maybe"s","cyberspace","electronic noosphere","information super-highway","W3 Infobahn").random + "?"
           ))
       }
     }
@@ -542,9 +549,12 @@ class haibot extends PircBot {
           val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set())
           
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
+          def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
+          def sForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "s" else "s") else "" // he find(s)
+          def multiForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "" else "") else "s" // boy(s)
           
           if(isHere.size > 0) {
-            if((isHere contains name) || (isHere contains sender)) {
+            if((isHere contains name) || (isHere contains sender)) { //TODO: case bug
               speak(
                 "wat.",
                 "Oh, you...",
@@ -558,26 +568,51 @@ class haibot extends PircBot {
           if(errNicks.size > 0) {
             speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
           }
-          if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).size > 0) {
+          if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).size > 0) { //TODO: test a++,b,c... also make sure if names are relevant
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
           }
           if(toMsgNicks.size > 0) {
-           for(nick <- toMsgNicks) {
+            var anyMsg = false
+            for(nick <- toMsgNicks) {
               val toMsg = ((if(toPlusNicks contains nick)"++ "else"") + msg).trim
-              if(toMsg.size > 0) msgs += (nick.toLowerCase, toMsg)
+              if(toMsg.size > 0) {
+                anyMsg = true
+                msgs += (nick.toLowerCase, toMsg)
+              }
             }
             
-            var say = List(
-              maybe"o"+"k"+".".maybe, 
-              "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
-              "ay"+"-ay".maybe+Seq(" cap'n", " captain").random.maybe+"!", 
-              Seq("sure", "ok").random+", I'll tell "+themForm(toMsgNicks)+".".maybe)
+            if(anyMsg) {
+              var say = List(
+                maybe"o"+"k"+".".maybe, 
+                "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
+                "ay"+maybe"-ay"+Seq(" cap'n", " captain").random.maybe+"!", 
+                (Seq("sure", "ok"+maybe" yeah", "ay").random+", ").maybe +
+                  "I"+Seq("'ll", " will").random+" "+Seq(
+                    Seq("tell ", "message ").random+themForm(toMsgNicks),
+                    "let "+themForm(toMsgNicks)+" know",
+                    "make "+Seq("sure ","certain ").random+Seq(
+                      theyForm(toMsgNicks) + Seq(" get"," recieve").random+sForm(toMsgNicks)+" this"+Seq(" msg"," message").random.maybe,
+                      " this"+Seq(" msg"," message").random.maybe+" reaches "+themForm(toMsgNicks)+maybe" when they return"+maybe" here"
+                    ).random
+                  ).random+".".maybe)
               
-            if(dontMsgNicks.size > 0) {
-              say.map(_ + " (except for the ppl I just complained about :))")
+              if(dontMsgNicks.size > 0) {
+                say = say.map(_ + 
+                  " ("+maybe"well, "+Seq("except", "but not").random+maybe" for "+
+                    Seq(
+                      "the "+Seq("ppl", "people", "humans").random+" I've just "+Seq("complained about", "mentioned").random,
+                      "the " +
+                        (if(dontMsgNicks.size == 1) 
+                          (if(dontMsgNicks forall { _.isGirl }) Seq("girl","woman","lady").random else Seq("guy","man","gentleman").random)
+                        else
+                          (if(dontMsgNicks forall { _.isGirl }) Seq("girls","women","ladies").random else if(dontMsgNicks exists { _.isGirl }) Seq("ppl","people","humans").random else Seq("guise","guys","men","gentlemen").random)
+                        )+" I've just "+Seq("complained about", "mentioned").random,
+                      dontMsgNicks.init.mkString(", ")+(if(dontMsgNicks.size > 0) " and "+dontMsgNicks.last else "")
+                    ).random + ")")
+              }
+              
+              speak(say: _*)
             }
-            
-            speak(say: _*)
           }
         case _ =>
           val butI = (maybe"but"+"I ").maybe

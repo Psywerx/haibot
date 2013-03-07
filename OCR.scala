@@ -13,7 +13,7 @@ object OCR {
   def stringFilter(str: String): String = {
     str
       .toLowerCase
-      .replaceAll("[,.!?-_:;]", " ")
+      .replaceAll("[,.!?:;_-]", " ")
       .replaceAll("[^a-zA-Z\\s]", "")
       .replaceAll("\\s+", " ").trim.split(" ").map(_.trim)
       .filter(word => (word.size >= 2 || allowedSingleLetters.contains(word)))
