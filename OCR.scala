@@ -98,8 +98,8 @@ object OCR {
         val resSplit = result.split(" ")
         (result, Array(
           result.size, 
-          resSplit.count(word =>  (common contains word)), 
-          resSplit.count(word => !(common contains word)),
+          resSplit.count(word =>  common.contains(word)), 
+          resSplit.count(word => !common.contains(word)),
           resSplit.foldLeft(0d)((acc,res) => acc + res.size) / resSplit.size
         ))
       }

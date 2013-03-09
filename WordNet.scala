@@ -8,7 +8,9 @@ class WordNet(folder: String) {
   type wn_s = (Int, String)
   //These take a while at startup...
   val (wn_sById, wn_sByWord) = {
-    val wn_sAll = io.Source.fromFile(folder+"wn_s2.db").getLines.map(line => (line.take(9).toInt, line.drop(11).init.replaceAll("''","'"))).toList
+    val wnFile = io.Source.fromFile(folder+"wn_s2.db")
+    val wn_sAll = wnFile.getLines.map(line => (line.take(9).toInt, line.drop(11).init.replaceAll("''","'"))).toList
+    wnFile.close()
     (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
   }
   
@@ -74,18 +76,28 @@ class WordNet(folder: String) {
     
   def preprocess(word: String): List[String] = stem(word).flatMap(w => List(w, w.toLowerCase)).distinct
   
-  def getMapFromwn(dbName: String): Map[Int, List[Int]] =
-    io.Source.fromFile(folder+dbName).getLines.toList
+  def getMapFromwn(dbName: String): Map[Int, List[Int]] = {
+    val wnFile = io.Source.fromFile(folder+dbName)
+    val wnFileContent = wnFile.getLines.toList
+    wnFile.close()
+    
+    wnFileContent
       .map(line => (line.take(9).toInt, line.drop(10).take(9).toInt))
       .groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
+  }
       
   val wnDbs = List("hyp","sim","ins","mm","ms","mp","at").map(db => db -> getMapFromwn(s"wn_$db.db")).toMap
-  val stoplist = io.Source.fromFile(folder+"stoplist").getLines.toSet
+  val stoplist = {
+    val file = io.Source.fromFile(folder+"stoplist")
+    val out = file.getLines.toSet
+    file.close()
+    out
+  }
   
   def getWeights: Map[String, Double] = {
     val file = io.Source.fromFile(folder+"weights")
     val out = file.getLines.toList.map(_.split(" ")).map(e => (e(0), e(1).toDouble)).toMap.withDefaultValue(1d)
-    file.close
+    file.close()
     out
   }
   

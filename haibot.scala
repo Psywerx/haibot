@@ -44,15 +44,15 @@ class haibot extends PircBot {
   val events = Store(folder+"events.db")
 
   // TODO: cache them at least for a minute or so
-  def sheSaid = fromFile(folder+"twss.db").toList
-  def awwwBag = fromFile(folder+"awww.db").toSet
-  def noawwwBag = fromFile(folder+"noawww.db").toSet
-  def mehBag = fromFile(folder+"meh.db").toSet
-  def nomehBag = fromFile(folder+"nomeh.db").toSet
-  def mustNotBeNamed = fromFile(folder+"dontmention.db").toSet
-  def girls = fromFile(folder+"girls.db").map(_.cleanNick).toSet
-  def trusted = fromFile(folder+"trusted.db").map(_.cleanNick).toSet
-  def bots = fromFile(folder+"bots.db").map(_.cleanNick).toSet
+  def sheSaid = getFile(folder+"twss.db").toList
+  def awwwBag = getFile(folder+"awww.db").toSet
+  def noawwwBag = getFile(folder+"noawww.db").toSet
+  def mehBag = getFile(folder+"meh.db").toSet
+  def nomehBag = getFile(folder+"nomeh.db").toSet
+  def mustNotBeNamed = getFile(folder+"dontmention.db").toSet
+  def girls = getFile(folder+"girls.db").map(_.cleanNick).toSet
+  def trusted = getFile(folder+"trusted.db").map(_.cleanNick).toSet
+  def bots = getFile(folder+"bots.db").map(_.cleanNick).toSet
   
   implicit class IrcString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_]|-nexus$","")
@@ -69,7 +69,7 @@ class haibot extends PircBot {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       val mentions = Seq("t", "mentions", "-n", "5").!!.trim
       if(mentions(0) == '@') {
-        val lastTweets = fromFile(folder+"lasttweets.db")
+        val lastTweets = getFile(folder+"lasttweets.db")
         val mentionList = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw.trim))
         if(mentionList.size > 0) {
           // Save the last few mentions
@@ -209,13 +209,12 @@ class haibot extends PircBot {
       speak(hai: _*)
     } else if(message.contains(name+"++") && 0.65.prob) {
       speak(
-        "yaay, I did good!",
         "woohoo!",
         "yeah!",
         """\o/""",
         "scoar!",
         if(0.2.prob) s"$sender++" else "yaaay!")
-    } else if(msg.startsWith("yes "+name) && 0.65.prob) {
+    } else if((msg.startsWith("yes "+name) && 0.65.prob) || (msg.startsWith("yes ") && mentions.contains(name) && 0.3.prob)) {
       speak(
         "I knew it!",
         "woohoo!",
@@ -233,8 +232,16 @@ class haibot extends PircBot {
         "Regex! My favorite thing!"+"!"*0~2,
         "m"*2~4+", regexes!",
         maybe"wow, "+"I wonder what that matches"+"."*0~3)
-      
-    // naughty part
+    } else if(msg.containsAny("tnx", "thanks") && ((mentions.contains(name) && 0.8.prob) || (msg.contains(" alot ") && 0.5.prob))) {
+      if(msg.contains(" alot ")) {
+        speak(Memes.thanks_alot)
+      } else {
+        speak(
+          "You're welcome",
+          "Any time",
+          "For you"+(", "+sender).maybe+"... any time")
+      }
+      // naughty part
     } else if(msg.contains("i need an adult") && 0.9.prob) { 
       speak("I am an adult"+"!"*1~4)
     } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,5) && 0.75.prob) { 
@@ -381,8 +388,7 @@ class haibot extends PircBot {
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
     } else if(message.startsWithAny("@yes", "@yep", "@sure", "@maybe", "@please")) {
-      if(message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWith("@maybe") && 0.5.prob))
-        if(sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
+      if((message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWith("@maybe") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
       
       var beggedBefore = false
       if(message.startsWith("@please")) {
@@ -494,10 +500,11 @@ class haibot extends PircBot {
       tweetPlsScore = Set()
       tweetLim = 2
       speak(
-        Seq("Want me to","Should I").random+" retweet "+Seq("this","that").random+"?",
-        "I can retweet"+Seq(" this", " that").random+", if you "+Seq("guise ","ppl ").random+Seq("confirm it","want me to","agree").random+"."*0~3,
-        Seq("That looks","Looks").random+" like a tweet... "+Seq("should I ","want me to ").random+"retweet it?",
-        "If someone confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
+        "A retweet of "+Seq("this","that").random+" tweet"+Seq(", perhaps", ", maybe").random+"?",
+        Seq("Want me to","Should I","Is it OK to").random+" retweet "+Seq("this","that").random+"?",
+        "I "+Seq("can","could").random+" retweet "+Seq("this", "that").random+", if you "+Seq("guise ","ppl ","people").random+Seq("confirm it","want me to","agree").random+"."*0~3,
+        Seq(maybe"Hey, "+"that looks","Looks").random+" like a tweet... "+Seq("should I ", maybe"do you "+"want me to ").random+"retweet it?",
+        "If "+Seq("one of you", "someone").random+" confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
         "Someone"+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
     } else if(message.startsWith("@world ")) {
       val tweet = {
@@ -637,7 +644,6 @@ class haibot extends PircBot {
       println(text)
         
       future {
-        //TODO: Move these to top and use them lazily elsewhere too
         zemanta.suggestKeywords(text, 3~4).orElse(wordnet.keywords(text, 3~4)).map(_.mkString(", ").toLowerCase) match {
           case Some(keywords) =>
             speak(

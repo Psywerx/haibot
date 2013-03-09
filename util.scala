@@ -65,11 +65,20 @@ object util {
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
   implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max}
 
-  def fromFile(name: String): List[String] = {
+  def getFile(name: String): List[String] = {
     val file = io.Source.fromFile(name)
     val out = file.getLines.toList
     file.close
     out
+  }
+  
+  def withFile[E](fileName: String)(f: scala.io.BufferedSource => E): E = {
+    val file = io.Source.fromFile(fileName)
+    try {
+      f(file)
+    } finally {
+      file.close
+    }
   }
 }
 
@@ -83,6 +92,7 @@ object Memes {
   val oh_you = """http://bit.ly/MvTwUG"""
   val so_fluffy = """http://bit.ly/MG5Hfx"""
   val it_was_you = """http://bit.ly/zg0jQt"""
+  val thanks_alot = """http://i.imgur.com/NAE5F9i.png"""
 }
   
 object Time {
@@ -181,7 +191,7 @@ object Net {
   val extractor = KeepEverythingExtractor.INSTANCE
   
   //TODO: use download + file -i or some proper mime solution, this is risky as fuck
-  def badExts: List[String] = fromFile(util.folder+"badexts.db")
+  def badExts: List[String] = getFile(util.folder+"badexts.db")
   def scrapeURLs(urls: String*): String = {
     (urls flatMap { _.findAll(Regex.URL) } map { url => 
       try {
@@ -221,25 +231,26 @@ object Net {
 
 /// Store based on bash :) #softwareanarchitecture
 // talk about leaky abstractions...
-// also take it, or leave it :)
 object Store { def apply(file: String): Store = new Store(file) }
-class Store(file: String, keyFormat: String="""([-_a-zA-Z0-9]{1,16})""") {
+class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
+  import util.{getFile}
   def isKey(s: String): Boolean = s matches keyFormat
-  def +=(k: String, v: String = null) = (Seq("echo", if(v != null) k+" "+v else k) #>> new File(file)).!!
-  def -=(k: String) = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!!
-  def ?(k: String) = Seq("sed", "-n", s"""/^$k$$\\|^$k[ ].*$$/p""", file).!! split "\n" filter { _.size > 0 } map { res => res.substring(min(res.length,k.length+1)) } toList
-  def * = Seq("cat", file).!! split "\n" filter { _.size > 0 } map { res => 
-    val sep = res.indexOf(" ")
-    if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
-  } toList
+  def +=(k: String, v: String = null) { (Seq("echo", if(v != null) k+" "+v else k) #>> new File(file)).!! }
+  def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
+  def ?(k: String): List[String] = getFile(file) filter { line => line.size > 0 && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def *(): List[(String, String)] = 
+    getFile(file) filter { _.size > 0 } map { res => 
+      val sep = res.indexOf(" ")
+      if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
+    } toList
   
   def toList = *.toList
   def toMap = *.toMap
 
   def ?-(key: String) = {
     val out = ?(key)
-    this -= key
+    if(out.size > 0) this -= key
     out
   }
 }
