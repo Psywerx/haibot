@@ -2,6 +2,7 @@ package org.psywerx
 
 import org.psywerx.util._
 import org.psywerx.Time._
+import org.psywerx.Caption.C
 
 import org.jibble.pircbot._
 import collection.mutable.{HashSet,ListBuffer,HashMap}
@@ -158,15 +159,15 @@ class haibot extends PircBot {
     if(sender == name) future { //why spawn a new thread? pircbot doesn't have user info here yet, but does immediately after
       Thread.sleep(1000)
       startTime = now
-      if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", "hello"+"!".maybe, "hi", "hi there!")
+      if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
       users.foreach(speakMessages)
     } else {
       Thread.sleep(1000)
       if(sender.startsWith(owner) && 0.05.prob) speak(
-        "welcome, father"+maybe".",
-        "welcome back!",
-        "hi, you"+maybe"!",
-        s"I've missed you, $sender"+maybe".")
+        c"welcome, father{!|.}",
+        c"welcome back{!|.}",
+        c"hi, you{!}",
+        c"I've missed you, $sender{.}")
 
       speakMessages(sender)
       joinTimes(sender.toLowerCase) = now
@@ -204,12 +205,12 @@ class haibot extends PircBot {
       if(!mentions.contains(name) && mentions.size > 0 && 0.7.prob) 
         hai = hai.map(_ + " " + mentions.toSeq.random)
         
-      hai = hai.map(_ + Seq(" :)", "!",Seq(""," ^_^").random.maybe).random)
+      hai = hai.map(_ + c"{ :)|!| ^_^}")
       
       speak(hai: _*)
     } else if(message.contains(name+"++") && 0.65.prob) {
       speak(
-        "woohoo!",
+        c"woo{o}hoo{o}!",
         "yeah!",
         """\o/""",
         "scoar!",
@@ -228,22 +229,22 @@ class haibot extends PircBot {
         s"I appreciate that, brother $sender.")
     } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && 0.6.prob) {
       speak(
-        "oooh, is that a regex? I "+Seq("<3","love").random+" regexes!",
-        "Regex! My favorite thing!"+"!"*0~2,
-        "m"*2~4+", regexes!",
-        maybe"wow, "+"I wonder what that matches"+"."*0~3)
+        c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
+        c"Regex{es}[!]2 {M|m}y favorite thing[!]2",
+        c"mm{m}{m}, regex{es}{!|...}",
+        c"{wow, }I wonder what that matches.{.}")
     } else if(msg.containsAny("tnx", "thanks") && ((mentions.contains(name) && 0.8.prob) || (msg.contains(" alot ") && 0.5.prob))) {
       if(msg.contains(" alot ")) {
         speak(Memes.thanks_alot)
       } else {
         speak(
           "You're welcome",
-          "Any time",
-          "For you"+(", "+sender).maybe+"... any time")
+          "any time",
+          c"{f|F}or you{, $sender}... any time{!}")
       }
       // naughty part
     } else if(msg.contains("i need an adult") && 0.9.prob) { 
-      speak("I am an adult"+"!"*1~4)
+      speak(c"I am an adult{!}{!}{!}")
     } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,5) && 0.75.prob) { 
       speak(
         "how does "+sentences(0).trim+" feel?",
@@ -253,7 +254,7 @@ class haibot extends PircBot {
       speak("did someone mention butt sex?")
     } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn") && ((mentions.contains(name) && 0.9.prob) || ((mentions & bots).size > 0 && 0.8.prob))) {
       speak(
-        "U MAD, BRO?"+maybe" :P",
+        c"U MAD, BRO?{ :P}",
         Memes.NO_U,
         "NO U!",
         "This wouldn't happen if you made us better"+"."*0~3,
@@ -271,9 +272,9 @@ class haibot extends PircBot {
        
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
         speak(
-          Seq("a","d").random+maybe"a"+"w"*3~6+Seq(".","!"*1~3).random.maybe,
-          maybe"lol, "+maybe"how "+"cute"+"!".maybe+Seq(" :)", " ^_^").random,
-          "so. cute.",
+          c"[d|a]{a}2[w]3-6{!}2",
+          c"{lol, }{how }cute{!} [:)|^_^]",
+          c"so{.} cute.",
           if((words & Set("fluff","puff")).size > 0) Memes.so_fluffy else "aww!")
       }
     } else if(msg.containsAny("i jasn","wat","how","kako","ne vem","krneki") && !(msg.contains("show")) && (0.5 + (if(message contains "?") 0.2 else 0)).prob) {
@@ -297,24 +298,19 @@ class haibot extends PircBot {
         speak("People are strange, I guess...")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
-          Seq("I am","I'm").random+" confused about this "+Seq("also", "too").random+"."*0~3,
-          "This "+Seq("puzzles", "confuses").random+" me "+maybe"greatly "+Seq("also", "too").random+".",
-          Seq("I don't know","I have no idea").random+Seq(", ", "...").random+" hope this helps"+Seq("at least a little", "in some way").random.maybe+"."*0~3,
-          Seq("I wouldn't", "Don't").random+" worry"+maybe" about it"+(Seq(" so", " too").random+" much").maybe+","+maybe" I'm sure"+" you'll figure it out"+Seq(" eventually", " with time").random.maybe+"."*0~3,
-          "I guess that is some"+Seq("thing","what"," kind").random+" of a "+Seq("conundrum", "mystery").random+("."+maybe"..").maybe,
+          c"[I am|I'm] [confused|not sure] about this[ also|, too]{.}3",
+          c"This [puzzles|confuses] me {greatly|very much}[ also|, too]{.}3",
+          c"[I don't know|I have no idea|No idea]... hope [I've helped|this helps]{at least a little|in some way}{.}3",
+          c"[I wouldn't|Don't] worry {about it} {so much|too much}, I'm sure you'll figure it out {something} {eventually|with time}{.}3",
+          c"I guess that is some[thing|what| kind] of a [conundrum|mystery]{.}3",
           (if(mentions.size > 0 && 0.8.prob) 
-            Seq("I don't know","I have no idea").random+
-              Seq(", ", "... ").random+"but " + maybe"yes, " +
-              mentions.toSeq.random +
-              " might."
+             c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
            else
-            Seq("Have you tried ","Did you try ", "Have you attempted ", "Did you attempt ").random +
-              Seq("searching the ","looking on the ","querying the ","inquiring upon the ").random +
-              Seq("internet"+maybe"s","intarweb"+maybe"s","ARPAnet"+maybe"s","cyberspace","electronic noosphere","information super-highway","W3 Infobahn").random + "?"
+             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|ARPAnets|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
           ))
       }
     }
-    
+
     
     if(message.startsWithAny("@ocr ", "@read ")) {
       val imgurReg = """(https?://)(?:www[.])?(imgur.com/)(?:(?:gallery/)|(?:r/[a-z]+/))?([A-Za-z0-9]+)""".r
@@ -324,7 +320,7 @@ class haibot extends PircBot {
       }
       val pics = URLs.map(toImgur).filter(_.endsWithAny(".jpg", ".png"))
       if(pics.isEmpty) {
-        speakNow(maybe"Sorry, "+"I don't see any pics... I only read jpegs and pngs.")
+        speakNow(c"{Sorry,} I don't see any pics... I only read jpegs and pngs.")
       } else for(pic <- pics) {
 
         val tmpFile = "/tmp/ocr."+pic.takeRight(3)
@@ -415,6 +411,7 @@ class haibot extends PircBot {
         
         var successResponses = ListBuffer("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
 
+        //TODO: cleanup on aisle 5 *ding ding*
         //try facebook too
         val tweetDetails = withAlternative(
           (Seq("t", "status", tweetId).!!)
@@ -437,9 +434,7 @@ class haibot extends PircBot {
           
           if(tweetDetails("Screen name") != "") {
             successResponses ++= List(
-              "Retweeted "+Seq("that","the").random+" lovely tweet by "+tweetDetails("Screen name")+maybe"!",
-              "I've retweeted the lovely tweet by "+tweetDetails("Screen name")+maybe"!",
-              "I've retweeted the tweet out of "+Seq("this","that").random+" tweet by "+tweetDetails("Screen name")+maybe"!",
+              c"[I've r|R|r]etweeted {the tweet out of} [that|the] {lovely} tweet by"+" "+tweetDetails("Screen name")+maybe"!",
               "I hope "+tweetDetails("Screen name")+" is pleased with this retweet.")
           }
         }
@@ -500,18 +495,18 @@ class haibot extends PircBot {
       tweetPlsScore = Set()
       tweetLim = 2
       speak(
-        "A retweet of "+Seq("this","that").random+" tweet"+Seq(", perhaps", ", maybe").random+"?",
-        Seq("Want me to","Should I","Is it OK to").random+" retweet "+Seq("this","that").random+"?",
-        "I "+Seq("can","could").random+" retweet "+Seq("this", "that").random+", if you "+Seq("guise ","ppl ","people").random+Seq("confirm it","want me to","agree").random+"."*0~3,
-        Seq(maybe"Hey, "+"that looks","Looks").random+" like a tweet... "+Seq("should I ", maybe"do you "+"want me to ").random+"retweet it?",
-        "If "+Seq("one of you", "someone").random+" confirms"+Seq(" this", " it").random+", I'll retweet"+maybe" it"+maybe".",
-        "Someone"+maybe" please"+" confirm"+Seq(" this", " it", "").random+", and I'll retweet it"+maybe".")
+        c"A retweet of [this|that] tweet {, perhaps|, maybe}?",
+        c"[Want me to|Should I|Am I to|Is it OK if I|Is it OK to] retweet [this|that] {tweet}?",
+        c"I [can|could] retweet [this|that], if you [guise|guys|ppl|people] [confirm it|want me to|agree]{.}3",
+        c"{Hey, that} looks like a tweet... [should I|do you want me to|want me to|would you like me to] retweet it?",
+        c"If [one of you|someone] confirms [this|it], I'll retweet {it}{.}",
+        c"Someone {please} confirm {this|this tweet}, and I'll retweet it{.}")
     } else if(message.startsWith("@world ")) {
       val tweet = {
         var out = message.drop("@world ".length).trim
         if(URLs.size > 0 && out.size > 140) {
           var shortTweet = out
-         for(url <- URLs) {
+          for(url <- URLs) {
             val bitlyUrl = bitly.shorten(url)
             if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url.asInstanceOf[CharSequence], bitlyUrl.get.asInstanceOf[CharSequence])
           }
@@ -523,12 +518,16 @@ class haibot extends PircBot {
       }
       
       if(tweet.size >= 1 && tweet.size <= 140) {
+        val andGals = if((girls & users).size > 0) maybe"and gals" else ""
         speak(
-          "Someone "+Seq("pls","please","").random+" confirm"+".".maybe,
-          Seq("Does anyone "+maybe"else "+maybe"here "+"think", "Anyone "+maybe"else "+maybe"here "+"thinks").random+" it's a good idea to "+Seq("tweet","post").random+Seq(" this"," that").random+"?"+maybe" :)",
-          "Do you "+Seq("guise"+(if((girls & users).size > 0) maybe" and gals" else ""), "people").random+" agree that I should "+Seq("tweet","post").random+Seq(" this"," that").random+"?",
-          "I need a vote"+", before I post this".maybe+".".maybe,
-          "Someone "+maybe"should "+maybe"simply "+"say @yes or @no."+".. @maybe works too.".maybe.maybe)
+          c"Some[one|body] {pls|please} confirm {, and I'll post it}{.}",
+          c"Does anyone {else} {in here|here} think it's a good idea to [tweet|post] [this|this tweet|that]? {:)}",
+          c"Anyone {else} {in here|here} thinks it's a good idea to [tweet|post] [this|this tweet|that]? {:)}",
+          c"Do you [guise $andGals|people] agree that I should [tweet|post] [this|that]?",
+          c"Do you [guise $andGals|people] agree that this should be [tweeted|posted]?",
+          c"If [one of you|someone] confirms [this|it], I'll tweet {it}{.}",
+          c"I need a vote {,before I post this}{.}",
+          c"Someone {should} {simply} confirm this {, and I'll post it}{.}")
         tweetMsg = tweet
         tweetScore = Set(sender)
         tweetNegScore = Set()
@@ -590,31 +589,26 @@ class haibot extends PircBot {
             
             if(anyMsg) {
               var say = List(
-                maybe"o"+"k"+".".maybe, 
-                "it"+Seq("'ll "," shall ", " will ").random+Seq("be", "get").random+" done"+".".maybe, 
-                "ay"+maybe"-ay"+Seq(" cap'n", " captain").random.maybe+"!", 
-                (Seq("sure", "ok"+maybe" yeah", "ay").random+", ").maybe +
-                  "I"+Seq("'ll", " will").random+" "+Seq(
-                    Seq("tell ", "message ").random+themForm(toMsgNicks),
-                    "let "+themForm(toMsgNicks)+" know",
-                    "make "+Seq("sure ","certain ").random+Seq(
-                      theyForm(toMsgNicks) + Seq(" get"," recieve").random+sForm(toMsgNicks)+" this"+Seq(" msg"," message").random.maybe,
-                      " this"+Seq(" msg"," message").random.maybe+" reaches "+themForm(toMsgNicks)+maybe" when they return"+maybe" here"
-                    ).random
-                  ).random+".".maybe)
+                c"{o}k{.}",
+                c"it['ll| shall| will] [be|get] done{.}", 
+                c"ay{-ay} {cap'n|captain}!", 
+                c"{sure|ok|ok yeah|ay} I['ll| will]"+" "+Seq(
+                  c"[tell|relay it to] ${themForm(toMsgNicks)}{.}",
+                  c"make [sure|certain]"+" "+Seq(
+                    c"${theyForm(toMsgNicks)} [get|recieve]${sForm(toMsgNicks)} this {msg|message}",
+                    c"this {msg|message} reaches ${themForm(toMsgNicks)} {when they return} {here}").random).random + c"{.}")
               
               if(dontMsgNicks.size > 0) {
-                say = say.map(_ + 
-                  " ("+maybe"well, "+Seq("except", "but not").random+maybe" for "+
-                    Seq(
-                      "the "+Seq("ppl", "people", "humans").random+" I've just "+Seq("complained about", "mentioned").random,
-                      "the " +
-                        (if(dontMsgNicks.size == 1) 
-                          (if(dontMsgNicks forall { _.isGirl }) Seq("girl","woman","lady").random else Seq("guy","man","gentleman").random)
-                        else
-                          (if(dontMsgNicks forall { _.isGirl }) Seq("girls","women","ladies").random else if(dontMsgNicks exists { _.isGirl }) Seq("ppl","people","humans").random else Seq("guise","guys","men","gentlemen").random)
-                        )+" I've just "+Seq("complained about", "mentioned").random,
-                      dontMsgNicks.init.mkString(", ")+(if(dontMsgNicks.size > 0) " and "+dontMsgNicks.last else "")
+                say = say.map(_ + " (" + 
+                  c"{well, } [except|but not] {for} "+" "+Seq(
+                    c"the [ppl|people|humans] I've just [complained about|mentioned]",
+                    "the " +
+                      (if(dontMsgNicks.size == 1) 
+                        (if(dontMsgNicks.forall(_.isGirl)) c"[girl|woman|lady]" else c"[guy|man|gentleman]")
+                      else
+                        (if(dontMsgNicks.forall(_.isGirl)) c"[girls|women|ladies]" else if(dontMsgNicks.exists(_.isGirl)) c"[ppl|people|humans]" else c"[guise|guys|men|gentlemen]")
+                      )+" "+c"I've just [complained about|mentioned]",
+                      dontMsgNicks.init.mkString(", ")+(if(dontMsgNicks.size > 1) " and " else "")+dontMsgNicks.last
                     ).random + ")")
               }
               
@@ -622,9 +616,7 @@ class haibot extends PircBot {
             }
           }
         case _ =>
-          val butI = (maybe"but"+"I ").maybe
-          val filler = Seq("", butI+"still", butI+"really", butI+"kind of", butI+" unfortunately").random
-          speak(s"Sorry, $filler don't know what to do with this.")
+          speak(c"Sorry, but I {still|really|kind of|unfortunately} don't know what to do with this.")
       }
     } else if(message.startsWithAny("@reword ", "@rephrase ")) {
       val toReword = message.dropWhile(_ != ' ').tail
@@ -692,25 +684,22 @@ class haibot extends PircBot {
             getSinceZeroString(("cat /proc/uptime".!!).trim.takeWhile(_ != '.').toInt),
             "who knows how long..")
 
-          speak(
-            maybe"Well, "+"I"+Seq("'ve", " have").random+" been "+Seq("in here", "up", maybe"up and "+"running", "going").random + 
-              s" for $mytime"+maybe" already" + 
-              s", but my server has been running for $servertime"+maybe".")
+          speak(c"{Well, } I['ve| have] been [in here|up|running|up and running|going] for $mytime {already|so far}, but my server has been running for $servertime{.}")
         } else {
           if(joinTimes(nick.toLowerCase) == -1) {
             speak(
-              s"$nick has been "+Seq("up","in here","online").random+s" for at least as long as I have, which is >$mytime"+maybe".",
-              s"$nick has been here "+maybe"even "+s"longer than I have... and I've been here for $mytime"+maybe".")
+              c"$nick has been [up|in here|online] for at least as long as I have, [which|and that] is >$mytime{.}",
+              c"$nick has been here {for} {even} longer than I have, and I've been here for $mytime{.}")
           } else {
             val nicktime = getSinceString(joinTimes(nick.toLowerCase))
             speak(
-              s"$nick has been "+Seq("up","in here","online").random+s" for $nicktime"+maybe" already"+maybe".",
-              s"$nick is "+Seq("up","in here","online").random+s" for $nicktime"+maybe" already"+maybe".")
+              c"$nick has been [up|in here|online] for $nicktime {already|so far}{.}",
+              c"$nick is [up|in here|online] for $nicktime {already|so far}{.}")
           }
         }
       }
-    } else if(message matches "@?"+name+"[:, ]{0,3}help.*") {
-      speak(("Sorry, "+maybe"but ").maybe+Seq("I'm", "I am").random+" not "+Seq("very", "too").random+" helpful"+"."*0~3)
+    } else if((message matches "@?"+name+"[:, ]{0,3}help.*") || message == "@help "+name) {
+      speak(c"Sorry, {but} [I'm|I am] not [very|too] helpful{.}3")
     }
     
     // checks twitter only every few minutes, and only if people are talking on channel
