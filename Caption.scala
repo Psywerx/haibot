@@ -24,7 +24,7 @@ object Caption extends RegexParsers {
         str
       }
     
-    var out = str.drop(1).dropRight(1).split("[|]").toList
+    val out = str.drop(1).dropRight(1).split("[|]").toList
     (if(out.size > 1) out(nextInt(out.size)) else out.head) * repeats
   }
   def groupMaybe = """[{][^}]+[}]([0-9](-[0-9])?)?""".r ^^ { g => 
@@ -43,7 +43,7 @@ object Caption extends RegexParsers {
         str
       }
 
-    var out = str.drop(1).dropRight(1).split("[|]").toList
+    val out = str.drop(1).dropRight(1).split("[|]").toList
     (if(out.size > 1) out(nextInt(out.size)) else out.head) * repeats
   }
   def quote = """[@][^@]*[@]""".r ^^ { g => g.drop(1).dropRight(1) }

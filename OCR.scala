@@ -27,8 +27,9 @@ object OCR {
     out
   }
 
+  def OCR(path: java.io.File): Option[String] = OCR(path.toString)
   def OCR(path: String): Option[String] = {
-    // TODO: put params in file, us mktemp for temp files, pay some more attention to security
+    // TODO: put params in file, pay some attention to portability and security
     val engineCnt = 5
     val dst = "/tmp/ocr"
     val tmpFile = path.replaceAll("[^a-zA-Z]", "").take(7)+nextInt(1000)+("."+path.reverse.takeWhile(_ != '.').replaceAll("[^a-zA-Z.]", "").take(7).reverse).replaceAll("[.]+", ".")

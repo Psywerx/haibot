@@ -53,13 +53,15 @@ object util {
     }
   }
   
-  implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
+  //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
   implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int) = nextInt(j-i+1)+i }
 
   implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size)) 
-    def randomOption: Option[A] = if(s.size > 0) Some(random) else None
+    def randomOption: Option[A] = if(s.isEmpty) None else Some(random)
   }
+  
+  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone = optseq filterNot { _.isEmpty }}
 
   implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
@@ -71,13 +73,25 @@ object util {
     file.close
     out
   }
-  
+
   def withFile[E](fileName: String)(f: scala.io.BufferedSource => E): E = {
     val file = io.Source.fromFile(fileName)
     try {
       f(file)
     } finally {
       file.close
+    }
+  }
+
+  //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
+  def using[A <: java.io.Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }  
+  
+  def appendToFile(fileName: String)(textData: String) = printToFile(fileName)(textData, append = true)
+  def printToFile(fileName: String)(textData: String, append: Boolean = false) = {
+    using (new java.io.FileWriter(fileName, append)) { 
+      fileWriter => using (new java.io.PrintWriter(fileWriter)) {
+        printWriter => printWriter.println(textData)
+      }
     }
   }
 }
@@ -152,7 +166,8 @@ object Time {
     getDates(text, _.after(nowDate))
   }
   
-  private val timeDivisor = 1000000L*1000L
+  private val timeDivisor = 1000000L*1000L //s
+  //val timeDivisor = 1000000L //ms
   def now: Int = (System.nanoTime/timeDivisor).toInt
   def since(time: Int): Int = now-time
   def time(func: => Unit): Int = {
@@ -187,6 +202,7 @@ object Time {
 object Net {
   import de.l3s.boilerpipe.extractors._
   import java.net._
+  import java.io.File
   import util._
   val extractor = KeepEverythingExtractor.INSTANCE
   
@@ -207,8 +223,27 @@ object Net {
     } fold "") { _+" "+_ } trim
   }
   
-  //TODO: tempDownload that takes a func of what to do with file and delete on finish
-  def download(url: String, outFile: String): Boolean = {
+  def tempDownload(url: String): Option[File] = {
+    val ext = if(url.substring(url.lastIndexOf(".")).size <= 5) url.substring(url.lastIndexOf(".")) else null
+    val tempFile = File.createTempFile("temp", ext)
+    //tempFile.deleteOnExit()
+    
+    if(download(url, tempFile)) {
+      Some(tempFile) 
+    } else {
+      tempFile.delete()
+      None
+    }
+  }
+  def withDownload[A](url: String)(func: Option[File] => A) = {  
+    val tempFile = tempDownload(url)
+    try {
+      func(tempFile)
+    } finally {
+      tempFile foreach { _.delete() }
+    }
+  }
+  def download(url: String, outFile: java.io.File): Boolean = {
     try {
       import java.io._
       import java.nio._
@@ -234,13 +269,13 @@ object Net {
 object Store { def apply(file: String): Store = new Store(file) }
 class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
-  import util.{getFile}
+  import util.{getFile,appendToFile}
   def isKey(s: String): Boolean = s matches keyFormat
-  def +=(k: String, v: String = null) { (Seq("echo", if(v != null) k+" "+v else k) #>> new File(file)).!! }
+  def +=(k: String, v: String = null) { appendToFile(file) { if(v != null) k+" "+v else k } }
   def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
-  def ?(k: String): List[String] = getFile(file) filter { line => line.size > 0 && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def ?(k: String): List[String] = getFile(file) filter { line => !line.isEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
   def *(): List[(String, String)] = 
-    getFile(file) filter { _.size > 0 } map { res => 
+    getFile(file) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(" ")
       if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     } toList
@@ -250,7 +285,7 @@ class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
 
   def ?-(key: String) = {
     val out = ?(key)
-    if(out.size > 0) this -= key
+    if(!out.isEmpty) this -= key
     out
   }
 }

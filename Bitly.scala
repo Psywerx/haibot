@@ -9,7 +9,7 @@ class Bitly(apiKey1: String, apiKey2: String) {
   def shorten(s: String): Option[String] = {
     try {
       val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
-      if(out != null) Some((out.getShortUrl)) else None
+      Option(out.getShortUrl)
     } catch {
       case e: Exception =>
         None
@@ -17,6 +17,6 @@ class Bitly(apiKey1: String, apiKey2: String) {
   }
   
   // try, or else return original
-  def tryShorten(s: String): String = shorten(s).orElse(Some(s)).get  
+  def tryShorten(s: String): String = shorten(s).getOrElse(s)
 }
 

@@ -126,13 +126,12 @@ compile() {
       let warnCnt+=`eval $2 | wc -l`
     fi
   }  
-  Test "Did you forget to put Seq(...).random" "grep --color=auto -rnE 'Seq[(]([^\")]*\"[^\"]*\")*[^)]*[)][ ]*([+][^+]|,[ ]*$)' *.scala"
   Test "Did you forget s before string interpolation" "grep --color=auto -rnP $'[,( +][\"]{1,3}(?\x21.*[,( +]s\").*[$][^\"|]' *.scala"
 
   echo "compiling $bot"
   rm -rf $outdir &> /dev/null
   mkdir $outdir &> /dev/null
-  scalac -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -deprecation -optimise -feature -unchecked -d $outdir -cp $cp *.scala
+  scalac $SCALA_PLUGINS -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -deprecation -feature -unchecked -d $outdir -cp $cp *.scala
 }
 
 run() {

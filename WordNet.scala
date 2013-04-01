@@ -138,7 +138,7 @@ class WordNet(folder: String) {
         )// take out similar words
       ).take(count).map(_._1)) //sort and convert to string
       
-      if(out.size > 0) Some(out) else None
+      Option(out).emptyToNone
     } catch {
       case e: Exception => e.printStackTrace; None
     }
