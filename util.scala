@@ -18,6 +18,15 @@ object util {
   def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative}
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
+
+  def spawn(func: => Unit) {
+    (new Thread(new Runnable {
+      def run() {
+        try { func } catch { case _: Throwable => }
+      }
+    })).start
+  }
+  
   
   implicit class PimpString(val s: String) { 
     def replaceAll(m: (String, String)*): String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
@@ -117,22 +126,32 @@ object Time {
   
   private val timeReg = """[\s,]{0,2}(ob\s)?((\d{1,2}:\d{2})|(\d{1,2}h))"""
   private val dateFormats = List[(matching.Regex, SimpleDateFormat)](
+    (timeReg.r, new SimpleDateFormat("HH:mm")),
+
+    (("""\d{1,2}[.]\d{1,2}""" + timeReg).r, new SimpleDateFormat("dd.MM HH:mm")),
+    (("""\d{1,2}[.]\s[a-z]{3,}""" + timeReg).r, new SimpleDateFormat("dd. MMMM HH:mm")),
+    (("""\d{1,2}\s[a-z]{3,}""" + timeReg).r, new SimpleDateFormat("dd MMMM HH:mm")),
+    ("""\d{1,2}[.]\d{1,2}""".r, new SimpleDateFormat("dd.MM")),
+    ("""\d{1,2}[.]\s[a-z]{3,}""".r, new SimpleDateFormat("dd. MMMM")),
+    ("""\d{1,2}\s[a-z]{3,}""".r, new SimpleDateFormat("dd MMMM")),
+
     (("""\d{1,2}[.]\d{1,2}[.]\d{4}""" + timeReg).r, new SimpleDateFormat("dd.MM.yyyy HH:mm")),
     (("""\d{1,2}-\d{1,2}-\d{4}""" + timeReg).r, new SimpleDateFormat("dd-MM-yyyy HH:mm")),
     (("""\d{4}-\d{1,2}-\d{1,2}""" + timeReg).r, new SimpleDateFormat("yyyy-MM-dd HH:mm")),
     (("""\d{1,2}/\d{1,2}/\d{4}""" + timeReg).r, new SimpleDateFormat("MM/dd/yyyy HH:mm")),
     (("""\d{4}/\d{1,2}/\d{1,2}""" + timeReg).r, new SimpleDateFormat("yyyy/MM/dd HH:mm")),
     (("""\d{1,2}\s[a-z]{3}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd MMM yyyy HH:mm")),
-    (("""\d{1,2}\s[a-z]{4,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd MMMM yyyy HH:mm")),
-    (("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd. MMMM yyyy HH:mm")),
+    (("""\d{1,2}\s[a-z]{3,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd MMMM yyyy HH:mm")),
+    (("""\d{1,2}[.]\s[a-z]{3,}\s\d{4}""" + timeReg).r, new SimpleDateFormat("dd. MMMM yyyy HH:mm")),
+
     ("""\d{1,2}[.]\d{1,2}[.]\d{4}""".r, new SimpleDateFormat("dd.MM.yyyy")),
     ("""\d{1,2}-\d{1,2}-\d{4}""".r, new SimpleDateFormat("dd-MM-yyyy")),
     ("""\d{4}-\d{1,2}-\d{1,2}""".r, new SimpleDateFormat("yyyy-MM-dd")),
     ("""\d{1,2}/\d{1,2}/\d{4}""".r, new SimpleDateFormat("MM/dd/yyyy")),
     ("""\d{4}/\d{1,2}/\d{1,2}""".r, new SimpleDateFormat("yyyy/MM/dd")),
     ("""\d{1,2}\s[a-z]{3}\s\d{4}""".r, new SimpleDateFormat("dd MMM yyyy")),
-    ("""\d{1,2}\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
-    ("""\d{1,2}[.]\s[a-z]{4,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")))
+    ("""\d{1,2}\s[a-z]{3,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
+    ("""\d{1,2}[.]\s[a-z]{3,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")))
 
   private def deLocale(dateStr: String): String = 
     dateStr
@@ -149,6 +168,7 @@ object Time {
       .replaceAll("november|novemb(ra|rom)", "november")
       .replaceAll("december|decemb(ra|rom)", "december")
       .replaceAll("h$", ":00")
+      .replaceAll("[' ]o'clock$", ":00")
       .replaceAll("[,\\s]ob[\\s]", " ")
       .replaceAll("[,\\s]+", " ")
 
@@ -157,6 +177,8 @@ object Time {
       text
         .findAll(regex)
         .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
+        .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
+        .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
         .filter(filter) 
     } distinct) sortWith { (a,b) => b after a }
   }
@@ -273,7 +295,7 @@ class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   def isKey(s: String): Boolean = s matches keyFormat
   def +=(k: String, v: String = null) { appendToFile(file) { if(v != null) k+" "+v else k } }
   def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
-  def ?(k: String): List[String] = getFile(file) filter { line => !line.isEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def ?(k: String): List[String] = getFile(file) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
   def *(): List[(String, String)] = 
     getFile(file) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(" ")
@@ -285,7 +307,7 @@ class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
 
   def ?-(key: String) = {
     val out = ?(key)
-    if(!out.isEmpty) this -= key
+    if(out.nonEmpty) this -= key
     out
   }
 }

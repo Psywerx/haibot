@@ -131,7 +131,7 @@ compile() {
   echo "compiling $bot"
   rm -rf $outdir &> /dev/null
   mkdir $outdir &> /dev/null
-  scalac $SCALA_PLUGINS -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -deprecation -feature -unchecked -d $outdir -cp $cp *.scala
+  scalac $SCALA_PLUGINS -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -feature -unchecked -d $outdir -cp $cp *.scala
 }
 
 run() {
