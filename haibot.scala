@@ -547,13 +547,15 @@ class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@msg(?:[(]([^)]*)[)])? ([a-zA-Z0-9_,]*) ?(.*)""".r
+    val msgReg = """@msg(?:[(]([^)]*)[)])? ([a-zA-Z0-9_,]*):? ?(.*)""".r
     if(message matches msgReg.toString) {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
           //TODO: add other params, like onactive, etc.
           val param = (Option(rawParam) map { param => Time.getFutureDates(param) } emptyToNone) map { _.last }
           val paramGet = param getOrElse { new java.util.Date } getTime
+
+          //TODO: notes to self - don't say 'him', say 'you', etc.
 
           val msg = rawMsg.trim
           //TODO: possible bug if name and name++ are both present, and probably others ;)
@@ -592,8 +594,9 @@ class haibot extends PircBot {
           if(toMsgNicks.nonEmpty) {
             var anyMsg = false
             for(nick <- toMsgNicks) {
-              val toMsg = (paramGet.toString + "," + (if(toPlusNicks contains nick)"++ "else"") + msg).trim
-              if(toMsg.nonEmpty) {
+              val (timeStamp,finalMsg) = (paramGet.toString, (if(toPlusNicks contains nick)"++ "else"") + msg)
+              val toMsg = timeStamp + "," + finalMsg
+              if(finalMsg.nonEmpty) {
                 anyMsg = true
                 msgs += (nick.toLowerCase, toMsg)
               }
