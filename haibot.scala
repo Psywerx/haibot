@@ -311,7 +311,7 @@ class haibot extends PircBot {
           "have you tried using pathogen?",
           "did you try with pathogen?")
       } else if(msg.containsAny(" ljud", " folk","people") && 0.5.prob) {
-        speak("{yeah,} people are [weird|strange]{, I guess}...")
+        speak(c"{yeah,} people are [weird|strange]{, I guess}...")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
           c"[I am|I'm] [confused|not sure] about this[ also|, too]{.}3",
@@ -562,7 +562,7 @@ class haibot extends PircBot {
           var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
           var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
           nicks = nicks.map(_.replaceAll("[+]", "")) 
-          val isHere = if(param.isDefined) Set[String]() else nicks.map(_.toLowerCase).filter(users.map(_.toLowerCase).contains)
+          val isHere = if(param.isDefined) Set[String]() else nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !msgs.isKey(nick))
           val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
           toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
