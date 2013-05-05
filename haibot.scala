@@ -243,7 +243,7 @@ class haibot extends PircBot {
         s"yes, $sender.",
         "my brethren speaks of me!",
         s"I appreciate that, brother $sender.")
-    } else if(msg.containsAny("0-9", "a-z", "^", "]*") && message.indexOf("[") < message.indexOf("]") && 0.6.prob) {
+    } else if(message.containsAny("0-9", "a-z", "A-Z", "]*", ".*", ".+") && message.indexOf("[") < message.indexOf("]") && (0.5 + (if(message.containsAny("^", "$", "{", "}")) 0.15 else 0)).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
         c"Regex{es}[!]2 {M|m}y favorite thing[!]2",
@@ -389,8 +389,8 @@ class haibot extends PircBot {
     // Twitter/FB part
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
-    } else if(message.startsWithAny("@yes", "@yep", "@sure", "@maybe", "@please")) {
-      if((message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWith("@maybe") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
+    } else if(message.startsWithAny("@yes", "@yep", "@sure", "@maybe", "@perhaps", "@please")) {
+      if((message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
       
       var beggedBefore = false
       if(message.startsWith("@please")) {
