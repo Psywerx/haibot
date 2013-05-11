@@ -254,9 +254,9 @@ class haibot extends PircBot {
         speak(Memes.thanks_alot)
       } else {
         speak(
-          c"{Your|You're} welcome{, ${sender}}{.}",
-          c"any time{, ${sender}}{.}",
-          c"{f|F}or you{, $sender}... any time{!}")
+          c"[your|you're|You are] welcome{, ${sender}}{.}",
+          c"{for you, }any time{, ${sender}}{.}",
+          c"[f|F]or you{, $sender}... any time{!}")
       }
       // naughty part
     } else if(msg.contains("i need an adult") && 0.9.prob) { 
@@ -312,6 +312,8 @@ class haibot extends PircBot {
           "did you try with pathogen?")
       } else if(msg.containsAny(" ljud", " folk","people") && 0.5.prob) {
         speak(c"{yeah,} people are [weird|strange]{, I guess}...")
+      } else if((mentions contains this.name) && 0.9.prob) {
+        speak(c"I can't tell if you're asking me, or asking about me.")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
           c"[I am|I'm] [confused|not sure] about this[ also|, too]{.}3",
@@ -438,10 +440,10 @@ class haibot extends PircBot {
             "via Twitter",
             " "+tweetDetails("Text")).!
           
-          if(tweetDetails("Screen name") != "") {
+          if(tweetDetails("Screen name").nonEmpty) {
             successResponses ++= List(
               c"""[I've r|R|r]etweeted {the tweet out of} [that|the] {lovely|nice} tweet by ${tweetDetails("Screen name")}{!}""",
-              c"""I hope ${tweetDetails("Screen name")} is {pleased with|happy for} this retweet{.}""")
+              c"""I hope ${tweetDetails("Screen name")} is [pleased with|happy for] this retweet{.}""")
           }
         }
         
