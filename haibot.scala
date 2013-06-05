@@ -172,7 +172,7 @@ class haibot extends PircBot {
   }
 
   override def onJoin(channel: String, sender: String, login: String, hostname: String) {
-    if(sender == name) spawn { //why spawn a new thread? pircbot doesn't have user info here yet, but does immediately after
+    if(sender == this.name) spawn { //why spawn a new thread here? because pircbot doesn't have user info here yet, but does immediately after
       Thread.sleep(2000)
       startTime = now
       if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
@@ -324,7 +324,7 @@ class haibot extends PircBot {
           (if(mentions.nonEmpty && 0.8.prob) 
              c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
            else
-             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|ARPAnet|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
+             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|DERPAnet|ARPAnet||cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
           ))
       }
     }
@@ -439,11 +439,11 @@ class haibot extends PircBot {
             "https://twitter.com/statuses/"+tweetId,
             "via Twitter",
             " "+tweetDetails("Text")).!
-          
-          if(tweetDetails("Screen name").nonEmpty) {
+          val screenName = tweetDetails("Screen name")
+          if(screenName.nonEmpty) {
             successResponses ++= List(
-              c"""[I've r|R|r]etweeted {the tweet out of} [that|the] {lovely|nice} tweet by ${tweetDetails("Screen name")}{!}""",
-              c"""I hope ${tweetDetails("Screen name")} is [pleased with|happy for] this retweet{.}""")
+              c"""[I've r|R|r]etweeted {the tweet out of} [that|the] {lovely|nice} tweet by $screenName{!}""",
+              c"""I[ hope|'m hoping] $screenName is [pleased with|happy for|happy about] this retweet{.}""")
           }
         }
         
@@ -461,7 +461,7 @@ class haibot extends PircBot {
         val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST", tweetMsg).!
         
         (ret,ret2) match {
-          case (0,0) => speak(c"It{'s| is} {posted|done}{.}", c"I{'ve| have} done as you requested", c"I{'ve} tweeted it{, and facebook'd it}{!}", "Posted it.")
+          case (0,0) => speak(c"It['s| is| has been] [posted|done]{.}", c"I['ve| have] done as you requested", c"I{'ve} tweeted it{, and facebook'd it}{!}", "Posted it.")
           case (0,_) => speak("Tweeted it, but facebooking failed!")
           case (_,0) => speak("Facebook'd it, but tweeting failed!")
           case (_,_) => speak("Failed to post anywhere :(")
@@ -576,7 +576,7 @@ class haibot extends PircBot {
           def multiForm(nicks: Set[String]): String = if(nicks.size == 1) "" else "s" // boy(s)
           
           if(isHere.nonEmpty) {
-            if((isHere contains name) || (isHere contains sender)) { //TODO: case bug
+            if((isHere contains this.name) || (isHere contains sender)) { //TODO: case bug
               speak(
                 "wat.",
                 "Oh, you...",
@@ -691,7 +691,7 @@ class haibot extends PircBot {
       val mytime = withAlternative(getSinceString(startTime), "who knows how long..")
       
       for(nick <- mentions) {
-        if(nick == name) {
+        if(nick == this.name) {
           val servertime = withAlternative(
             getSinceZeroString(("cat /proc/uptime".!!).trim.takeWhile(_ != '.').toInt),
             "who knows how long..")
