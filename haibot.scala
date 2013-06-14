@@ -41,6 +41,9 @@ class haibot extends PircBot {
   lazy val wordnet = new WordNet("lib/WordNet/")
   lazy val zemanta = new Zemanta(apiKeys("Zemanta"))
   lazy val bitly = new Bitly(apiKeys("bitly1"), apiKeys("bitly2"))
+  lazy val novatel = new NovatelSMS(apiKeys("novatel_user"), apiKeys("novatel_pass"))
+  val smsCoolDown = 77
+  var lastSMSTime = 0
 
   val events = Store(folder+"events.db")
 
@@ -283,7 +286,7 @@ class haibot extends PircBot {
       speak("meh.")
     
     // ex aww_bot
-    } else if(URLs.nonEmpty) {
+    } else if(URLs.nonEmpty) spawn {
       val words = URLsWords.map(_.toLowerCase).toSet
        
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
@@ -549,6 +552,43 @@ class haibot extends PircBot {
       }
     }
     
+    if((message startsWith "@smsreset") && (sender startsWith owner)) {
+      lastSMSTime = 0
+    } else if(message startsWith "@sms ") {
+      val msg = message.drop("@sms ".size)
+      val (name, sms) = msg.splitAt(msg.indexOf(" "))
+      val nums = Store(folder+"numbers.db").toMap
+      if(!sender.isTrusted) {
+        speak("{Sorry, }you're not on the trusted user list{ (yet?)}.")
+      } else if(name.trim.isEmpty || sms.trim.isEmpty) {
+        speak("You['ve forgotten| forgot] the name or {possibly} the message.")
+      } else if(nums contains name.toLowerCase) {
+        if(since(lastSMSTime) < smsCoolDown) {
+          speak("Wait {a bit|somewhat} longer before sending [another|the next] [message|sms|msg]{, please}{.}")
+          lastSMSTime = now
+        } else spawn {
+          println("Sending sms: "+nums(name.toLowerCase)+" "+msg)
+          val response = novatel.sendSMS(number = nums(name.toLowerCase), msg = sms)
+          println("Response sms: "+response)
+          if(response == "Ok") {
+            speak(
+              c"I['ve| have] done it.",
+              c"{o}k{.}",
+              c"it['s| is| has been] done{.}", 
+              c"ay{-ay} {cap'n|captain}!", 
+              c"{sure,|ok,|ok yeah,|ay,} I['ll| will] relay the [msg|message]{.}")
+
+            lastSMSTime = now
+          } else {
+            speak(c"{Hmm, }[weird|strange]... Novatel {server} says:"+" "+response)
+          }
+        }
+      } else {
+        def hisForm(nick: String): String = if(nick.isGirl) "her" else "his"
+        speak(c"I don't have ${hisForm(name)} number.{.. and no, you can't tell me it :P} {Sorry about this}")
+      }
+    }
+    
     val msgReg = """@msg(?:[(]([^)]*)[)])? ([a-zA-Z0-9_,]*):? ?(.*)""".r
     if(message matches msgReg.toString) {
       message match {
@@ -647,25 +687,23 @@ class haibot extends PircBot {
       }
 
       speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if(message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) {
+    } else if(message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) spawn {
       val text: String = recentContext
       
       println(text)
         
-      spawn {
-        speakNow(
-          zemanta.suggestKeywords(text, 3~4).emptyToNone.orElse(wordnet.keywords(text, 3~4).emptyToNone) map { keywords =>
-            val keywordStr = keywords.mkString(", ").toLowerCase
-            List(
-              c"{I'd say|I think} it's about $keywordStr.",
-              c"It {could|might} be about $keywordStr.")
-          } getOrElse {
-            List(
-              "I have no idea"+"."*0~3,
-              "I don't know what this is about"+"."*0~3)
-          } :_*)
-      }
-    } else if(message.startsWithAny("@suggest")) {
+      speakNow(
+        zemanta.suggestKeywords(text, 3~4).emptyToNone.orElse(wordnet.keywords(text, 3~4).emptyToNone) map { keywords =>
+          val keywordStr = keywords.mkString(", ").toLowerCase
+          List(
+            c"{I'd say|I think} it's about $keywordStr.",
+            c"It {could|might} be about $keywordStr.")
+        } getOrElse {
+          List(
+            "I have no idea"+"."*0~3,
+            "I don't know what this is about"+"."*0~3)
+        } :_*)
+    } else if(message.startsWithAny("@suggest")) spawn {
       val cntReg = """@suggest[(]([1-5])[)].*""".r
       val cnt = message match {
         case cntReg(count) => count.toInt
@@ -675,13 +713,11 @@ class haibot extends PircBot {
       val text: String = recentContext
       println(text)
       
-      spawn {
-        speakNow(
-          zemanta.suggestArticles(text)
-            .map(_.filterNot(article => URLs.contains(article.url)).take(cnt)).emptyToNone
-            .map(articleList => for(article <- articleList) yield article.title + " " + bitly.tryShorten(article.url))
-            .getOrElse(List("Sorry, I've got nothing...")):_*)
-      }
+      speakNow(
+        zemanta.suggestArticles(text)
+          .map(_.filterNot(article => URLs.contains(article.url)).take(cnt)).emptyToNone
+          .map(articleList => for(article <- articleList) yield article.title + " " + bitly.tryShorten(article.url))
+          .getOrElse(List("Sorry, I've got nothing...")):_*)
     } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
