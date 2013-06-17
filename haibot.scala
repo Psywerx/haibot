@@ -322,7 +322,7 @@ class haibot extends PircBot {
           c"[I am|I'm] [confused|not sure] about this[ also|, too]{.}3",
           c"This [puzzles|confuses] me {greatly|very much}[ also|, too]{.}3",
           c"[I don't know|I dunno|I have no idea|No idea]... hope [I've helped|this helps] {at least a little|in some way}{.}3",
-          c"[I wouldn't|Don't] worry {about it} {so much|too much}, I'm sure you'll figure it out {something} {eventually|with time}{.}3",
+          c"[I wouldn't|Don't] worry {about it} {so much|too much}, I'm sure you'll figure it out {or something} {eventually|with time|in time}{.}3",
           c"I guess {you could say} that is some[thing|what| kind] of a [conundrum|mystery]{.}3",
           (if(mentions.nonEmpty && 0.8.prob) 
              c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
@@ -353,13 +353,13 @@ class haibot extends PircBot {
       }
     } else if(message.startsWithAny("@shorten ", "@bitly ")) {
       if(URLs.nonEmpty) {
-        val bitlyURLs = URLs.flatMap(bitly.shorten).mkString(" ")
+        val bitlyURLs = URLs.flatMap(bitly.shorten).mkString(" ").trim
         if(bitlyURLs.isEmpty) {
           speak("Sorry, couldn't shorten url...")
         } else if(bitlyURLs.size < URLs.size) {
           speak(c"Couldn't shorten all of these, but here{ you go}: $bitlyURLs")
         } else {
-          speak(c"Here{ you go}: $bitlyURLs")
+          speak(s"Here you go: $bitlyURLs", s"Here: $bitlyURLs")
         }
       } else {
         speak("Give me a link...", "I require an URL.", "Try that with a link.")
@@ -446,7 +446,7 @@ class haibot extends PircBot {
           if(screenName.nonEmpty) {
             successResponses ++= List(
               c"""[I've r|R|r]etweeted {the tweet out of} [that|the] {lovely|nice} tweet by $screenName{!}""",
-              c"""I[ hope|'m hoping] $screenName is [pleased with|happy for|happy about] this retweet{.}""")
+              c"I[ hope|'m hoping]"+s" $screenName is "+c"""[pleased with|happy for|happy about] this retweet{.}""")
           }
         }
         
@@ -568,12 +568,12 @@ class haibot extends PircBot {
           lastSMSTime = now
         } else spawn {
           println("Sending sms: "+nums(name.toLowerCase)+" "+msg)
-          val response = novatel.sendSMS(number = nums(name.toLowerCase), msg = sms)
+          val response = novatel.sendSMS(number = nums(name.toLowerCase), msg = sms.trim)
           println("Response sms: "+response)
           if(response == "Ok") {
             speak(
               c"I['ve| have] done it.",
-              c"{o}k{.}",
+              c"{o}k{.|, chief}",
               c"it['s| is| has been] done{.}", 
               c"ay{-ay} {cap'n|captain}!", 
               c"{sure,|ok,|ok yeah,|ay,} I['ll| will] relay the [msg|message]{.}")
@@ -646,7 +646,7 @@ class haibot extends PircBot {
             
             if(anyMsg) {
               var say = List(
-                c"{o}k{.}",
+                c"{o}k{.|, chief}",
                 c"it['ll| shall| will] [be|get] done{.}", 
                 c"ay{-ay} {cap'n|captain}!", 
                 c"{sure,|ok,|ok yeah,|ay,} I['ll| will]"+" "+Seq(
