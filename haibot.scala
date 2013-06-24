@@ -559,12 +559,12 @@ class haibot extends PircBot {
       val (name, sms) = msg.splitAt(msg.indexOf(" "))
       val nums = Store(folder+"numbers.db").toMap
       if(!sender.isTrusted) {
-        speak("{Sorry, }you're not on the trusted user list{ (yet?)}.")
+        speak(c"{Sorry, }you're not on the trusted user list{ (yet?)}.")
       } else if(name.trim.isEmpty || sms.trim.isEmpty) {
-        speak("You['ve forgotten| forgot] the name or {possibly} the message.")
+        speak(c"You['ve forgotten| forgot] the name or {possibly} the message.")
       } else if(nums contains name.toLowerCase) {
         if(since(lastSMSTime) < smsCoolDown) {
-          speak("Wait {a bit|somewhat} longer before sending [another|the next] [message|sms|msg]{, please}{.}")
+          speak(c"Wait {a bit|somewhat} longer before sending [another|the next] [message|sms|msg]{, please}{.}")
           lastSMSTime = now
         } else spawn {
           println("Sending sms: "+nums(name.toLowerCase)+" "+msg)

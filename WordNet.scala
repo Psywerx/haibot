@@ -34,11 +34,12 @@ class WordNet(folder: String) {
           upper/(upper+lower)
         }
 
-      val synonyms = wn_sByWord(word.toLowerCase) // find word
-        .map(_._1).distinct.flatMap(id => wn_sById(id).map(_._2)) // query all synonyms by id
-        .filter(w => w != word && w.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
+      val synonyms =
+        wn_sByWord(word.toLowerCase) // find word
+          .map(_._1).distinct.flatMap(id => wn_sById(id).map(_._2)) // query all synonyms by id
+          .filter(w => w != word && w.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
       
-      if(synonyms.size > 0) {
+      if(synonyms.nonEmpty) {
         var outWord = synonyms.random
         
         if(outWord.toLowerCase == word.toLowerCase)
