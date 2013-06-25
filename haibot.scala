@@ -589,7 +589,7 @@ class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@msg(?:[(]([^)]*)[)])? ([a-zA-Z0-9_,]*):? ?(.*)""".r
+    val msgReg = """@(?:msg|tell)(?:[(]([^)]*)[)])? ([a-zA-Z0-9_,]*):? ?(.*)""".r
     if(message matches msgReg.toString) {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
