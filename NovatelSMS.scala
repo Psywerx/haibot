@@ -27,7 +27,11 @@ class NovatelSMS(username: String, password: String) {
       
       val msg64 = URLEncoder.encode(BASE64Encoder.encode(msg.getBytes))
       
-      val response = io.Source.fromURL(s"""http://smsgw0.novatel.si/sms.php?msg_enc_type=base64&msg=${msg64}&username=${username}&password=${password}&to=${number}""").mkString.split(" ")
+      val url = s"""http://smsgw0.novatel.si/sms.php?msg_enc_type=base64&msg=${msg64}&username=${username}&password=${password}&to=${number}"""
+      println("Sending SMS as: "+url)
+      
+      val response = io.Source.fromURL(url).mkString.split(" ")
+      println("SMS response: "+response.mkString(" "))
       
       response(0) match {
         case "ok" => NovatelSMS.responseMap("ok")

@@ -327,7 +327,7 @@ class haibot extends PircBot {
           (if(mentions.nonEmpty && 0.8.prob) 
              c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
            else
-             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|DERPAnet|ARPAnet||cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
+             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|DERPAnet|ARPAnet|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
           ))
       }
     }
