@@ -238,6 +238,8 @@ object Net {
         else 
           ""
       } catch { 
+        case e: java.net.MalformedURLException if url startsWith "www." => //handle noprotocol exception
+          scrapeURLs("http://"+url)
         case e: Exception => 
           e.printStackTrace()
           "" 
