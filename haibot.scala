@@ -589,7 +589,7 @@ class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@(?:msg|tell|ask)(?:[(]([^)]*)[)])? ([-a-zA-Z0-9_,]*):? (.*)""".r
+    val msgReg = """@(?:msg|tell|ask)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,]*):? ?(.*?)""".r //@msg
     if(message matches msgReg.toString) {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
@@ -603,7 +603,7 @@ class haibot extends PircBot {
           //TODO: possible bug if name and name++ are both present, and probably others ;)
           var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
           var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
-          nicks = nicks.map(_.replaceAll("[+]", "")) 
+          nicks = nicks.map(_.replaceAll("[+]", ""))
           val isHere = if(param.isDefined) Set[String]() else nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !msgs.isKey(nick))
           val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
