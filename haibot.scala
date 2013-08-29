@@ -271,7 +271,7 @@ class haibot extends PircBot {
         "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(" ")+1).trim)
     } else if(msg.containsAny("but sex", "but fuck") && 0.7.prob) { 
       speak(c"{has someone mentioned|did someone mention} butt sex?")
-    } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn") && ((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
+    } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu") && ((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
       speak(
         c"U MAD, BRO?{ :P}",
         Memes.NO_U,
@@ -394,8 +394,8 @@ class haibot extends PircBot {
     // Twitter/FB part
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
-    } else if(message.startsWithAny("@yes", "@yep", "@sure", "@maybe", "@perhaps", "@please")) {
-      if((message.startsWithAny("@yes", "@yep", "@sure") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
+    } else if(message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer", "@maybe", "@perhaps", "@please")) {
+      if((message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
       
       var beggedBefore = false
       if(message.startsWith("@please")) {
@@ -624,7 +624,7 @@ class haibot extends PircBot {
                 Memes.it_was_you,
                 Memes.NO_U)
             } else {
-              speak((if(sender.isGirl) "woman, " else "dude, ")+isHere.mkString(", ")+(if(isHere.size == 1) " is " else " are ")+"right here...")
+              speak((if(sender.isGirl) "woman, " else "dude, ")+isHere.mkString(", ")+(if(isHere.size == 1) " is " else " are ")+(if(isHere.size == nicks.size) "all " else "")+"right here...")
             }
           }
           if(errNicks.nonEmpty) {
