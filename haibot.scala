@@ -319,15 +319,15 @@ class haibot extends PircBot {
         speak(c"I can't tell if you're asking me, or asking about me.")
       } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
-          c"[I am|I'm] [confused|not sure] about this[ also|, too]{.}3",
+          c"[I am|I'm] [confused|not sure|asking myself] about this[ also|, too]{.}3",
           c"This [puzzles|confuses] me {greatly|very much}[ also|, too]{.}3",
           c"[I don't know|I dunno|I have no idea|No idea]... hope [I've helped|this helps] {at least a little|in some way}{.}3",
-          c"[I wouldn't|Don't] worry {about it} {so much|too much}, I'm sure you'll figure it out {or something} {eventually|with time|in time}{.}3",
-          c"I guess {you could say} that is some[thing|what| kind] of a [conundrum|mystery]{.}3",
+          c"[I wouldn't|Don't] worry {about it|about that} {so much|too much}, I'm sure you'll figure it out {or something} {eventually|with time|in time}{.}3",
+          c"I guess {you could say|one might say} that is some[thing|what| kind] of a [conundrum|mystery]{.}3",
           (if(mentions.nonEmpty && 0.8.prob) 
              c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
            else
-             c"[Have you tried|Did you try|Have you attempted|Did you attempt] [searching the|looking on the|querying the|inquiring upon the] [internet|intarweb|DERPAnet|ARPAnet|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
+             c"[Have you tried|Did you try|Have you attempted|Did you attempt|Tried] [searching the|looking on the|querying the|inquiring upon the|checking the|making use of the] [internet|intarweb|webosphere|DERPAnet|ARPAnet|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
           ))
       }
     }
@@ -506,12 +506,12 @@ class haibot extends PircBot {
       tweetPlsScore = Set()
       tweetLim = 2
       speak(
-        c"A retweet of [this|that] tweet {, perhaps|, maybe}?",
-        c"[Want me to|Should I|Am I to|Is it OK if I|Is it OK to] retweet [this|that] {tweet}?",
-        c"I [can|could] retweet [this|that], if you [guise|guys|ppl|people] [confirm it|want me to|agree]{.}3",
-        c"{Hey, that} looks like a tweet... [should I|do you want me to|want me to|would you like me to] retweet it?",
+        c"A retweet of [this|that|the] tweet {, perhaps|, maybe}?",
+        c"[Want me to|Should I|Am I to|Is it OK if I|Is it OK to|May I|Can I] retweet [this|that] {tweet}?",
+        c"I [can|could] {totally} retweet [this|that], {but only} if you [guise|guys|ppl|people] [confirm it|want me to|agree]{.}3",
+        c"{Hey, that} looks like a tweet... [should I|may I|do you want me to|want me to|would you like me to|would it be cool if I] retweet it?",
         c"If [one of you|someone] confirms [this|it], I'll retweet {it}{.}",
-        c"Someone {please} confirm {this|this tweet}, and I'll retweet it{.}")
+        c"Someone {please} confirm {this|this tweet}, and I'll {be happy to} retweet it{.}")
     } else if(message.startsWith("@world ")) {
       val tweet = {
         var out = message.drop("@world ".length).trim
