@@ -788,13 +788,13 @@ class haibot extends PircBot {
           "How do you do?",
           "Hi. How are you?")
       case "i" :: "am" :: x => 
-        if(x.size > 0 && x(0).endsWith("ing")) { // doING something
+        if(x.nonEmpty && x.head.endsWith("ing")) { // doING something
           val x2 = x.map(word => if(List("my","mine") contains word) "your" else word)
           //Memory <= (IsVerbing, x2.mkString(" "))
           speakPriv(message, sender,
             "How does "+x2.mkString(" ")+" make you feel?",
             "How long have you been "+x2.mkString(" ")+"?")
-        } else if(x.size > 0 && List("a","an","the").contains(x(0))) { // being A something
+        } else if(x.nonEmpty && List("a","an","the").contains(x.head)) { // being A something
           //Memory <= (IsNoun, x.mkString(" "))
           speakPriv(message, sender,
             "How long have you been "+x.mkString(" ")+"?",
@@ -809,7 +809,7 @@ class haibot extends PircBot {
             "How long have you been "+x.mkString(" ")+"?")
         }
       case "i" :: "feel" :: "like" :: x => 
-          if(x.size > 0 && x(0) == "my") 
+          if(x.nonEmpty && x.head == "my") 
             speakPriv(message, sender,
               "Why do you think your "+x.tail.mkString(" ")+"?")
           else 
@@ -819,7 +819,7 @@ class haibot extends PircBot {
       case "i" :: "feel" :: x => 
           speakPriv(message, sender,
             "How long have you been feeling"+x.mkString(" ")+"?",
-            if(x.size > 1) "Does anyone else you know "+x(0)+" "+x.tail.mkString(" ")+"?" else
+            if(x.size > 1) "Does anyone else you know "+x.head+" "+x.tail.mkString(" ")+"?" else
             "Why do you feel that way?")
       case "i" :: "dont" :: x => 
         speakPriv(message, sender,
