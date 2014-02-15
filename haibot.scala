@@ -339,7 +339,7 @@ class haibot extends PircBot {
         case imgurReg(protocol, domain, img) => protocol+"i."+domain+img+".png"
         case _ => url
       }
-      val pics = URLs.map(toImgurImg).filter(_.endsWithAny(".jpg", ".jpeg", ".png"))
+      val pics = URLs.map(toImgurImg).filter(_.endsWithAny(".jpg", ".jpeg", ".png", ".jpg:large"))
       if(pics.size < URLs.size) speakNow(c"{Sorry,} I only read jpegs and pngs.")
       
       for(pic <- pics) Net.withDownload(pic) {

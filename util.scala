@@ -248,7 +248,7 @@ object Net {
   }
   
   def tempDownload(url: String): Option[File] = {
-    val ext = if(url.substring(url.lastIndexOf(".")).size <= 5) url.substring(url.lastIndexOf(".")) else null
+    val ext = if(url.substring(url.lastIndexOf(".")).size <= 10) url.substring(url.lastIndexOf(".")).stripSuffix(":large") else null
     val tempFile = File.createTempFile("temp", ext)
     //tempFile.deleteOnExit()
     
