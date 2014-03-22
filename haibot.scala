@@ -33,7 +33,24 @@ class haibot extends PircBot {
   this.setVerbose(true)
   this.setLogin(login)
   this.setName(name)
-  this.connect(serv) //TODO handle failure and disconnects
+  locally {
+    var n = 10000
+    var connected = true
+    do {
+      try {
+        this.connect(serv) //TODO handle failure and disconnects
+      } catch {
+        case e: Exception =>
+          this.disconnect()
+          Thread.sleep(n)
+          n += 1000
+          n = math.min(n, 200000)
+          connected = false
+          e.printStackTrace
+          println("Retrying in "+n/1000+"s ...")
+      }
+    } while(!connected)
+  }
   this.joinChannel(chan)
 
   val apiKeys = Store(".apikeys").toMap
@@ -59,7 +76,7 @@ class haibot extends PircBot {
   def bots = getFile(folder+"bots.db").map(_.cleanNick).toSet
   
   implicit class IrcString(val s: String) { 
-    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_]|-nexus$","")
+    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$","")
     def isGirl = girls.contains(s.cleanNick)
     def isTrusted = trusted.contains(s.cleanNick)
     def isBot = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
@@ -589,7 +606,7 @@ class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@(?:msg|tell|ask)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,]*):? ?(.*?)""".r //@msg
+    val msgReg = """@(?:msg|tell|ask)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
     if(message matches msgReg.toString) {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
