@@ -302,9 +302,9 @@ class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
     getFile(file) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(" ")
       if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
-    } toList
+    }
   
-  def toList = *.toList
+  def toList = *
   def toMap = *.toMap
 
   def ?-(key: String) = {

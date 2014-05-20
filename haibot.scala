@@ -34,7 +34,7 @@ class haibot extends PircBot {
   this.setLogin(login)
   this.setName(name)
   locally {
-    var n = 10000
+    var backoff = 10000L
     var connected = true
     do {
       try {
@@ -43,8 +43,8 @@ class haibot extends PircBot {
         case e: Exception =>
           this.disconnect()
           Thread.sleep(n)
-          n += 1000
-          n = math.min(n, 200000)
+          backoff += 1000
+          backoff = math.min(n, 200000)
           connected = false
           e.printStackTrace
           println("Retrying in "+n/1000+"s ...")
@@ -65,7 +65,7 @@ class haibot extends PircBot {
   val events = Store(folder+"events.db")
 
   // TODO: cache them at least for a minute or so
-  def sheSaid = getFile(folder+"twss.db").toList
+  def sheSaid = getFile(folder+"twss.db")
   def awwwBag = getFile(folder+"awww.db").toSet
   def noawwwBag = getFile(folder+"noawww.db").toSet
   def mehBag = getFile(folder+"meh.db").toSet
@@ -88,23 +88,29 @@ class haibot extends PircBot {
   val twitterCheckInterval = 7*60
   def checkTwitter(force: Boolean = false) {
     if(since(twitterCheck) > twitterCheckInterval || force) {
-      val mentions = Seq("t", "mentions", "-n", "5").!!.trim
-      if(mentions(0) == '@') {
-        val lastTweets = getFile(folder+"lasttweets.db")
-        val mentionList = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw))
-        if(mentionList.nonEmpty) {
-          // Save the last few mentions
-          val newLastTweets = (mentionList ++ lastTweets).take(10)
-          printToFile(folder+"lasttweets.db")(newLastTweets.mkString("\n"))
+      try {
+        val mentions = Seq("t", "mentions", "-n", "5").!!.trim
+        if(mentions(0) == '@') {
+          val lastTweets = getFile(folder+"lasttweets.db")
+          val mentionList = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw))
+          if(mentionList.nonEmpty) {
+            // Save the last few mentions
+            val newLastTweets = (mentionList ++ lastTweets).take(10)
+            printToFile(folder+"lasttweets.db")(newLastTweets.mkString("\n"))
 
-          // Speak the new mentions
-          for(mention <- mentionList) {
-            val (name, msg) = mention.splitAt(mention.indexOf(" "))
-            speak(name.drop(1) + " on Twitter says:" + msg)
+            // Speak the new mentions
+            for(mention <- mentionList) {
+              val (name, msg) = mention.splitAt(mention.indexOf(" "))
+              speak(name.drop(1) + " on Twitter says:" + msg)
+            }
           }
         }
+      } catch {
+        case e: Exception => //TODO: Fix
+          e.printStackTrace
+      } finally {
+        twitterCheck = now
       }
-      twitterCheck = now
     }
   }
   
@@ -172,7 +178,7 @@ class haibot extends PircBot {
   var shutdown = false
   override def onDisconnect() {
     println("onDisconnect: event triggered.")
-    var backoff = 5000
+    var backoff = 5000L
     while(!this.isConnected && !shutdown) {
       try {
         this.reconnect()
@@ -216,7 +222,7 @@ class haibot extends PircBot {
     lazy val sentences = message.sentences
     val mentions = message.replaceAll("[,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
-    lazy val URLsText = Net.scrapeURLs(URLs.toList: _*)
+    lazy val URLsText = Net.scrapeURLs(URLs: _*)
     lazy val URLsWords = 
       URLsText
         .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here

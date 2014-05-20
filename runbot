@@ -116,22 +116,10 @@ mkdir $logdir &> /dev/null
 mkdir $outdir &> /dev/null
 
 compile() {
-  #static testing :)
-  Test() {
-    if [[ "`eval $2`" != "" ]]; then
-      echo
-      echo $1:
-      echo
-      eval $2
-      let warnCnt+=`eval $2 | wc -l`
-    fi
-  }  
-  Test "Did you forget s before string interpolation" "grep --color=auto -rnP $'[,( +][\"]{1,3}(?\x21.*[,( +]s\").*[$][^\"|]' *.scala"
-
   echo "compiling $bot"
   rm -rf $outdir &> /dev/null
   mkdir $outdir &> /dev/null
-  scalac $SCALA_PLUGINS -language:postfixOps -Ywarn-adapted-args -Ywarn-all -Ywarn-dead-code -Ywarn-inaccessible -Ywarn-nullary-override -Ywarn-nullary-unit -Ywarn-value-discard -Xlint -feature -unchecked -optimize -d $outdir -cp $cp *.scala
+  scalac $SCALA_PLUGINS `scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' '` -Xlint -feature -unchecked -optimize -d $outdir -cp $cp *.scala
 }
 
 run() {

@@ -2,6 +2,7 @@ package org.psywerx
 
 import scala.util.parsing.combinator._
 import scala.util.Random._
+import scala.language.postfixOps
 
 //TODO: oh god... sloppy implementation, make proper multilevel parsing :/
 object Caption extends RegexParsers {
@@ -94,5 +95,3 @@ object Caption extends RegexParsers {
     }
   }
 }
-import Caption.C
-

@@ -110,13 +110,13 @@ object OCR {
       val UNCOMMON = 2
       val AVGLEN = 3
       
-      Some((attrs sortWith { case ((_,a),(_,b)) => 
+      Some((attrs.sortWith { case ((_,a),(_,b)) => 
         if(a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
           (a(COMMON) > b(COMMON)) 
         }
-      } head)._1)
+      }.head)._1)
     }
 
     println(results.mkString("\n"))
