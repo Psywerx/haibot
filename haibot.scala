@@ -42,12 +42,12 @@ class haibot extends PircBot {
       } catch {
         case e: Exception =>
           this.disconnect()
-          Thread.sleep(n)
+          Thread.sleep(backoff)
           backoff += 1000
-          backoff = math.min(n, 200000)
+          backoff = math.min(backoff, 200000)
           connected = false
           e.printStackTrace
-          println("Retrying in "+n/1000+"s ...")
+          println("Retrying in "+backoff/1000+"s ...")
       }
     } while(!connected)
   }
