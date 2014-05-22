@@ -1,15 +1,13 @@
 package org.psywerx
 
 class Bitly(apiKey1: String, apiKey2: String) {
-  import com.rosaloves.bitlyj._
-  import com.rosaloves.bitlyj.Bitly._
+  import com.rosaloves.bitlyj.Bitly
   
-  lazy val bitly = as(apiKey1, apiKey2)
+  lazy val bitly = Bitly.as(apiKey1, apiKey2)
 
   def shorten(s: String): Option[String] = {
     try {
-      val out = bitly.call(com.rosaloves.bitlyj.Bitly.shorten(s))
-      Option(out.getShortUrl)
+      Option(bitly.call(Bitly.shorten(s)).getShortUrl)
     } catch {
       case e: Exception =>
         None
@@ -17,6 +15,6 @@ class Bitly(apiKey1: String, apiKey2: String) {
   }
   
   // try, or else return original
-  def tryShorten(s: String): String = shorten(s).getOrElse(s)
+  def tryShorten(s: String): String = shorten(s) getOrElse s
 }
 

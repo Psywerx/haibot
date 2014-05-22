@@ -8,12 +8,8 @@ import org.jibble.pircbot._
 import collection.mutable.{HashSet,ListBuffer,HashMap}
 import scala.util.Random._
 import java.io._
-import java.net._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import scala.concurrent.util._
-import scala.concurrent.duration._
-import sys.process._
 
 object haibot extends App { new haibot }
 
@@ -89,6 +85,7 @@ class haibot extends PircBot {
   def checkTwitter(force: Boolean = false) {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       try {
+        import sys.process._
         val mentions = Seq("t", "mentions", "-n", "5").!!.trim
         if(mentions(0) == '@') {
           val lastTweets = getFile(folder+"lasttweets.db")
@@ -100,7 +97,7 @@ class haibot extends PircBot {
 
             // Speak the new mentions
             for(mention <- mentionList) {
-              val (name, msg) = mention.splitAt(mention.indexOf(" "))
+              val (name, msg) = mention.splitAt(mention.indexOf(' '))
               speak(name.drop(1) + " on Twitter says:" + msg)
             }
           }
@@ -140,7 +137,7 @@ class haibot extends PircBot {
     }
   }
   def speak(msgs: String*) {
-    Thread.sleep(777 + nextInt(777*2))
+    Thread.sleep((777 + nextInt(777*2)).toLong)
     speakNow(msgs: _*)
   }
   val msgs = Store(folder+"msgs.db")
@@ -269,7 +266,7 @@ class haibot extends PircBot {
         s"yes, $sender.",
         "my brethren speaks of me!",
         s"I appreciate that, brother $sender.")
-    } else if(message.containsAny("0-9", "a-z", "A-Z", "]*", ".*", ".+") && message.indexOf("[") < message.indexOf("]") && (0.5 + (if(message.containsAny("^", "$", "{", "}")) 0.15 else 0)).prob) {
+    } else if(message.containsAny("0-9", "a-z", "A-Z", "]*", ".*", ".+") && message.indexOf('[') < message.indexOf(']') && (0.5 + (if(message.containsAny("^", "$", "{", "}")) 0.15 else 0)).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
         c"Regex{es}[!]2 {M|m}y favorite thing[!]2",
@@ -290,8 +287,8 @@ class haibot extends PircBot {
     } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,5) && 0.75.prob) { 
       speak(
         "how does "+sentences(0).trim+" feel?",
-        "having sex with "+sentences(0).substring(sentences(0).indexOf(" ")+1).trim+"?",
-        "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(" ")+1).trim)
+        "having sex with "+sentences(0).substring(sentences(0).indexOf(' ')+1).trim+"?",
+        "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(' ')+1).trim)
     } else if(msg.containsAny("but sex", "but fuck") && 0.7.prob) { 
       speak(c"{has someone mentioned|did someone mention} butt sex?")
     } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu") && ((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
@@ -418,12 +415,12 @@ class haibot extends PircBot {
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
     } else if(message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer", "@maybe", "@perhaps", "@please")) {
-      if((message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore ++ Set(sender)
+      if((message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore + sender
       
       var beggedBefore = false
       if(message.startsWith("@please")) {
         beggedBefore = (tweetPlsScore contains sender)
-        if(sender.isTrusted) tweetPlsScore = tweetPlsScore ++ Set(sender)
+        if(sender.isTrusted) tweetPlsScore = tweetPlsScore + sender
       }
       if(beggedBefore && 0.4.prob) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
       
@@ -441,12 +438,13 @@ class haibot extends PircBot {
         tweetPlsScore = Set()
         tweetNames = Array()
       } else if(tweetMsg == null && (tweetId matches "[0-9]*") && overLimit) {
-        val ret = Seq("t", "retweet", tweetId).!
+        val returnTwitter = Seq("t", "retweet", tweetId).!
         
-        val successResponses = ListBuffer("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
+        var successResponses = List("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
 
         //TODO: cleanup on aisle 5 *ding ding*
         //try facebook too
+        import sys.process._
         val tweetDetails = withAlternative(
           (Seq("t", "status", tweetId).!!)
             .split("\n")
@@ -456,15 +454,15 @@ class haibot extends PircBot {
           Map[String,String]()
         ).withDefaultValue("")
         
-        if(tweetDetails("Text") != "") {
-        
-          // fbcmd as 361394543950153 POST "" "HairyFotr" "http://www.twitter.com/HairyFotr/status/279256274632327168/" "via Twitter" "Showed a friends kid a half-made game demo yesterday - he played it for like an hour and thought-up dozens of ideas :) #kids"
-          val ret2 = Seq("fbcmd", "AS", "361394543950153", "POST",
+        if(tweetDetails("Text") != "") {        
+          // fbcmd as 361394543950153 POST "" "HairyFotr" "http:/..." "via Twitter" "some text..."
+          val returnFacebook = Seq("fbcmd", "AS", "361394543950153", "POST",
             "",
             " "+tweetDetails("Screen name"),
             "https://twitter.com/statuses/"+tweetId,
             "via Twitter",
             " "+tweetDetails("Text")).!
+          
           val screenName = tweetDetails("Screen name")
           if(screenName.nonEmpty) {
             successResponses ++= List(
@@ -473,7 +471,7 @@ class haibot extends PircBot {
           }
         }
         
-        if(ret == 0)
+        if(returnTwitter == 0)
           speak(successResponses: _*)
         else
           speak("Failed to retweet :/")
@@ -579,7 +577,7 @@ class haibot extends PircBot {
       lastSMSTime = 0
     } else if(message startsWith "@sms ") {
       val msg = message.drop("@sms ".size)
-      val (name, sms) = msg.splitAt(msg.indexOf(" "))
+      val (name, sms) = msg.splitAt(msg.indexOf(' '))
       val nums = Store(folder+"numbers.db").toMap
       if(!sender.isTrusted) {
         speak(c"{Sorry, }you're not on the trusted user list{ (yet?)}.")
@@ -617,8 +615,8 @@ class haibot extends PircBot {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
           //TODO: add other params, like onactive, etc.
-          val param = (Option(rawParam) map { param => Time.getFutureDates(param) } emptyToNone) map { _.last }
-          val paramGet = param getOrElse { new java.util.Date } getTime
+          val param = Time.getFutureDates(rawParam).lastOption
+          val paramGet = param.getOrElse(new java.util.Date).getTime
 
           //TODO: notes to self - don't say 'him', say 'you', etc.
 
@@ -636,7 +634,7 @@ class haibot extends PircBot {
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
           def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
           def sForm(nicks: Set[String]): String = if(nicks.size == 1) "s" else "" // he find(s)
-          def multiForm(nicks: Set[String]): String = if(nicks.size == 1) "" else "s" // boy(s)
+          //def multiForm(nicks: Set[String]): String = if(nicks.size == 1) "" else "s" // boy(s)
           
           if(isHere.nonEmpty) {
             if((isHere contains this.name) || (isHere contains sender)) { //TODO: case bug
@@ -749,6 +747,7 @@ class haibot extends PircBot {
       
       val mytime = withAlternative(getSinceString(startTime), "who knows how long..")
       
+      import sys.process._
       for(nick <- mentions) {
         if(nick == this.name) {
           val servertime = withAlternative(
@@ -783,12 +782,11 @@ class haibot extends PircBot {
   
   val lastPrivateMessage = HashMap[String, String]().withDefaultValue("")
   def speakPriv(message: String, nick: String, msgs: String*) {
-    import sys.process._
     val nickClean = nick.replaceAll("[^a-zA-Z]", "") // TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
     appendToFile("logs/chat_"+nickClean+".log")(nickClean+" "+message)
   
     for(newMsg <- (msgs.toBuffer - lastPrivateMessage(nick)).randomOption) {
-      Thread.sleep(500+nextInt(500*2))
+      Thread.sleep((500+nextInt(500*2)).toLong)
       sendMessage(nick, newMsg)
       lastPrivateMessage(nick) = newMsg
       appendToFile("logs/chat_"+nickClean+".log")(name+" "+newMsg)

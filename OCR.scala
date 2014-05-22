@@ -5,7 +5,6 @@ import scala.util.Random._
 import collection.mutable.{Buffer,HashSet}
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import scala.concurrent.util._
 import scala.concurrent.duration._
 
 object OCR {
@@ -98,10 +97,10 @@ object OCR {
       val attrs = results.map { result => 
         val resSplit = result.split(" ")
         (result, Array(
-          result.size, 
-          resSplit.count(word =>  common.contains(word)), 
-          resSplit.count(word => !common.contains(word)),
-          resSplit.foldLeft(0d)((acc,res) => acc + res.size) / resSplit.size
+          result.size.toDouble, 
+          resSplit.count(word =>  common.contains(word)).toDouble, 
+          resSplit.count(word => !common.contains(word)).toDouble,
+          resSplit.foldLeft(0d)((acc,res) => acc + res.size) / resSplit.size.toDouble
         ))
       }
       

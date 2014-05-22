@@ -1,12 +1,8 @@
 package org.psywerx
 
 import collection.mutable.{HashSet,ListBuffer,HashMap}
-import java.io._
-import java.net._
-import math._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import scala.concurrent.util._
 import scala.concurrent.duration._
 import scala.util.matching
 import scala.util.matching._
@@ -43,7 +39,7 @@ object util {
     def distance(s2: String): Int = distance(s,s2)
     def distance(s1: String, s2: String): Int = {
       val memo = scala.collection.mutable.Map[(List[Char],List[Char]),Int]()
-      def min(a: Int, b: Int, c: Int) = Math.min( Math.min( a, b ), c)
+      def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a,b),c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
         if(memo.contains((s1,s2)) == false)
           memo((s1,s2)) = (s1, s2) match {
@@ -63,14 +59,14 @@ object util {
   }
   
   //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
-  implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int) = nextInt(j-i+1)+i }
+  implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
   implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size)) 
     def randomOption: Option[A] = if(s.isEmpty) None else Some(random)
   }
   
-  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone = optseq filterNot { _.isEmpty }}
+  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty }}
 
   implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
@@ -95,8 +91,8 @@ object util {
   //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
   def using[A <: java.io.Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }  
   
-  def appendToFile(fileName: String)(textData: String) = printToFile(fileName)(textData, append = true)
-  def printToFile(fileName: String)(textData: String, append: Boolean = false) = {
+  def appendToFile(fileName: String)(textData: String): Unit = printToFile(fileName)(textData, append = true)
+  def printToFile(fileName: String)(textData: String, append: Boolean = false): Unit = {
     using (new java.io.FileWriter(fileName, append)) { 
       fileWriter => using (new java.io.PrintWriter(fileWriter)) {
         printWriter => printWriter.println(textData)
@@ -172,21 +168,20 @@ object Time {
       .replaceAll("[,\\s]ob[\\s]", " ")
       .replaceAll("[,\\s]+", " ")
 
-  def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] = {
-    (dateFormats flatMap { case (regex, format) => 
-      text
-        .findAll(regex)
-        .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
-        .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
-        .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
-        .filter(filter) 
-    } distinct) sortWith { (a,b) => b after a }
-  }
+  def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] =
+    (dateFormats
+      .flatMap { case (regex, format) => 
+        text
+          .findAll(regex)
+          .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
+          .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
+          .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
+          .filter(filter) 
+      }
+      .distinct
+      .sortWith { (a,b) => b after a })
 
-  def getFutureDates(text: String): List[Date] = {
-    val nowDate = new Date
-    getDates(text, _.after(nowDate))
-  }
+  def getFutureDates(text: String): List[Date] = getDates(text, _.after(new Date))
   
   private val timeDivisor = 1000000L*1000L //s
   //val timeDivisor = 1000000L //ms
@@ -210,7 +205,7 @@ object Time {
   private def pad(i: Int, p: Int = 2): String = "0"*(p-i.toString.size)+i.toString
   def getSinceZeroString(time: Int): String = {
     val secs = time
-    val (days, hours, minutes, sec) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60), pad((secs)%60))
+    val (days, hours, minutes) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60))
     
     ((days match {
       case 0 => ""
@@ -230,25 +225,28 @@ object Net {
   
   //TODO: use download + file -i or some proper mime solution, this is risky as fuck
   def badExts: List[String] = getFile(util.folder+"badexts.db")
-  def scrapeURLs(urls: String*): String = {
-    (urls flatMap { _.findAll(Regex.URL) } map { url => 
-      try {
-        if(!url.endsWithAny(badExts: _*)) 
-          extractor.getText(new URL(url))
-        else 
-          ""
-      } catch { 
-        case e: java.net.MalformedURLException if url startsWith "www." => //handle noprotocol exception
-          scrapeURLs("http://"+url)
-        case e: Exception => 
-          e.printStackTrace()
-          "" 
+  def scrapeURLs(urls: String*): String =
+    (urls
+      .flatMap { _.findAll(Regex.URL) }
+      .map { url => 
+        try {
+          if(!url.endsWithAny(badExts: _*)) 
+            extractor.getText(new URL(url))
+          else 
+            ""
+        } catch { 
+          case e: java.net.MalformedURLException if url startsWith "www." => //handle noprotocol exception
+            scrapeURLs("http://"+url) //TODO https everywhere :)
+          case e: Exception => 
+            e.printStackTrace()
+            "" 
+        }
       }
-    } fold "") { _+" "+_ } trim
-  }
-  
+      .fold("") { _+" "+_ }
+      .trim)
+
   def tempDownload(url: String): Option[File] = {
-    val ext = if(url.substring(url.lastIndexOf(".")).size <= 10) url.substring(url.lastIndexOf(".")).stripSuffix(":large") else null
+    val ext = if(url.substring(url.lastIndexOf('.')).size <= 10) url.substring(url.lastIndexOf('.')).stripSuffix(":large") else null //TODO: first condition is WTFdaily
     val tempFile = File.createTempFile("temp", ext)
     //tempFile.deleteOnExit()
     
@@ -259,18 +257,17 @@ object Net {
       None
     }
   }
-  def withDownload[A](url: String)(func: Option[File] => A) = {  
+  def withDownload[A](url: String)(func: Option[File] => A): A = {  
     val tempFile = tempDownload(url)
     try {
       func(tempFile)
     } finally {
-      tempFile foreach { _.delete() }
+      tempFile foreach { _.delete() } //TODO: file delete on exit flag?
     }
   }
   def download(url: String, outFile: java.io.File): Boolean = {
     try {
       import java.io._
-      import java.nio._
       import java.nio.channels._
 
       Await.ready(future {
@@ -300,7 +297,7 @@ class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   def ?(k: String): List[String] = getFile(file) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
   def *(): List[(String, String)] = 
     getFile(file) filterNot { _.isEmpty } map { res => 
-      val sep = res.indexOf(" ")
+      val sep = res.indexOf(' ')
       if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     }
   
