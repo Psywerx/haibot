@@ -458,7 +458,7 @@ class haibot extends PircBot {
           // fbcmd 1.1
           // val returnFacebook = Seq("fbcmd", "PPOST", apiKeys("facebookpage"),
           // fbcmd 2.x
-          val returnFacebook = Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST"
+          val returnFacebook = Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
             "",                                      // Post Message
             " "+tweetDetails("Screen name"),         // Post Name
             "https://twitter.com/statuses/"+tweetId, // Post Link
