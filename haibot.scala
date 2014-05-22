@@ -454,8 +454,11 @@ class haibot extends PircBot {
           Map[String,String]()
         ).withDefaultValue("")
         
-        if(tweetDetails("Text") != "") {        
-          val returnFacebook = Seq("fbcmd", "PPOST", apiKeys("facebookpage"),
+        if(tweetDetails("Text") != "") {
+          // fbcmd 1.1
+          // val returnFacebook = Seq("fbcmd", "PPOST", apiKeys("facebookpage"),
+          // fbcmd 2.x
+          val returnFacebook = Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST"
             "",                                      // Post Message
             " "+tweetDetails("Screen name"),         // Post Name
             "https://twitter.com/statuses/"+tweetId, // Post Link
