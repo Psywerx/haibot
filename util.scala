@@ -168,18 +168,22 @@ object Time {
       .replaceAll("[,\\s]ob[\\s]", " ")
       .replaceAll("[,\\s]+", " ")
 
-  def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] =
-    (dateFormats
-      .flatMap { case (regex, format) => 
-        text
-          .findAll(regex)
-          .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
-          .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
-          .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
-          .filter(filter) 
-      }
-      .distinct
-      .sortWith { (a,b) => b after a })
+  def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] = (
+    if(text == null) 
+      Nil
+    else 
+      dateFormats
+        .flatMap { case (regex, format) => 
+          text
+            .findAll(regex)
+            .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
+            .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
+            .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
+            .filter(filter) 
+        }
+        .distinct
+        .sortWith { (a,b) => b after a }
+  )
 
   def getFutureDates(text: String): List[Date] = getDates(text, _.after(new Date))
   
