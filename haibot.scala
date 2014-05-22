@@ -455,8 +455,8 @@ class haibot extends PircBot {
         ).withDefaultValue("")
         
         if(tweetDetails("Text") != "") {        
-          // fbcmd as 361394543950153 POST "" "HairyFotr" "http:/..." "via Twitter" "some text..."
-          val returnFacebook = Seq("fbcmd", "AS", "361394543950153", "POST",
+          // fbcmd as 234324xxxx342423 POST "" "HairyFotr" "http:/..." "via Twitter" "some text..."
+          val returnFacebook = Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
             "",
             " "+tweetDetails("Screen name"),
             "https://twitter.com/statuses/"+tweetId,
@@ -501,7 +501,14 @@ class haibot extends PircBot {
     } else if(message.startsWith("@checktweets") && sender.isTrusted) {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
-      val names = message.drop("@follow ".length).replaceAll("@","").split(" ").distinct
+      val names = message
+        .drop("@follow ".length)
+        .trim
+        .replaceAll("(https?[:]//)?(www.)?twitter.com/", "")
+        .replaceAll("@","")
+        .split(" ")
+        .distinct
+        
       if(names forall { _ matches "^[A-Za-z0-9_]{1,20}$" }) {
         tweetMsg = null
         tweetId = null
