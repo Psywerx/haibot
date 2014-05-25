@@ -103,7 +103,6 @@ if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t - th
 if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd - the facebook client."; fi
 if [ "`which tesseract`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install tesseract"; fi
 if [ "`which gocr`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install gocr"; fi
-if [ "`which cuneiform`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install cuneiform"; fi
 if [ "`which ocrad`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install ocrad"; fi
 if [ "`which convert`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install imagemagick"; fi
 

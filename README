@@ -40,4 +40,4 @@ But there's more to haibot's magic than simple files - there's also dependencies
     bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
     t - twitter CLI client -- you need to set it up manually
     fbcmd - facebook CLI client 2.0 -- also manually.
-    ocrad gocr cuneiform tesseract-ocr - OCR engines -- use sudo apt-get?
+    ocrad gocr tesseract-ocr - OCR engines -- use sudo apt-get?

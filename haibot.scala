@@ -359,15 +359,16 @@ class haibot extends PircBot {
         case imgurReg(protocol, domain, img) => protocol+"i."+domain+img+".png"
         case _ => url
       }
-      val pics = URLs.map(toImgurImg).filter(_.endsWithAny(".jpg", ".jpeg", ".png", ".jpg:large"))
-      if(pics.size < URLs.size) speakNow(c"{Sorry,} I only read jpegs and pngs.")
+      val pics = URLs.map(toImgurImg).filter(_.endsWithAny(".jpg", ".jpeg", ".png", ".gif", ".jpeg:large", ".jpg:large"))
+      if(pics.size < URLs.size) speakNow(c"{Sorry,} I only read a few select formats.")
       
       for(pic <- pics) Net.withDownload(pic) {
         case Some(tempFile) =>
-            speakNow(OCR.OCR(tempFile)
-              .filter(_.split(" ").exists(_.size >= 3))
-              .map(guess => List(s"I think it says: $guess", s"My best guess is: $guess"))
-              .getOrElse(List(c"Sorry, {I have} no idea, but I{'m| am} still learning {how} to read.")):_*)
+            speakNow(
+              OCR.OCR(tempFile)
+                .filter(_.split(" ").exists(_.size >= 3))
+                .map(guess => List(s"I think it says: $guess", s"My best guess is: $guess"))
+                .getOrElse(List(c"Sorry, {I have} no idea, but I{'m| am} still learning {how} to read.")):_*)
         case _ =>
           speak(c"I don't {even} know how to download this{ file}.")
       }

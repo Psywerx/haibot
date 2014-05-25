@@ -246,18 +246,27 @@ object Net {
             "" 
         }
       }
-      .fold("") { _+" "+_ }
+      .fold("") { _ + " " + _ }
       .trim)
 
   def tempDownload(url: String): Option[File] = {
-    val ext = if(url.substring(url.lastIndexOf('.')).size <= 10) url.substring(url.lastIndexOf('.')).stripSuffix(":large") else null //TODO: first condition is WTFdaily
+    val lastDot = url.lastIndexOf('.')
+    val lastColon = url.lastIndexOf(':')
+    val ext = 
+      (if((lastDot != -1) && (url.length-lastDot <= 5))
+        url.substring(lastDot)
+      else if((lastDot != -1 && lastColon > lastDot) && (url.length-lastDot <= 11)) // special case for .jpeg:large
+        url.substring(lastDot, lastColon)
+      else
+        null)
+      
     val tempFile = File.createTempFile("temp", ext)
-    //tempFile.deleteOnExit()
+    tempFile.deleteOnExit
     
     if(download(url, tempFile)) {
       Some(tempFile) 
     } else {
-      tempFile.delete()
+      tempFile.delete
       None
     }
   }
@@ -266,21 +275,24 @@ object Net {
     try {
       func(tempFile)
     } finally {
-      tempFile foreach { _.delete() } //TODO: file delete on exit flag?
+      tempFile.foreach { _.delete }
     }
   }
-  def download(url: String, outFile: java.io.File): Boolean = {
+  def download(urlStr: String, outFile: java.io.File): Boolean = {
     try {
       import java.io._
       import java.nio.channels._
 
       Await.ready(future {
-        val Url = new URL(url)
-        val rbc = Channels.newChannel(Url.openStream())
+        val url = new URL(urlStr)
+        val rbc = Channels.newChannel(url.openStream())
         val fos = new FileOutputStream(outFile)
-        fos.getChannel.transferFrom(rbc, 0, 1 << 24)
-        fos.close
-      }, 20.seconds)
+        try {
+          fos.getChannel.transferFrom(rbc, 0, 1 << 24)
+        } finally {
+          fos.close
+        }
+      }, 10.seconds)
       
       true
     } catch {
