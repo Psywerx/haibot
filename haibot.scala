@@ -196,9 +196,9 @@ final class haibot extends PircBot {
 
   override def onJoin(channel: String, sender: String, login: String, hostname: String) {
     if(sender == this.name) spawn { //why spawn a new thread here? because pircbot doesn't have user info here yet, but does immediately after
-      val users = getUserList
       Thread.sleep(2000)
       startTime = now
+      val users = getUserList
       if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
       //users.foreach(speakMessages)
     } else {
