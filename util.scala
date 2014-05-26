@@ -312,10 +312,9 @@ object Net {
   }
 }
 
-/// Store based on bash :) #softwareanarchitecture
-// talk about leaky abstractions...
-object Store { def apply(file: String): Store = new Store(file) }
-class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
+/// Store (still somewhat) based on bash :) #softwareanarchitecture
+final object Store { def apply(file: String): Store = new Store(file) }
+final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
   import util.{getFile, appendToFile}
   

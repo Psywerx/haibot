@@ -5,17 +5,17 @@ import org.psywerx.Time._
 import org.psywerx.Caption.C
 
 import org.jibble.pircbot._
-import collection.mutable.{HashSet,ListBuffer,HashMap}
+import collection.mutable
 import scala.util.Random._
 import java.io._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 
-object haibot extends App { new haibot }
+final object haibot { def main(args: Array[String]): Unit = new haibot }
 
-class haibot extends PircBot {
+final class haibot extends PircBot {
   var startTime = now
-  val joinTimes = HashMap[String, Int]().withDefaultValue(-1)
+  val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
   
   val config = Store(".config").toMap
   val (folder,login,name,chan,serv,owner) = (
@@ -118,10 +118,10 @@ class haibot extends PircBot {
   var tweetMsg = ""
   var tweetId = ""
   var tweetLim = 2
-  var tweetNames = Array[String]()
+  var tweetNames = Set[String]()
 
   var userList = Set[String]()
-  def users: Set[String] = {
+  def getUserList: Set[String] = {
     if(since(userList) > 5) {
       userList = getUsers(chan).map(_.getNick).toSet
     }
@@ -146,7 +146,7 @@ class haibot extends PircBot {
     val now = (new java.util.Date).getTime
     for(rawMsg <- msgs ?- nick.toLowerCase) {
       //TODO: other kind of params, also augh!
-      val (param, msg) = rawMsg splitAt (rawMsg indexOf ",") match { case (s1,s2) => (s1.toLong, s2.tail) }
+      val (param, msg) = (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1,s2) => (s1.toLong, s2.tail) }
       if(param > now) {
         msgs += (nick.toLowerCase, param+","+msg)
       } else {
@@ -161,7 +161,7 @@ class haibot extends PircBot {
   spawn {
     while(true) {
       if(this.isConnected) {
-        users.foreach(speakMessages)
+        getUserList.foreach(speakMessages)
       }
       Thread.sleep(20*1000)
     }
@@ -196,6 +196,7 @@ class haibot extends PircBot {
 
   override def onJoin(channel: String, sender: String, login: String, hostname: String) {
     if(sender == this.name) spawn { //why spawn a new thread here? because pircbot doesn't have user info here yet, but does immediately after
+      val users = getUserList
       Thread.sleep(2000)
       startTime = now
       if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
@@ -217,6 +218,8 @@ class haibot extends PircBot {
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
+    val users = getUserList
+    //TODO: @nick nick. <- get the proper regex here
     val mentions = message.replaceAll("[,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
@@ -394,7 +397,7 @@ class haibot extends PircBot {
         .replaceAll(Regex.URL.toString, "")
         .substring("@event ".length).trim
         
-      val status = ListBuffer[String]()
+      val status = mutable.ListBuffer[String]()
       if(title.isEmpty) status += "title"
       if(dates.isEmpty) status += "date"
       if(URLs.isEmpty) status += "URL"
@@ -416,12 +419,14 @@ class haibot extends PircBot {
     } else if(message.startsWithAny("@#", "#@")) {
       // Ignore
     } else if(message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer", "@maybe", "@perhaps", "@please")) {
-      if((message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) tweetScore = tweetScore + sender
+      if((message.startsWithAny("@yes", "@yep", "@yeah", "@sure", "@suer") || (message.startsWithAny("@maybe", "@perhaps") && 0.5.prob)) && sender.isTrusted) {
+        tweetScore += sender
+      }
       
       var beggedBefore = false
       if(message.startsWith("@please")) {
         beggedBefore = (tweetPlsScore contains sender)
-        if(sender.isTrusted) tweetPlsScore = tweetPlsScore + sender
+        if(sender.isTrusted) tweetPlsScore += sender
       }
       if(beggedBefore && 0.4.prob) speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
       
@@ -434,10 +439,10 @@ class haibot extends PircBot {
         else
           speak("Failed to follow :/")
       
-        tweetScore = Set()
-        tweetNegScore = Set()
-        tweetPlsScore = Set()
-        tweetNames = Array()
+        tweetScore = Set.empty
+        tweetNegScore = Set.empty
+        tweetPlsScore = Set.empty
+        tweetNames = Set.empty
       } else if(tweetMsg == null && (tweetId matches "[0-9]*") && overLimit) {
         val returnTwitter = Seq("t", "retweet", tweetId).!
         
@@ -479,9 +484,9 @@ class haibot extends PircBot {
         else
           speak("Failed to retweet :/")
 
-        tweetScore = Set()
-        tweetNegScore = Set()
-        tweetPlsScore = Set()
+        tweetScore = Set.empty
+        tweetNegScore = Set.empty
+        tweetPlsScore = Set.empty
         tweetMsg = ""
       } else if(tweetMsg != null && tweetMsg.nonEmpty && tweetMsg.size <= 140 && overLimit) {
         val ret = Seq("t", "update", tweetMsg).!
@@ -494,13 +499,13 @@ class haibot extends PircBot {
           case (_,_) => speak("Failed to post anywhere :(")
         }
 
-        tweetScore = Set()
-        tweetNegScore = Set()
-        tweetPlsScore = Set()
+        tweetScore = Set.empty
+        tweetNegScore = Set.empty
+        tweetPlsScore = Set.empty
         tweetMsg = ""
       }
     } else if(message.startsWithAny("@no", "@nein", "@nah") || (message.startsWith("@meh") && 0.5.prob)) {
-      tweetNegScore = tweetNegScore ++ Set(sender)
+      tweetNegScore += sender
     } else if(message.startsWith("@checktweets") && sender.isTrusted) {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
@@ -510,15 +515,15 @@ class haibot extends PircBot {
         .replaceAll("(https?[:]//)?(www.)?twitter.com/", "")
         .replaceAll("@","")
         .split(" ")
-        .distinct
+        .toSet
         
       if(names forall { _ matches "^[A-Za-z0-9_]{1,20}$" }) {
         tweetMsg = null
         tweetId = null
         tweetNames = names
         tweetScore = Set(sender)
-        tweetNegScore = Set()
-        tweetPlsScore = Set()
+        tweetNegScore = Set.empty
+        tweetPlsScore = Set.empty
         tweetLim = 2
         speak(
           "Someone pls confirm.",
@@ -533,8 +538,8 @@ class haibot extends PircBot {
       tweetMsg = null
       tweetId = tId
       tweetScore = Set(sender)
-      tweetNegScore = Set()
-      tweetPlsScore = Set()
+      tweetNegScore = Set.empty
+      tweetPlsScore = Set.empty
       tweetLim = 2
       speak(
         c"A retweet of [this|that|the] tweet {, perhaps|, maybe}?",
@@ -572,8 +577,8 @@ class haibot extends PircBot {
           c"Someone {should} {simply} confirm this {, and I'll post it}{.}")
         tweetMsg = tweet
         tweetScore = Set(sender)
-        tweetNegScore = Set()
-        tweetPlsScore = Set()
+        tweetNegScore = Set.empty
+        tweetPlsScore = Set.empty
         tweetLim = if(sender.isTrusted) 2 else 3
         if(tweetLim > 2) {
           speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
@@ -626,7 +631,7 @@ class haibot extends PircBot {
         case msgReg(rawParam, rawNicks, rawMsg) =>
           //TODO: add other params, like onactive, etc.
           val param = Time.getFutureDates(rawParam).lastOption
-          val paramGet = param.getOrElse(new java.util.Date).getTime
+          val paramGet = param.getOrElse(new java.util.Date).getTime.toString
 
           //TODO: notes to self - don't say 'him', say 'you', etc.
 
@@ -639,7 +644,7 @@ class haibot extends PircBot {
           val errNicks = nicks.filter(nick => !msgs.isKey(nick))
           val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
           toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
-          val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set())
+          val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty)
           
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
           def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
@@ -667,7 +672,7 @@ class haibot extends PircBot {
           if(toMsgNicks.nonEmpty) {
             var anyMsg = false
             for(nick <- toMsgNicks) {
-              val (timeStamp,finalMsg) = (paramGet.toString, (if(toPlusNicks contains nick)"++ "else"") + msg)
+              val (timeStamp, finalMsg) = (paramGet, (if(toPlusNicks contains nick) "++ " else "") + msg)
               val toMsg = timeStamp + "," + finalMsg
               if(finalMsg.nonEmpty) {
                 anyMsg = true
@@ -790,7 +795,7 @@ class haibot extends PircBot {
     if(lastMsgs.size > 7) lastMsgs = lastMsgs.tail
   }
   
-  val lastPrivateMessage = HashMap[String, String]().withDefaultValue("")
+  val lastPrivateMessage = mutable.AnyRefMap[String, String]() withDefaultValue ""
   def speakPriv(message: String, nick: String, msgs: String*) {
     val nickClean = nick.replaceAll("[^a-zA-Z]", "") // TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
     appendToFile("logs/chat_"+nickClean+".log", allowFail = true)(nickClean+" "+message)
@@ -804,7 +809,7 @@ class haibot extends PircBot {
   }
 
   override def onPrivateMessage(sender: String, login: String, hostname: String, message: String) {
-    if(users contains sender) message.makeEasy.replaceAll(
+    if(getUserList contains sender) message.makeEasy.replaceAll(
       "i'm" -> "i am", 
       "i've" -> "i have", 
       "i'll" -> "i will", 

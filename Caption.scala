@@ -3,12 +3,13 @@ package org.psywerx
 import scala.util.parsing.combinator._
 import scala.util.Random._
 import scala.language.postfixOps
+import java.lang.StringBuilder
 
 //TODO: oh god... sloppy implementation, make proper multilevel parsing :/
-object Caption extends RegexParsers {
+final object Caption extends RegexParsers {
   override val skipWhitespace = false
   
-  def text   = "[-_.,!?' a-zA-Z0-9()<>]+".r
+  def text = "[-_.,!?' a-zA-Z0-9()<>]+".r
   
   def group = """[\[][^\]]+[\]]([0-9](-[0-9])?)?""".r ^^ { g => 
     var str = g
@@ -63,7 +64,7 @@ object Caption extends RegexParsers {
    .trim
 
   // standard string interpolation + Caption parsing
-  implicit class C(val sc: StringContext) extends AnyVal { 
+  implicit class C(val sc: StringContext) extends AnyVal {
     import scala.StringContext._
     import sc.parts
 
@@ -77,9 +78,9 @@ object Caption extends RegexParsers {
       checkLengths(args)
       val pi = parts.iterator
       val ai = args.iterator
-      val bldr = new java.lang.StringBuilder(process(pi.next()))
+      val builder = new StringBuilder(process(pi.next()))
       while (ai.hasNext) {
-        val aaa = 
+        val arg = 
           ai.next.toString
             .replaceAll("[|]", "%%%pipe%%%")
             .replaceAll("[\\[]", "%%%lbrack%%%")
@@ -87,11 +88,11 @@ object Caption extends RegexParsers {
             .replaceAll("[{]", "%%%lbrace%%%")
             .replaceAll("[}]", "%%%rbrace%%%")
             
-        bldr append ("@"+aaa+"@")
-        val bbb = pi.next()
-        bldr append process(bbb)
+        builder append ("@"+arg+"@")
+        val part = pi.next()
+        builder append process(part)
       }
-      bldr.toString
+      builder.toString
     }
   }
 }
