@@ -1,0 +1,29 @@
+grant {
+  // Enables running processes, so there
+  permission java.io.FilePermission "<<ALL FILES>>", "execute";
+  
+  permission java.io.FilePermission ".config", "read";
+  permission java.io.FilePermission ".apikeys", "read";
+  permission java.io.FilePermission "haibot/*", "read, write";
+  permission java.io.FilePermission "util/*", "read";
+  permission java.io.FilePermission "logs/*", "write";
+  permission java.io.FilePermission "/tmp/*", "read, write, delete";
+  permission java.io.FilePermission "lib/-", "read";
+  
+  permission java.util.PropertyPermission "user.dir", "read";
+  permission java.util.PropertyPermission "scala.time", "read";
+  permission java.util.PropertyPermission "line.separator", "read";  
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.security.util";
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  permission java.lang.RuntimePermission "modifyThread";
+  permission java.lang.RuntimePermission "stopThread";
+
+  permission java.net.SocketPermission "*", "connect,resolve";
+};
+
+// Can't figure out what causes "SunTlsRsaPremasterSecret KeyGenerator not available", so there
+grant codeBase "file:${java.home}/-" {
+  permission java.security.AllPermission;
+};

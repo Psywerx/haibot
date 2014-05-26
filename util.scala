@@ -7,6 +7,7 @@ import scala.concurrent.duration._
 import scala.util.matching
 import scala.util.matching._
 import scala.util.Random._
+import java.io._
 
 object util {
   val folder = "util/"
@@ -18,7 +19,7 @@ object util {
   def spawn(func: => Unit) {
     (new Thread(new Runnable {
       def run() {
-        try { func } catch { case _: Throwable => }
+        try { func } catch { case e: Exception => e.printStackTrace }
       }
     })).start
   }
@@ -72,11 +73,15 @@ object util {
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
   implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max}
 
-  def getFile(name: String): List[String] = {
-    val file = io.Source.fromFile(name)
-    val out = file.getLines.toList
-    file.close
-    out
+  def getFile(name: String, allowFail: Boolean = false): List[String] = {
+    try {
+      val file = io.Source.fromFile(name)
+      val out = file.getLines.toList
+      file.close
+      out
+    } catch {
+      case e: IOException if allowFail => Nil
+    }
   }
 
   def withFile[E](fileName: String)(f: scala.io.BufferedSource => E): E = {
@@ -89,16 +94,20 @@ object util {
   }
 
   //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
-  def using[A <: java.io.Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }  
+  def using[A <: Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }  
   
-  def appendToFile(fileName: String)(textData: String): Unit = printToFile(fileName)(textData, append = true)
-  def printToFile(fileName: String)(textData: String, append: Boolean = false): Unit = {
-    using (new java.io.FileWriter(fileName, append)) { 
-      fileWriter => using (new java.io.PrintWriter(fileWriter)) {
-        printWriter => printWriter.println(textData)
+  def appendToFile(fileName: String, allowFail: Boolean = false)(textData: String): Unit = 
+    printToFile(fileName, allowFail)(textData, append = true)
+  def printToFile(fileName: String, allowFail: Boolean = false)(textData: String, append: Boolean = false): Unit = 
+    try {
+      using (new FileWriter(fileName, append)) { 
+        fileWriter => using (new PrintWriter(fileWriter)) {
+          printWriter => printWriter.println(textData)
+        }
       }
+    } catch {
+      case e: Exception if allowFail => ()
     }
-  }
 }
 
 object Regex {
@@ -296,7 +305,9 @@ object Net {
       
       true
     } catch {
-      case e: Throwable => false
+      case e: Exception => 
+        e.printStackTrace
+        false
     }
   }
 }
@@ -306,13 +317,14 @@ object Net {
 object Store { def apply(file: String): Store = new Store(file) }
 class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
-  import util.{getFile,appendToFile}
+  import util.{getFile, appendToFile}
+  
   def isKey(s: String): Boolean = s matches keyFormat
   def +=(k: String, v: String = null) { appendToFile(file) { if(v != null) k+" "+v else k } }
   def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
-  def ?(k: String): List[String] = getFile(file) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def ?(k: String): List[String] = getFile(file, allowFail = true) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
   def *(): List[(String, String)] = 
-    getFile(file) filterNot { _.isEmpty } map { res => 
+    getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(' ')
       if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     }

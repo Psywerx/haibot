@@ -122,10 +122,11 @@ compile() {
 }
 
 run() {
-  runcmd="scala -cp $cp org.psywerx.$bot"
+  runcmd="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp org.psywerx.$bot"
   case "$args" in
     -c) echo "not gonna run $bot...";;
-    -s) echo "dropping into scala console" && scala -cp $cp;;
+    -us) echo "dropping into scala console" && scala -cp $cp;;
+    -s) echo "dropping into scala console" && scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp;;
     -f) echo "running $bot..." && $runcmd;;
      *) echo "putting $bot into background..." && { $runcmd &>> $logdir/$bot.log & }
   esac

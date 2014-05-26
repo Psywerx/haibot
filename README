@@ -1,3 +1,4 @@
+
 --------
  haibot 
 --------
@@ -12,6 +13,7 @@ You're probably wondering about the special magic that makes him tick, right?
 Here's the secret: The magic is config and .db files!
 
 .config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
+.apikeys - API keys. "key value", keys: bitly1,bitly2,Zemanta,novatel_user,novatel_pass,facebookpage"
 <folder from .config>/
     msgs.db - used for @msgs, can/should be empty
     events.db - used for @event, can be empty (also doesn't really work)
@@ -26,11 +28,9 @@ Here's the secret: The magic is config and .db files!
     dontmention.db - don't mention these names, because it might annoy them.
     girls.db - to phrase certain replies correctly. Not trying to be creepy :)
 util/
-    bitlyapikey - bitly api key
-    zemapikey - zemanta api key
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing
-    weights - some weights for wordnet 
+    weights - some weights for wordnet
     
 But there's more to haibot's magic than simple files - there's also dependencies:
     pircbot - Java IRC Bot -- autodownloaded

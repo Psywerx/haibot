@@ -61,15 +61,15 @@ class haibot extends PircBot {
   val events = Store(folder+"events.db")
 
   // TODO: cache them at least for a minute or so
-  def sheSaid = getFile(folder+"twss.db")
-  def awwwBag = getFile(folder+"awww.db").toSet
-  def noawwwBag = getFile(folder+"noawww.db").toSet
-  def mehBag = getFile(folder+"meh.db").toSet
-  def nomehBag = getFile(folder+"nomeh.db").toSet
-  def mustNotBeNamed = getFile(folder+"dontmention.db").toSet
-  def girls = getFile(folder+"girls.db").map(_.cleanNick).toSet
-  def trusted = getFile(folder+"trusted.db").map(_.cleanNick).toSet
-  def bots = getFile(folder+"bots.db").map(_.cleanNick).toSet
+  def sheSaid = getFile(folder+"twss.db", allowFail = true)
+  def awwwBag = getFile(folder+"awww.db", allowFail = true).toSet
+  def noawwwBag = getFile(folder+"noawww.db", allowFail = true).toSet
+  def mehBag = getFile(folder+"meh.db", allowFail = true).toSet
+  def nomehBag = getFile(folder+"nomeh.db", allowFail = true).toSet
+  def mustNotBeNamed = getFile(folder+"dontmention.db", allowFail = true).toSet
+  def girls = getFile(folder+"girls.db", allowFail = true).map(_.cleanNick).toSet
+  def trusted = getFile(folder+"trusted.db", allowFail = true).map(_.cleanNick).toSet
+  def bots = getFile(folder+"bots.db", allowFail = true).map(_.cleanNick).toSet
   
   implicit class IrcString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$","")
@@ -793,13 +793,13 @@ class haibot extends PircBot {
   val lastPrivateMessage = HashMap[String, String]().withDefaultValue("")
   def speakPriv(message: String, nick: String, msgs: String*) {
     val nickClean = nick.replaceAll("[^a-zA-Z]", "") // TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
-    appendToFile("logs/chat_"+nickClean+".log")(nickClean+" "+message)
+    appendToFile("logs/chat_"+nickClean+".log", allowFail = true)(nickClean+" "+message)
   
     for(newMsg <- (msgs.toBuffer - lastPrivateMessage(nick)).randomOption) {
       Thread.sleep((500+nextInt(500*2)).toLong)
       sendMessage(nick, newMsg)
       lastPrivateMessage(nick) = newMsg
-      appendToFile("logs/chat_"+nickClean+".log")(name+" "+newMsg)
+      appendToFile("logs/chat_"+nickClean+".log", allowFail = true)(name+" "+newMsg)
     }
   }
 
