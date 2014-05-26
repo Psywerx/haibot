@@ -125,6 +125,7 @@ run() {
   runcmd="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp org.psywerx.$bot"
   case "$args" in
     -c) echo "not gonna run $bot...";;
+    -fb) echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
     -us) echo "dropping into scala console" && scala -cp $cp;;
     -s) echo "dropping into scala console" && scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp;;
     -f) echo "running $bot..." && $runcmd;;
