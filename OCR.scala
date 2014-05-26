@@ -1,8 +1,7 @@
 package org.psywerx
 
 import sys.process._
-import scala.util.Random._
-import collection.mutable.{Buffer,HashSet}
+import collection.mutable
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._

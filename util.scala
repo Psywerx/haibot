@@ -1,6 +1,6 @@
 package org.psywerx
 
-import collection.mutable.{HashSet,ListBuffer,HashMap}
+import collection.mutable
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -39,7 +39,7 @@ object util {
     def matches(r: Regex): Boolean = s.matches(r.toString)
     def distance(s2: String): Int = distance(s,s2)
     def distance(s1: String, s2: String): Int = {
-      val memo = scala.collection.mutable.Map[(List[Char],List[Char]),Int]()
+      val memo = mutable.AnyRefMap[(List[Char], List[Char]), Int]()
       def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a,b),c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
         if(memo.contains((s1,s2)) == false)
@@ -205,7 +205,7 @@ object Time {
     func
     now-startTime
   }
-  private val sinceTimes = HashMap[Int,Int]()
+  private val sinceTimes = mutable.HashMap[Int,Int]()
   def since(timeRef: AnyRef): Int = {
     val time = sinceTimes.getOrElseUpdate(timeRef.hashCode, 0)
     val nowTime = now

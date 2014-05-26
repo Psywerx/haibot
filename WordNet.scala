@@ -1,6 +1,6 @@
 package org.psywerx
 
-import scala.collection.mutable.{HashMap}
+import scala.collection.mutable
 import org.psywerx.util._
 
 class WordNet(folder: String) {
@@ -104,7 +104,7 @@ class WordNet(folder: String) {
   
   def keywords(in: String, count: Int = 3): Option[List[String]] = {
     try {
-      val scores = HashMap[String, Double]()
+      val scores = mutable.AnyRefMap[String, Double]()
       def addToScore(str: String, add: Double) {
         if(!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
       }
