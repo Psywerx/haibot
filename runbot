@@ -16,7 +16,7 @@ if [ ! -e "lib/$pb/pircbot.jar" ]; then
   rm $pb.zip &> /dev/null
   cd ..
   [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit
-  echo "sucessfully got $pb"
+  echo "successfully got $pb"
 fi
 cp+=":lib/$pb/pircbot.jar"
 
@@ -35,7 +35,7 @@ if [ ! -e "lib/$zem/$zem-java.jar" ]; then
   cd ..
   cd ..
   [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit
-  echo "sucessfully got $zem"
+  echo "successfully got $zem"
 fi
 cp+=":lib/$zem/$zem-java.jar"
 
@@ -50,7 +50,7 @@ if [ ! -e "lib/$bp/$bp.jar" ]; then
   rm $bp-bin.tar.gz &> /dev/null
   cd ..
   [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit
-  echo "sucessfully got $bp"
+  echo "successfully got $bp"
 fi
 cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
 
@@ -83,7 +83,7 @@ if [ ! -e "lib/WordNet/wn_s2.db" ]; then
   fi
   cd ..
   [ ! -e "lib/WordNet" ] && echo "getting $wn failed" && exit
-  echo "sucessfully got $wn"
+  echo "successfully got $wn"
 fi
 
 #bitlyj
@@ -95,7 +95,7 @@ if [ ! -e "lib/$bitly.jar" ]; then
   wget http://bitlyj.googlecode.com/files/$bitly.jar &> /dev/null
   cd ..
   [ ! -e "lib/$bitly.jar" ] && echo "getting $bitly failed" && exit
-  echo "sucessfully got $bitly"
+  echo "successfully got $bitly"
 fi
 cp+=":lib/$bitly.jar"
 
