@@ -7,13 +7,15 @@
 Check the sources for what he's about and what you might need to start him.
 I realize it's a lot to ask, but you must work to get to know this guy ;)
 Databases not included to ensure each haibot has his own special magic.
-Also, your computer can probably get hacked through this bot :)
+Also, your computer can possibly still get hacked through this bot :)
 
 You're probably wondering about the special magic that makes him tick, right?
 Here's the secret: The magic is config and .db files!
 
-.config - IRC & other settings. "key value", keys: folder,name,serv,chan,login,owner
-.apikeys - API keys. "key value", keys: bitly1,bitly2,Zemanta,novatel_user,novatel_pass,facebookpage"
+.config - IRC & other settings. ("key value" format)
+    folder, name, serv, chan, login, owner
+.apikeys - API keys. ("key value" format)
+    bitly1, bitly2, Zemanta, novatel_user, novatel_pass, facebookpage
 <folder from .config>/
     msgs.db - used for @msgs, can/should be empty
     events.db - used for @event, can be empty (also doesn't really work)
@@ -32,7 +34,7 @@ util/
     stoplist.db - stopwords for some text processing
     weights - some weights for wordnet
     
-But there's more to haibot's magic than simple files - there's also dependencies:
+But there's more to haibot than config files - there's also dependencies:
     pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
     Zemanta - contextual intelligence for everyone -- autodownloaded
