@@ -517,7 +517,7 @@ final class haibot extends PircBot {
         .split(" ")
         .toSet
         
-      if(names forall { _ matches "^[A-Za-z0-9_]{1,20}$" }) {
+      if(names forall { _ matches "[A-Za-z0-9_]{1,20}" }) {
         tweetMsg = null
         tweetId = null
         tweetNames = names
