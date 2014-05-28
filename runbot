@@ -68,6 +68,7 @@ if [ ! -e "lib/WordNet/wn_s2.db" ]; then
     #deleting stuff only because I have no space left on target machine :)
     rm -f *.5 *.7 *.html *.pdf *.ps 
     #strip prolog syntax
+    echo "compressing $wn"
     for db in *.pl; do
       skip=$( echo `expr length $db`-6+2 | bc )
       cat $db | cut -b $skip- | awk 'sub("..$", "")' > `basename $db .pl`.db
@@ -109,6 +110,7 @@ if [ "`which convert`" == "" ]; then echo "it might work anyway, if not, sudo ap
 args="$1"
 bot="haibot"
 outdir="bin"
+docdir="doc"
 cp+=":$outdir"
 logdir="logs"
 mkdir $logdir &> /dev/null
@@ -125,6 +127,7 @@ run() {
   runcmd="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp org.psywerx.$bot"
   case "$args" in
     -c) echo "not gonna run $bot...";;
+    -d) echo "making docs..." && scaladoc -d $docdir -cp $cp *.scala;;
     -fb) echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
     -us) echo "dropping into scala console" && scala -cp $cp;;
     -s) echo "dropping into scala console" && scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp;;
