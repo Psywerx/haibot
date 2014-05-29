@@ -18,12 +18,14 @@ final class haibot extends PircBot {
   val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
   
   val config = Store(".config").toMap
-  val (folder,login,name,chan,serv,owner) = (
-    config("folder"), 
-    config("login"), 
-    config("name"), 
-    config("chan"), 
-    config("serv"), 
+  val (folder,login,name,chan,serv,port,pass,owner) = (
+    config("folder"),
+    config("login"),
+    config("name"),
+    config("chan"),
+    config("serv"),
+    config("port", "6667"),
+    config("pass", null),
     config("owner")) //owner prefix actually
   
   this.setVerbose(true)
@@ -34,9 +36,9 @@ final class haibot extends PircBot {
     var connected = true
     do {
       try {
-        this.connect(serv) //TODO handle failure and disconnects
+        this.connect(serv, port.toInt, pass) 
       } catch {
-        case e: Exception =>
+        case e: Exception => //TODO: this "reconnect" is untested
           this.disconnect()
           Thread.sleep(backoff)
           backoff += 1000
@@ -103,7 +105,7 @@ final class haibot extends PircBot {
           }
         }
       } catch {
-        case e: Exception => //TODO: Fix
+        case e: Exception => 
           e.printStackTrace
       } finally {
         twitterCheck = now
@@ -143,12 +145,11 @@ final class haibot extends PircBot {
   val msgs = Store(folder+"msgs.db")
   // Fetch messages for nick and speak them
   def speakMessages(nick: String) {
-    val now = (new java.util.Date).getTime
+    val now = (new java.util.Date).getTime //TODO put into lib
     for(rawMsg <- msgs ?- nick.toLowerCase) {
-      //TODO: other kind of params, also augh!
       val (param, msg) = (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1,s2) => (s1.toLong, s2.tail) }
       if(param > now) {
-        msgs += (nick.toLowerCase, param+","+msg)
+        msgs += (nick.toLowerCase, param + "," + msg)
       } else {
         if(msg.startsWithAny("++", nick+"++"))
           speak(nick+"++" + msg.dropWhile(_ != '+').drop(2))
@@ -814,7 +815,7 @@ final class haibot extends PircBot {
       "i've" -> "i have", 
       "i'll" -> "i will", 
       "i'd" -> "i would",
-      "i was" -> "i am", //TODO - seems to work
+      "i was" -> "i am",
       "gonna" -> "going to", 
       "they're" -> "they are", 
       "we're" -> "we are",
@@ -923,7 +924,7 @@ final class haibot extends PircBot {
         if(x.contains("you")) 
           speakPriv(message, sender,
             "Lets talk about something else...",
-            "Do you really think that about me?") //TODO
+            "Do you really think that about me?")
         else {
           //val memNoun = Memory->(IsNoun)
           //val memVerb = Memory->(IsVerbing)

@@ -66,6 +66,10 @@ object util {
     def random: A = s(nextInt(s.size)) 
     def randomOption: Option[A] = if(s.isEmpty) None else Some(random)
   }
+  implicit class Maps[A, B](val m: Map[A, B]) {
+    def apply(a: A, b: B): B = m.getOrElse(a, b)
+  }
+  
   
   implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty }}
 
@@ -241,21 +245,18 @@ object Net {
   def scrapeURLs(urls: String*): String =
     (urls
       .flatMap { _.findAll(Regex.URL) }
+      .map { url => if(url startsWith "www.") "http://"+url else url } //TODO https everywhere :)
       .map { url => 
-        try {
-          if(!url.endsWithAny(badExts: _*)) 
-            extractor.getText(new URL(url))
-          else 
-            ""
-        } catch { 
-          case e: java.net.MalformedURLException if url startsWith "www." => //handle noprotocol exception
-            scrapeURLs("http://"+url) //TODO https everywhere :)
-          case e: Exception => 
+        try {          
+          if(url.endsWithAny(badExts: _*)) ""
+          else extractor.getText(new URL(url))
+        } catch {
+          case e: Exception => // java.net.MalformedURLException
             e.printStackTrace()
             "" 
         }
       }
-      .fold("") { _ + " " + _ }
+      .mkString(" ")
       .trim)
 
   def tempDownload(url: String): Option[File] = {
