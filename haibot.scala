@@ -406,8 +406,8 @@ final class haibot extends PircBot {
         val itthem = if(status.size == 1) "it" else "them"
         speak("I don't have "+status.mkString(", ")+s" for this. Paste $itthem in text form, pls.")
       } else {
+        speak("Is this right? "+dates(0)+" -- "+title)
         speak("Yeah, looks OK, but I'm not gonna save it anywhere or anything :)")
-        //speak("Is this right? "+dates(0)+" -- "+title)
         //events + (dates(0).replaceAll("[/. ]","_"), title+" "+URLs.mkString(" "))
       }
     } else if(message.startsWith("@events")) {
@@ -766,7 +766,7 @@ final class haibot extends PircBot {
       for(nick <- mentions) {
         if(nick == this.name) {
           val servertime = withAlternative(
-            getSinceZeroString(("cat /proc/uptime".!!).trim.takeWhile(_ != '.').toInt),
+            getSinceZeroString(Seq("cat", "/proc/uptime").!!).trim.takeWhile(_ != '.').toInt),
             "who knows how long..")
 
           speak(c"{Well, } I['ve| have] been [in here|up|running|up and running|going] for $mytime {already|so far}, but my server has been running for $servertime{.}")
