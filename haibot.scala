@@ -766,7 +766,7 @@ final class haibot extends PircBot {
       for(nick <- mentions) {
         if(nick == this.name) {
           val servertime = withAlternative(
-            getSinceZeroString(Seq("cat", "/proc/uptime").!!).trim.takeWhile(_ != '.').toInt),
+            getSinceZeroString(Seq("cat", "/proc/uptime").!!.trim.takeWhile(_ != '.').toInt),
             "who knows how long..")
 
           speak(c"{Well, } I['ve| have] been [in here|up|running|up and running|going] for $mytime {already|so far}, but my server has been running for $servertime{.}")
