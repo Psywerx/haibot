@@ -77,6 +77,7 @@ object util {
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
   implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max}
 
+  //TODO: force utf8 for reading and writing  
   def getFile(name: String, allowFail: Boolean = false): List[String] = {
     try {
       val file = io.Source.fromFile(name)
@@ -322,7 +323,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   type Row = (String, String)
   private def rowToString(kv: Row) = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
   
-  def isKey(s: String): Boolean = s matches keyFormat
+  def isValidKey(s: String): Boolean = s matches keyFormat
   def replaceWith(kvs: Seq[Row]) { printToFile(file)(kvs.map(rowToString).mkString("\n")) }
   def ++=(kvs: Seq[Row]) { appendToFile(file) { kvs.map(rowToString).mkString("\n") } }
   def +=(k: String, v: String = null) { appendToFile(file)(rowToString((k, v))) }

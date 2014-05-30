@@ -83,8 +83,8 @@ final class haibot extends PircBot {
   var lastMsgs = List[String]()
   
   var twitterCheck = 0
-  val twitterCheckInterval = 7*60
-  def checkTwitter(force: Boolean = false) {
+  val twitterCheckInterval = 5*60
+  def checkTwitter(force: Boolean = false): Unit = synchronized {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       try {
         import sys.process._
@@ -144,8 +144,7 @@ final class haibot extends PircBot {
   }
   val messages = Store(folder+"msgs.db")
   // Fetch messages for nick and speak them
-  def speakMessages(nick: String): Unit = speakMessages(nick, false)
-  def speakMessages(nick: String, spoke: Boolean): Unit = {
+  def speakMessages(nick: String, spoke: Boolean, joined: Boolean): Unit = synchronized {
     val now = (new java.util.Date).getTime //TODO put into lib
     var hadMsgs = false
     var allMsgs = messages.toList
@@ -154,7 +153,12 @@ final class haibot extends PircBot {
       val (param, msg) = 
         (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1, s2)  => (s1, s2.tail) }
       
-      if((param == "onspeak" && spoke) || (param != "onspeak" && param.toLong <= now)) {
+      val params = param.split("[|]").toSet
+      val timeParams = withAlternative(params.filter { _ matches "[0-9]+" }.map{ _.toLong }, Set())
+      
+      if((params("onspeak") && spoke)
+      || (params("onjoin") && joined)
+      || (timeParams exists { _.toLong <= now })) {
         hadMsgs = true
         allMsgs = allMsgs.filterNot { _ == row }
         if(msg.startsWithAny("++", nick+"++"))
@@ -169,15 +173,15 @@ final class haibot extends PircBot {
   spawn {
     while(true) {
       if(this.isConnected) {
-        getUserList.foreach(speakMessages)
+        getUserList.foreach(user => speakMessages(user, spoke = false, joined = false))
       }
-      Thread.sleep(20*1000)
+      Thread.sleep(10*1000)
     }
   }
   
+  //TODO: keep note of this so you'll know who's who
   override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String) {
-    //TODO: keep note of this so you'll know who's who
-    //speakMessages(newNick)
+    speakMessages(newNick, spoke = false, joined = true)
   }
   
   var shutdown = false
@@ -208,7 +212,7 @@ final class haibot extends PircBot {
       startTime = now
       val users = getUserList
       if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
-      //users.foreach(speakMessages)
+      users.foreach(user => speakMessages(user, spoke = false, joined = true))
     } else {
       Thread.sleep(1000)
       if(sender.startsWith(owner) && 0.05.prob) speak(
@@ -217,13 +221,13 @@ final class haibot extends PircBot {
         c"hi, you{!}",
         c"I've missed you, $sender{.}")
 
-      //speakMessages(sender)
+      speakMessages(sender, spoke = false, joined = true)
       joinTimes(sender.toLowerCase) = now
     }
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String) {
-    speakMessages(sender, spoke = true)
+    speakMessages(sender, spoke = true, joined = false)
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
@@ -633,46 +637,50 @@ final class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@(msg|tell|ask|onspeak)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
+    val msgReg = """@(msg|tell|ask|onmsg|onspeak|onjoin)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
     if(message matches msgReg.toString) {
       message match {
         case msgReg(command, rawParam, rawNicks, rawMsg) =>
-          //TODO: add other params, like onactive, etc.
-          val param = 
-            if(command == "onspeak" || (rawParam != null && rawParam.toLowerCase == "onspeak")) Some("onspeak") 
-            else Time.getFutureDates(rawParam).lastOption.map { _.getTime.toString }
-          val paramGet = param.getOrElse((new java.util.Date).getTime.toString)
-
-          //TODO: notes to self - don't say 'him', say 'you', etc.
-          //TODO: @msg(5am) xxx ... if xxx is online msg might be wrong
+        
+          //TODO: sms
+          val defaultParam = "onspeak|onjoin"
+          def getParam(default: String = defaultParam): String = {
+            val commandLower = command.toLowerCase.replaceAll("onmsg", "onspeak")
+            val rawParamLower = withAlternative(rawParam.toLowerCase.replaceAll("onmsg", "onspeak"), null)
+            
+            if((commandLower == "onspeak") 
+            || (commandLower == "onjoin")) commandLower
+            else if(rawParamLower != null) {
+              if((rawParamLower == "onspeak")
+              || (rawParamLower == "onjoin")
+              || (rawParamLower.split("|").toSet == Set("onjoin", "onspeak"))) rawParamLower
+              else Time.getFutureDates(rawParam).lastOption.map(_.getTime.toString) getOrElse default
+            } else default
+          }
 
           val msg = rawMsg.trim
           //TODO: possible bug if name and name++ are both present, and probably others ;)
           var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
           var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
           nicks = nicks.map(_.replaceAll("[+]", ""))
-          val isHere = if(param.isDefined) Set[String]() else nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
-          val errNicks = nicks.filter(nick => !messages.isKey(nick))
-          val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
-          toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
-          val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty)
+          val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
+          val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
+          val watNicks = (if(!(getParam() matches "[0-9]+") && (isHere contains this.name) || (isHere contains sender)) (Set(this.name, sender) & isHere) else Set.empty[String])
+          val toMsgNicks = ((nicks &~ errNicks) &~ watNicks)
+          toPlusNicks = (toPlusNicks &~ errNicks)
+          val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks
           
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
           def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
           def sForm(nicks: Set[String]): String = if(nicks.size == 1) "s" else "" // he find(s)
           //def multiForm(nicks: Set[String]): String = if(nicks.size == 1) "" else "s" // boy(s)
           
-          if(isHere.nonEmpty) {
-            if((isHere contains this.name) || (isHere contains sender)) { //TODO: case bug
-              speak(
-                "wat.",
-                "Oh, you...",
-                if(sender.isBot) "Knock it off, bro!" else "Knock it off, meatbag!",
-                Memes.it_was_you,
-                Memes.NO_U)
-            } else {
-              speak((if(sender.isGirl) "woman, " else "dude, ")+isHere.mkString(", ")+(if(isHere.size == 1) " is " else " are ")+(if(isHere.size == nicks.size) "all " else "")+"right here...")
-            }
+          if(watNicks.nonEmpty) {
+            speak(
+              "wat.",
+              "Oh, you...",
+              Memes.it_was_you,
+              Memes.NO_U)
           }
           if(errNicks.nonEmpty) {
             speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
@@ -683,8 +691,8 @@ final class haibot extends PircBot {
           if(toMsgNicks.nonEmpty) {
             var anyMsg = false
             for(nick <- toMsgNicks) {
-              val (timeStamp, finalMsg) = (paramGet, (if(toPlusNicks contains nick) "++ " else "") + msg)
-              val toMsg = timeStamp + "," + finalMsg
+              val (param, finalMsg) = (getParam(), (if(toPlusNicks contains nick) "++ " else "") + msg)
+              val toMsg = param + "," + finalMsg
               if(finalMsg.nonEmpty) {
                 anyMsg = true
                 messages += (nick.toLowerCase, toMsg)
