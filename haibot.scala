@@ -653,7 +653,7 @@ final class haibot extends PircBot {
             else if(rawParamLower != null) {
               if((rawParamLower == "onspeak")
               || (rawParamLower == "onjoin")
-              || (rawParamLower.split("|").toSet == Set("onjoin", "onspeak"))) rawParamLower
+              || (rawParamLower.split("[|]").toSet == Set("onjoin", "onspeak"))) rawParamLower
               else Time.getFutureDates(rawParam).lastOption.map(_.getTime.toString) getOrElse default
             } else default
           }
