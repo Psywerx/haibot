@@ -18,7 +18,8 @@ grant {
   permission java.lang.RuntimePermission "accessClassInPackage.sun.security.util";
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
   permission java.lang.RuntimePermission "modifyThread";
-  permission java.lang.RuntimePermission "stopThread";
+
+  permission java.lang.RuntimePermission "exitVM.0";
 
   permission java.net.SocketPermission "*", "connect,resolve";
 };

@@ -142,21 +142,28 @@ final class haibot extends PircBot {
     Thread.sleep((777 + nextInt(777*2)).toLong)
     speakNow(msgs: _*)
   }
-  val msgs = Store(folder+"msgs.db")
+  val messages = Store(folder+"msgs.db")
   // Fetch messages for nick and speak them
-  def speakMessages(nick: String) {
+  def speakMessages(nick: String): Unit = speakMessages(nick, false)
+  def speakMessages(nick: String, spoke: Boolean): Unit = {
     val now = (new java.util.Date).getTime //TODO put into lib
-    for(rawMsg <- msgs ?- nick.toLowerCase) {
-      val (param, msg) = (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1,s2) => (s1.toLong, s2.tail) }
-      if(param > now) {
-        msgs += (nick.toLowerCase, param + "," + msg)
-      } else {
+    var hadMsgs = false
+    var allMsgs = messages.toList
+    val msgs = allMsgs.filter { _._1 == nick.toLowerCase }
+    for(row @ (_nick, rawMsg) <- msgs) {
+      val (param, msg) = 
+        (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1, s2)  => (s1, s2.tail) }
+      
+      if((param == "onspeak" && spoke) || (param != "onspeak" && param.toLong <= now)) {
+        hadMsgs = true
+        allMsgs = allMsgs.filterNot { _ == row }
         if(msg.startsWithAny("++", nick+"++"))
           speak(nick+"++" + msg.dropWhile(_ != '+').drop(2))
         else
           speak(nick+": "+msg)
       }
     }
+    if(hadMsgs) messages replaceWith allMsgs
   }
   
   spawn {
@@ -216,12 +223,13 @@ final class haibot extends PircBot {
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String) {
+    speakMessages(sender, spoke = true)
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
     val users = getUserList
     //TODO: @nick nick. <- get the proper regex here
-    val mentions = message.replaceAll("[,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
+    val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
     lazy val URLsWords = 
@@ -449,7 +457,6 @@ final class haibot extends PircBot {
         
         var successResponses = List("Retweeted it!", "It's done", "It is done.", "I retweeted the tweet out of that tweet.")
 
-        //TODO: cleanup on aisle 5 *ding ding*
         //try facebook too
         import sys.process._
         val tweetDetails = withAlternative(
@@ -631,10 +638,11 @@ final class haibot extends PircBot {
       message match {
         case msgReg(rawParam, rawNicks, rawMsg) =>
           //TODO: add other params, like onactive, etc.
-          val param = Time.getFutureDates(rawParam).lastOption
-          val paramGet = param.getOrElse(new java.util.Date).getTime.toString
+          val param = if(rawParam != null && rawParam.toLowerCase == "onspeak") Some("onspeak") else Time.getFutureDates(rawParam).lastOption.map { _.getTime.toString }
+          val paramGet = param.getOrElse((new java.util.Date).getTime.toString)
 
           //TODO: notes to self - don't say 'him', say 'you', etc.
+          //TODO: @msg(5am) xxx ... if xxx is online msg might be wrong
 
           val msg = rawMsg.trim
           //TODO: possible bug if name and name++ are both present, and probably others ;)
@@ -642,7 +650,7 @@ final class haibot extends PircBot {
           var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
           nicks = nicks.map(_.replaceAll("[+]", ""))
           val isHere = if(param.isDefined) Set[String]() else nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
-          val errNicks = nicks.filter(nick => !msgs.isKey(nick))
+          val errNicks = nicks.filter(nick => !messages.isKey(nick))
           val toMsgNicks = ((nicks &~ isHere) &~ errNicks)
           toPlusNicks = ((toPlusNicks &~ isHere) &~ errNicks)
           val dontMsgNicks = errNicks ++ isHere ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty)
@@ -677,7 +685,7 @@ final class haibot extends PircBot {
               val toMsg = timeStamp + "," + finalMsg
               if(finalMsg.nonEmpty) {
                 anyMsg = true
-                msgs += (nick.toLowerCase, toMsg)
+                messages += (nick.toLowerCase, toMsg)
               }
             }
             

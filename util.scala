@@ -317,13 +317,19 @@ object Net {
 final object Store { def apply(file: String): Store = new Store(file) }
 final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
-  import util.{getFile, appendToFile}
+  import util.{getFile, appendToFile, printToFile}
+  
+  type Row = (String, String)
+  private def rowToString(kv: Row) = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
   
   def isKey(s: String): Boolean = s matches keyFormat
-  def +=(k: String, v: String = null) { appendToFile(file) { if(v != null) k+" "+v else k } }
+  def replaceWith(kvs: Seq[Row]) { printToFile(file)(kvs.map(rowToString).mkString("\n")) }
+  def ++=(kvs: Seq[Row]) { appendToFile(file) { kvs.map(rowToString).mkString("\n") } }
+  def +=(k: String, v: String = null) { appendToFile(file)(rowToString((k, v))) }
+  def +=(r: Row) { appendToFile(file) { rowToString(r) } }
   def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
   def ?(k: String): List[String] = getFile(file, allowFail = true) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
-  def *(): List[(String, String)] = 
+  def *(): List[Row] = 
     getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(' ')
       if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
