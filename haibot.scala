@@ -633,12 +633,14 @@ final class haibot extends PircBot {
       }
     }
     
-    val msgReg = """@(?:msg|tell|ask)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
+    val msgReg = """@(msg|tell|ask|onspeak)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
     if(message matches msgReg.toString) {
       message match {
-        case msgReg(rawParam, rawNicks, rawMsg) =>
+        case msgReg(command, rawParam, rawNicks, rawMsg) =>
           //TODO: add other params, like onactive, etc.
-          val param = if(rawParam != null && rawParam.toLowerCase == "onspeak") Some("onspeak") else Time.getFutureDates(rawParam).lastOption.map { _.getTime.toString }
+          val param = 
+            if(command == "onspeak" || (rawParam != null && rawParam.toLowerCase == "onspeak")) Some("onspeak") 
+            else Time.getFutureDates(rawParam).lastOption.map { _.getTime.toString }
           val paramGet = param.getOrElse((new java.util.Date).getTime.toString)
 
           //TODO: notes to self - don't say 'him', say 'you', etc.
