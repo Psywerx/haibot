@@ -14,17 +14,21 @@ grant {
   permission java.util.PropertyPermission "scala.time", "read";
   permission java.util.PropertyPermission "line.separator", "read";  
 
-  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
-  permission java.lang.RuntimePermission "accessClassInPackage.sun.security.util";
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
   permission java.lang.RuntimePermission "modifyThread";
 
   permission java.lang.RuntimePermission "exitVM.0";
 
-  permission java.net.SocketPermission "*", "connect,resolve";
-};
-
-// Can't figure out what causes "SunTlsRsaPremasterSecret KeyGenerator not available", so there
-grant codeBase "file:${java.home}/-" {
-  permission java.security.AllPermission;
+  // base64
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
+  // https
+  permission java.security.SecurityPermission "putProviderProperty.SunJCE", "";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.security.*", "";
+  permission java.lang.RuntimePermission "loadLibrary.j2pkcs11", "";
+  permission java.io.FilePermission "${java.home}/jre/lib/ext/-", "read";
+  permission java.security.SecurityPermission "putProviderProperty.SunPKCS11-NSS", "";
+  // freenode
+  permission java.net.SocketPermission "*:6665-8080", "connect,resolve";
+  permission java.net.SocketPermission "*:80", "connect,resolve";
+  permission java.net.SocketPermission "*:443", "connect,resolve";
 };
