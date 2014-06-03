@@ -640,6 +640,9 @@ final class haibot extends PircBot {
     val msgReg = """@(msg|tell|ask|onmsg|onspeak|onjoin)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r //@msg
     if(message matches msgReg.toString) {
       message match {
+        case msgReg(command, rawParam, rawNicks, rawMsg) if (command == "ask") && !(rawMsg contains "?") =>
+          speak("That's not a question... try again ;)")
+          
         case msgReg(command, rawParam, rawNicks, rawMsg) =>
         
           //TODO: sms
