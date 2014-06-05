@@ -18,13 +18,14 @@ final class haibot extends PircBot {
   val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
   
   val config = Store(".config").toMap
-  val (folder,login,name,chan,serv,port,pass,owner) = (
+  val (folder,login,name,chan,serv,ssl,port,pass,owner) = (
     config("folder"),
     config("login"),
     config("name"),
     config("chan"),
     config("serv"),
-    config("port", "6667"),
+    config("ssl", "false").toBoolean,
+    config("port", "6667").toInt,
     config("pass", null),
     config("owner")) //owner prefix actually
   
@@ -36,7 +37,11 @@ final class haibot extends PircBot {
     var connected = true
     do {
       try {
-        this.connect(serv, port.toInt, pass) 
+        // pircbot
+        //this.connect(serv, port.toInt, pass)
+        // pircbot-ssl
+        val sslFactory = if(ssl) new TrustingSSLSocketFactory else null
+        this.connect(serv, port, pass, sslFactory)
       } catch {
         case e: Exception => //TODO: this "reconnect" is untested
           this.disconnect()

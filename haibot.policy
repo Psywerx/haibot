@@ -31,4 +31,7 @@ grant {
   permission java.net.SocketPermission "*:6665-8080", "connect,resolve";
   permission java.net.SocketPermission "*:80", "connect,resolve";
   permission java.net.SocketPermission "*:443", "connect,resolve";
+  // pircbot-ssl
+  permission java.security.SecurityPermission "insertProvider.SunJSSE", "";
+  permission java.util.PropertyPermission "java.protocol.handler.pkgs", "write";
 };

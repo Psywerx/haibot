@@ -7,18 +7,23 @@ cp="."
 
 #pircbot
 pb="pircbot-1.5.0"
-if [ ! -e "lib/$pb/pircbot.jar" ]; then
-  echo "trying to get $pb"
-  mkdir lib &> /dev/null
-  cd lib
-  wget http://www.jibble.org/files/$pb.zip &> /dev/null
-  unzip $pb.zip &> /dev/null
-  rm $pb.zip &> /dev/null
-  cd ..
-  [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit
-  echo "successfully got $pb"
+if [ -e "lib/${pb}-ssl.jar" ]; then
+  cp+=":lib/${pb}-ssl.jar"
+else
+  echo "warning: using non-ssl pircbot"
+  if [ ! -e "lib/$pb/pircbot.jar" ]; then
+    echo "trying to get $pb"
+    mkdir lib &> /dev/null
+    cd lib
+    wget http://www.jibble.org/files/$pb.zip &> /dev/null
+    unzip $pb.zip &> /dev/null
+    rm $pb.zip &> /dev/null
+    cd ..
+    [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit
+    echo "successfully got $pb"
+  fi
+  cp+=":lib/$pb/pircbot.jar"
 fi
-cp+=":lib/$pb/pircbot.jar"
 
 #zemanta
 zem="zemapi"
@@ -124,15 +129,18 @@ compile() {
 }
 
 run() {
-  runcmd="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp org.psywerx.$bot"
+  botname="org.psywerx.$bot"
+  runsecure="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp"
+  rununsecure="scala -cp $cp"
   case "$args" in
-    -c) echo "not gonna run $bot...";;
-    -d) echo "making docs..." && scaladoc -d $docdir -cp $cp *.scala;;
+    -c)  echo "not gonna run $bot...";;
+    -d)  echo "making docs..." && scaladoc -d $docdir -cp $cp *.scala;;
     -fb) echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
-    -us) echo "dropping into scala console" && scala -cp $cp;;
-    -s) echo "dropping into scala console" && scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp;;
-    -f) echo "running $bot..." && $runcmd;;
-     *) echo "putting $bot into background..." && { $runcmd &>> $logdir/$bot.log & }
+    -s)  echo "dropping into scala console" && $runsecure;;
+    -us) echo "dropping into unsecure scala console" && $rununsecure;;
+    -f)  echo "running $bot..." && $runsecure $botname;;
+    -uf) echo "running $bot unsecurely..." && $rununsecure $botname;;
+     *)  echo "putting $bot into background..." && { $runsecure $botname &>> $logdir/$bot.log & }
   esac
 }
 
