@@ -119,21 +119,27 @@ final class haibot extends PircBot {
   }
   
   //TODO: this is horrible and error-prone
-  var tweetScore = Set[String]()
-  var tweetPlsScore = Set[String]()
-  var tweetNegScore = Set[String]()
+  var tweetScore = Set.empty[String]
+  var tweetPlsScore = Set.empty[String]
+  var tweetNegScore = Set.empty[String]
   var tweetMsg = ""
   var tweetId = ""
   var tweetLim = 2
-  var tweetNames = Set[String]()
+  var tweetNames = Set.empty[String]
 
-  var userList = Set[String]()
+  val userList_ = mutable.Set.empty[String]
   def getUserList: Set[String] = {
-    if(since(userList) > 5) {
-      userList = getUsers(chan).map(_.getNick).toSet
+    if(since(userList_) > 5) {
+      setUserList(getUsers(chan))
     }
     
-    userList
+    userList_.toSet
+  }
+  def setUserList(users: Array[User]) = userList_.synchronized {
+    val users_ = if(users == null) Array[User]() else users
+    userList_.clear
+    userList_ ++= users_.map(_.getNick)
+    since(userList_) // since also sets the timer
   }
   
   var lastMsg = ""
@@ -177,10 +183,10 @@ final class haibot extends PircBot {
   
   spawn {
     while(true) {
+      Thread.sleep(10*1000)
       if(this.isConnected) {
         getUserList.foreach(user => speakMessages(user, spoke = false, joined = false))
       }
-      Thread.sleep(10*1000)
     }
   }
   
@@ -212,12 +218,8 @@ final class haibot extends PircBot {
   }
 
   override def onJoin(channel: String, sender: String, login: String, hostname: String) {
-    if(sender == this.name) spawn { //why spawn a new thread here? because pircbot doesn't have user info here yet, but does immediately after
-      Thread.sleep(2000)
+    if(sender == this.name) {
       startTime = now
-      val users = getUserList
-      if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
-      users.foreach(user => speakMessages(user, spoke = false, joined = true))
     } else {
       Thread.sleep(1000)
       if(sender.startsWith(owner) && 0.05.prob) speak(
@@ -229,6 +231,12 @@ final class haibot extends PircBot {
       speakMessages(sender, spoke = false, joined = true)
       joinTimes(sender.toLowerCase) = now
     }
+  }
+  override def onUserList(channel: String, users: Array[User]) {
+    setUserList(users)
+    val userList = getUserList
+    if(userList.size > 1) speak("o hai!", if(userList.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
+    userList.foreach(user => speakMessages(user, spoke = false, joined = true))
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String) {

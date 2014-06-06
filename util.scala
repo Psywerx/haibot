@@ -212,9 +212,10 @@ object Time {
   }
   private val sinceTimes = mutable.HashMap[Int,Int]()
   def since(timeRef: AnyRef): Int = {
-    val time = sinceTimes.getOrElseUpdate(timeRef.hashCode, 0)
+    val hash = timeRef.hashCode
+    val time = sinceTimes.getOrElseUpdate(hash, 0)
     val nowTime = now
-    sinceTimes(timeRef.hashCode) = nowTime
+    sinceTimes(hash) = nowTime
     
     nowTime-time
   }
