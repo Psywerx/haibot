@@ -1,0 +1,55 @@
+# Last Modified: Mon Jun  9 14:23:56 2014
+#include <tunables/global>
+
+/home/hairy/dev/haibot/runbot {
+  #include <abstractions/base>
+  #include <abstractions/bash>
+
+  network inet,
+  network inet6,
+
+  / r,
+  /bin/* rix,
+  /usr/bin/* rix,
+  /usr/local/bin/* rix,
+  /usr/local/lib/** mr,
+  /usr/lib/** mr,
+  /usr/lib/jvm/** rix,
+  /dev/tty rw,
+  /etc/** r,
+  /lib/** r,
+  /tmp/** rw,
+  /usr/share/** r,
+  /proc/uptime r,
+  /proc/*/fd/ r,
+  /proc/*/net/** r,
+  /proc/*/coredump_filter rw,
+  /sys/devices/system/cpu/ r,  
+  /run/resolvconf/* r,
+
+  /**/haibot/ rw,
+  /**/haibot/** rw,
+  
+  /home/*/.fbcmd/ rw,
+  /home/*/.fbcmd/** rw,
+  /home/*/.trc rw,
+  
+  # Scala
+  /home/*/bin/scala*/** rix,
+  
+  # Findbugs
+  /home/*/bin/findbugs*/** rix,
+  /home/*/.findbugs/plugin/ r,
+  /home/*/.findbugs/plugin/*.jar r,
+  /home/hairy/.java/** rwk,
+  /home/hairy/.cache/fontconfig/** rw,
+  /var/cache/fontconfig/** rw,
+
+  # Scala REPL
+  /home/*/.inputrc r,
+  /home/*/.scala_history rw,
+  
+  # Linter
+  /home/**/linter*.jar r,
+  
+}
