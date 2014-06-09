@@ -1,7 +1,7 @@
 # Last Modified: Mon Jun  9 14:23:56 2014
 #include <tunables/global>
 
-/home/hairy/dev/haibot/runbot {
+/home/haibot/dev/haibot/runbot {
   #include <abstractions/base>
   #include <abstractions/bash>
 
@@ -21,18 +21,21 @@
   /tmp/** rw,
   /usr/share/** r,
   /proc/uptime r,
+  /proc/*/ r,
   /proc/*/fd/ r,
   /proc/*/net/** r,
   /proc/*/coredump_filter rw,
   /sys/devices/system/cpu/ r,  
   /run/resolvconf/* r,
 
-  /**/haibot/ rw,
-  /**/haibot/** rw,
+  /home/**/haibot/ rw,
+  /home/**/haibot/** rw,
   
   /home/*/.fbcmd/ rw,
   /home/*/.fbcmd/** rw,
+  /var/lib/php5/* krw,
   /home/*/.trc rw,
+  /var/lib/gems/** mr,
   
   # Scala
   /home/*/bin/scala*/** rix,
