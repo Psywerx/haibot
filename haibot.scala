@@ -78,11 +78,11 @@ final class haibot extends PircBot {
   def trusted = getFile(folder+"trusted.db", allowFail = true).map(_.cleanNick).toSet
   def bots = getFile(folder+"bots.db", allowFail = true).map(_.cleanNick).toSet
   
-  implicit class IrcString(val s: String) { 
+  implicit class IRCString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$","")
-    def isGirl = girls.contains(s.cleanNick)
-    def isTrusted = trusted.contains(s.cleanNick)
-    def isBot = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
+    def isGirl: Boolean = girls.contains(s.cleanNick)
+    def isTrusted: Boolean = trusted.contains(s.cleanNick)
+    def isBot: Boolean = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
   }
   
   var lastMsgs = List[String]()
@@ -118,7 +118,7 @@ final class haibot extends PircBot {
     }
   }
   
-  //TODO: this is horrible and error-prone
+  //TODO: this is horrible and error-prone, make class
   var tweetScore = Set.empty[String]
   var tweetPlsScore = Set.empty[String]
   var tweetNegScore = Set.empty[String]
@@ -135,21 +135,22 @@ final class haibot extends PircBot {
     
     userList_.toSet
   }
-  def setUserList(users: Array[User]) = userList_.synchronized {
+  def setUserList(users: Array[User]): Unit = userList_.synchronized {
     val users_ = if(users == null) Array[User]() else users
     userList_.clear
     userList_ ++= users_.map(_.getNick)
     since(userList_) // since also sets the timer
   }
   
-  var lastMsg = ""
-  def speakNow(msgs: String*) {
-    for(newMsg <- (msgs.toBuffer - lastMsg).randomOption.orElse(Some(lastMsg))) {
+  var lastMsg_ = ""
+  def speakNow(msgs: String*): Unit = {
+    if(msgs.nonEmpty) {
+      val newMsg = (msgs.toBuffer - lastMsg_).randomOption.getOrElse(lastMsg_)
       sendMessage(chan, newMsg)
-      lastMsg = newMsg
+      lastMsg_ = newMsg
     }
   }
-  def speak(msgs: String*) {
+  def speak(msgs: String*): Unit = {
     Thread.sleep((777 + nextInt(777*2)).toLong)
     speakNow(msgs: _*)
   }
@@ -181,7 +182,7 @@ final class haibot extends PircBot {
     if(hadMsgs) messages replaceWith allMsgs
   }
   
-  spawn {
+  thread {
     while(true) {
       Thread.sleep(10*1000)
       if(this.isConnected) {
@@ -191,12 +192,12 @@ final class haibot extends PircBot {
   }
   
   //TODO: keep note of this so you'll know who's who
-  override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String) {
+  override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
     speakMessages(newNick, spoke = false, joined = true)
   }
   
   var shutdown = false
-  override def onDisconnect() {
+  override def onDisconnect(): Unit = {
     println("onDisconnect: event triggered.")
     var backoff = 5000L
     while(!this.isConnected && !shutdown) {
@@ -217,29 +218,30 @@ final class haibot extends PircBot {
     }
   }
 
-  override def onJoin(channel: String, sender: String, login: String, hostname: String) {
+  override def onJoin(channel: String, sender: String, login: String, hostname: String): Unit = {
     if(sender == this.name) {
       startTime = now
     } else {
       Thread.sleep(1000)
-      if(sender.startsWith(owner) && 0.05.prob) speak(
-        c"welcome, father{!|.}",
-        c"welcome back{!|.}",
-        c"hi, you{!}",
-        c"I've missed you, $sender{.}")
+      if(sender.startsWith(owner) && 0.05.prob) 
+        speak(
+          c"welcome, father{!|.}",
+          c"welcome back{!|.}",
+          c"hi, you{!}",
+          c"I've missed you, $sender{.}")
 
       speakMessages(sender, spoke = false, joined = true)
       joinTimes(sender.toLowerCase) = now
     }
   }
-  override def onUserList(channel: String, users: Array[User]) {
+  override def onUserList(channel: String, users: Array[User]): Unit = {
     setUserList(users)
     val userList = getUserList
     if(userList.size > 1) speak("o hai!", if(userList.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
     userList.foreach(user => speakMessages(user, spoke = false, joined = true))
   }
 
-  override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String) {
+  override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String): Unit = {
     speakMessages(sender, spoke = true, joined = false)
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
@@ -349,7 +351,7 @@ final class haibot extends PircBot {
       speak("meh.")
     
     // ex aww_bot
-    } else if(URLs.nonEmpty) spawn {
+    } else if(URLs.nonEmpty) thread {
       val words = URLsWords.map(_.toLowerCase).toSet
        
       if((((awwwBag & words).size - (noawwwBag & words).size)*0.2).prob) {
@@ -645,7 +647,7 @@ final class haibot extends PircBot {
         if(since(lastSMSTime) < smsCoolDown) {
           speak(c"Wait {a bit|somewhat} longer before sending [another|the next] [message|sms|msg]{, please}{.}")
           lastSMSTime = now
-        } else spawn {
+        } else thread {
           println("Sending sms: "+nums(name.toLowerCase)+" "+msg)
           val response = novatel.sendSMS(number = nums(name.toLowerCase), msg = sms.trim)
           println("Response sms: "+response)
@@ -771,7 +773,7 @@ final class haibot extends PircBot {
     } else if(message.startsWithAny("@reword ", "@rephrase ")) {
       val toReword = message.dropWhile(_ != ' ').tail
       var rephrased = wordnet.rephrase(toReword)
-      def isRepost: Boolean = (rephrased == toReword || rephrased == lastMsg)
+      def isRepost: Boolean = (rephrased == toReword || rephrased == lastMsg_)
 
       var maxIters = 5
       while(maxIters > 0 && isRepost) {
@@ -780,7 +782,7 @@ final class haibot extends PircBot {
       }
 
       speak(if(isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if(message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) spawn {
+    } else if(message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) thread {
       val text: String = recentContext
       
       println(text)
@@ -796,7 +798,7 @@ final class haibot extends PircBot {
             "I have no idea"+"."*0~3,
             "I don't know what this is about"+"."*0~3)
         } :_*)
-    } else if(message.startsWithAny("@suggest")) spawn {
+    } else if(message.startsWithAny("@suggest")) thread {
       val cntReg = """@suggest[(]([1-5])[)].*""".r
       val cnt = message match {
         case cntReg(count) => count.toInt
@@ -848,12 +850,12 @@ final class haibot extends PircBot {
     checkTwitter() 
 
     //last msgs
-    lastMsgs = lastMsgs :+ message
-    if(lastMsgs.size > 7) lastMsgs = lastMsgs.tail
+    lastMsgs :+= message
+    lastMsgs = lastMsgs.take(10)
   }
   
   val lastPrivateMessage = mutable.AnyRefMap[String, String]() withDefaultValue ""
-  def speakPriv(message: String, nick: String, msgs: String*) {
+  def speakPriv(message: String, nick: String, msgs: String*): Unit = {
     val nickClean = nick.replaceAll("[^a-zA-Z]", "") // TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
     appendToFile("logs/chat_"+nickClean+".log", allowFail = true)(nickClean+" "+message)
   
@@ -865,7 +867,7 @@ final class haibot extends PircBot {
     }
   }
 
-  override def onPrivateMessage(sender: String, login: String, hostname: String, message: String) {
+  override def onPrivateMessage(sender: String, login: String, hostname: String, message: String): Unit = {
     if(getUserList contains sender) message.makeEasy.replaceAll(
       "i'm" -> "i am", 
       "i've" -> "i have", 

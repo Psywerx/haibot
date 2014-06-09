@@ -16,13 +16,11 @@ object util {
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
 
-  def spawn(func: => Unit) {
+  def thread(func: => Unit): Unit =
     (new Thread(new Runnable {
-      def run() {
+      def run(): Unit =
         try { func } catch { case e: Exception => e.printStackTrace }
-      }
     })).start
-  }
   
   
   implicit class PimpString(val s: String) { 
@@ -42,7 +40,7 @@ object util {
       val memo = mutable.AnyRefMap[(List[Char], List[Char]), Int]()
       def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a,b),c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
-        if(memo.contains((s1,s2)) == false)
+        if(!memo.contains((s1,s2)))
           memo((s1,s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
@@ -322,7 +320,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   import util.{getFile, appendToFile, printToFile}
   
   type Row = (String, String)
-  private def rowToString(kv: Row) = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
+  private def rowToString(kv: Row): String = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
   
   def isValidKey(s: String): Boolean = s matches keyFormat
   def replaceWith(kvs: Seq[Row]) { printToFile(file)(kvs.map(rowToString).mkString("\n")) }
@@ -340,7 +338,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   def toList = *
   def toMap = *.toMap
 
-  def ?-(key: String) = {
+  def ?-(key: String): List[String] = {
     val out = ?(key)
     if(out.nonEmpty) this -= key
     out
