@@ -18,41 +18,45 @@
   /dev/tty rw,
   /etc/** r,
   /lib/** r,
-  /tmp/** rw,
+  /tmp/* rw,
   /usr/share/** r,
-  /proc/uptime r,
-  /proc/*/ r,
-  /proc/*/fd/ r,
-  /proc/*/net/** r,
-  /proc/*/coredump_filter rw,
+  @{PROC}/uptime r,
+  @{PROC}/[0-9]*/ r,
+  @{PROC}/[0-9]*/fd/ r,
+  @{PROC}/[0-9]*/net/** r,
+  @{PROC}/[0-9]*/coredump_filter rw,
   /sys/devices/system/cpu/ r,  
   /run/resolvconf/* r,
 
-  /home/**/haibot/ rw,
-  /home/**/haibot/** rw,
+  # haibot
+  @{HOME}/**/haibot/ rw,
+  @{HOME}/**/haibot/** rw,
   
-  /home/*/.fbcmd/ rw,
-  /home/*/.fbcmd/** rw,
+  # FBCMD
+  @{HOME}/.fbcmd/ rw,
+  @{HOME}/.fbcmd/** rw,
   /var/lib/php5/* krw,
-  /home/*/.trc rw,
+  # t
+  @{HOME}/.trc rw,
   /var/lib/gems/** mr,
   
   # Scala
-  /home/*/bin/scala*/** rix,
+  @{HOME}/bin/scala-*/** rix,
+  #/usr/bin/scala, rix,
   
   # Findbugs
-  /home/*/bin/findbugs*/** rix,
-  /home/*/.findbugs/plugin/ r,
-  /home/*/.findbugs/plugin/*.jar r,
-  /home/hairy/.java/** rwk,
-  /home/hairy/.cache/fontconfig/** rw,
-  /var/cache/fontconfig/** rw,
+  #@{HOME}/bin/findbugs*/** rix,
+  #@{HOME}/.findbugs/plugin/ r,
+  #@{HOME}/.findbugs/plugin/*.jar r,
+  #@{HOME}/.java/** rwk,
+  #@{HOME}/.cache/fontconfig/** rw,
+  #/var/cache/fontconfig/** rw,
 
   # Scala REPL
-  /home/*/.inputrc r,
-  /home/*/.scala_history rw,
+  #@{HOME}/.inputrc r,
+  #@{HOME}/.scala_history rw,
   
   # Linter
-  /home/**/linter*.jar r,
+  #@{HOME}/**/linter*.jar r,
   
 }
