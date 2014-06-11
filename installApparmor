@@ -3,5 +3,5 @@
 profname="/`pwd | tail -c +2`/runbot"
 profnamedot="`pwd | sed 's,/,.,g' | tail -c +2`.runbot"
 
-sudo cp haibot.apparmor /etc/apparmor.d/$profnamedot
+sed "s,HAIBOTPATH,$profname,g" haibot.apparmor | sudo tee /etc/apparmor.d/$profnamedot
 sudo aa-enforce $profname

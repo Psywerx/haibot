@@ -1,56 +1,55 @@
-# Last Modified: Mon Jun  9 14:23:56 2014
 #include <tunables/global>
 
-/home/haibot/dev/haibot/runbot {
+HAIBOTPATH {
   #include <abstractions/base>
   #include <abstractions/bash>
 
   network inet,
   network inet6,
 
+  # TODO: recheck
   / r,
   /bin/* rix,
   /usr/bin/* rix,
-  /usr/local/bin/* rix,
-  /usr/local/lib/** mr,
   /usr/lib/** mr,
   /usr/lib/jvm/** rix,
   /dev/tty rw,
   /etc/** r,
   /lib/** r,
   /tmp/* rw,
+  /tmp/hsperfdata_** rw,
   /usr/share/** r,
   @{PROC}/uptime r,
   @{PROC}/[0-9]*/ r,
   @{PROC}/[0-9]*/fd/ r,
-  @{PROC}/[0-9]*/net/** r,
   @{PROC}/[0-9]*/coredump_filter rw,
+  @{PROC}/[0-9]*/net/** r,
+  @{PROC}/sys/net/** r,
   /sys/devices/system/cpu/ r,  
   /run/resolvconf/* r,
 
-  # haibot
+  # haibot TODO: refine
   @{HOME}/**/haibot/ rw,
   @{HOME}/**/haibot/** rw,
   
   # FBCMD
-  @{HOME}/.fbcmd/ rw,
+  /usr/local/bin/fbcmd rix,
+  @{HOME}/.fbcmd/ r,
   @{HOME}/.fbcmd/** rw,
   /var/lib/php5/* krw,
+  /usr/local/lib/** mr,
   # t
-  @{HOME}/.trc rw,
+  @{HOME}/.trc r,
   /var/lib/gems/** mr,
+  # FBCMD, t
+  /usr/local/bin/t rix,
   
   # Scala
   @{HOME}/bin/scala-*/** rix,
   #/usr/bin/scala, rix,
   
   # Findbugs
-  #@{HOME}/bin/findbugs*/** rix,
-  #@{HOME}/.findbugs/plugin/ r,
-  #@{HOME}/.findbugs/plugin/*.jar r,
-  #@{HOME}/.java/** rwk,
-  #@{HOME}/.cache/fontconfig/** rw,
-  #/var/cache/fontconfig/** rw,
+  #@{HOME}/bin/findbugs-*/** rUx,
 
   # Scala REPL
   #@{HOME}/.inputrc r,
