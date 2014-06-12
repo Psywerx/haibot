@@ -9,7 +9,7 @@ class WordNet(folder: String) {
   //These take a while at startup...
   val (wn_sById, wn_sByWord) = {
     val wnFile = io.Source.fromFile(folder+"wn_s2.db")
-    val wn_sAll = wnFile.getLines.map(line => (line.take(9).toInt, line.drop(11).init.replaceAll("''","'"))).toList
+    val wn_sAll = wnFile.getLines.map(line => (line.take(9).toInt, line.drop(10).replace("''","'"))).toList
     wnFile.close()
     (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
   }

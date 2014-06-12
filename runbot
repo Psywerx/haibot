@@ -5,6 +5,8 @@ echo "Hai!"
 #classpath
 cp="."
 
+mkdir -p lib
+
 #pircbot
 pb="pircbot-1.5.0"
 if [ -e "lib/${pb}-ssl.jar" ]; then
@@ -13,7 +15,6 @@ else
   echo "warning: using non-ssl pircbot"
   if [ ! -e "lib/$pb/pircbot.jar" ]; then
     echo "trying to get $pb"
-    mkdir lib &> /dev/null
     cd lib
     wget http://www.jibble.org/files/$pb.zip &> /dev/null
     unzip $pb.zip &> /dev/null
@@ -29,16 +30,13 @@ fi
 zem="zemapi"
 if [ ! -e "lib/$zem/$zem-java.jar" ]; then
   echo "trying to get $zem"
-  mkdir lib &> /dev/null
-  cd lib
-  mkdir $zem &> /dev/null
-  cd $zem
+  mkdir -p lib/$zem
+  cd lib/$zem
   zemzip="zemapi-februar2012-java.zip"
   wget http://developer.zemanta.com/media/files/code/$zemzip &> /dev/null
   unzip $zemzip &> /dev/null
   rm $zemzip &> /dev/null
-  cd ..
-  cd ..
+  cd ../..
   [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit
   echo "successfully got $zem"
 fi
@@ -48,7 +46,6 @@ cp+=":lib/$zem/$zem-java.jar"
 bp="boilerpipe-1.2.0"
 if [ ! -e "lib/$bp/$bp.jar" ]; then
   echo "trying to get $bp"
-  mkdir lib &> /dev/null
   cd lib
   wget https://boilerpipe.googlecode.com/files/$bp-bin.tar.gz &> /dev/null
   tar xvzf $bp-bin.tar.gz &> /dev/null
@@ -63,25 +60,25 @@ cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.j
 wn="WNprolog-3.0"
 if [ ! -e "lib/WordNet/wn_s2.db" ]; then
   echo "trying to get $wn"
-  mkdir lib &> /dev/null
   cd lib
   wget http://wordnetcode.princeton.edu/3.0/$wn.tar.gz &> /dev/null
   tar xvzf $wn.tar.gz &> /dev/null
   rm $wn.tar.gz &> /dev/null
   if [ -e "prolog/wn_s.pl" ]; then
     cd prolog
-    #deleting stuff only because I have no space left on target machine :)
-    rm -f *.5 *.7 *.html *.pdf *.ps 
+    #deleting stuff because I have no space left on target machine :)
+    rm -f -- *.5 *.7 *.html *.pdf *.ps 
     #strip prolog syntax
-    echo "compressing $wn"
-    for db in *.pl; do
-      skip=$( echo `expr length $db`-6+2 | bc )
-      cat $db | cut -b $skip- | awk 'sub("..$", "")' > `basename $db .pl`.db
-      rm -f $db
-      if [ "$db" == "wn_s.pl" ]; then
-        cat wn_s.db | cut -d, -f 1,3 > wn_s2.db
-      fi
+    echo "converting $wn"
+    for pl in *.pl; do
+      skip=$( echo $(expr length "$pl")-6+2 | bc )
+      cut -b $skip- -- "$pl" | awk 'sub("..$", "")' > "$(basename "$pl" .pl).db"
+      rm -f -- "$pl"
     done
+    echo "compressing $wn"
+    cut -d, -f 1,3 wn_s.db > wn_s2.db
+    sed -i "s/,'/,/g" wn_s2.db
+    sed -i "s/'$//g" wn_s2.db
     # stoplist and weights - you might want to do better than touch :)
     touch stoplist weights
     cd ..
@@ -105,46 +102,48 @@ if [ ! -e "lib/$bitly.jar" ]; then
 fi
 cp+=":lib/$bitly.jar"
 
-if [ "`which t`" == "" ]; then echo "it might work anyway, if not, set up t - the twitter client."; fi
-if [ "`which fbcmd`" == "" ]; then echo "it might work anyway, if not, set up fbcmd - the facebook client."; fi
-if [ "`which tesseract`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install tesseract"; fi
-if [ "`which gocr`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install gocr"; fi
-if [ "`which ocrad`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install ocrad"; fi
-if [ "`which convert`" == "" ]; then echo "it might work anyway, if not, sudo apt-get install imagemagick"; fi
-
 args="$1"
 bot="haibot"
 outdir="bin"
 docdir="doc"
 cp+=":$outdir"
 logdir="logs"
-mkdir $logdir &> /dev/null
-mkdir $outdir &> /dev/null
+mkdir -p -- "$logdir"
+mkdir -p -- "$outdir"
+
+if [ "$(which t)"         == "" ]; then echo "$bot might work, if not, set up t - the twitter client."; fi
+if [ "$(which fbcmd)"     == "" ]; then echo "$bot might work, if not, set up fbcmd - the facebook client."; fi
+if [ "$(which tesseract)" == "" ]; then echo "$bot might work, if not, sudo apt-get install tesseract-ocr"; fi
+if [ "$(which gocr)"      == "" ]; then echo "$bot might work, if not, sudo apt-get install gocr"; fi
+if [ "$(which ocrad)"     == "" ]; then echo "$bot might work, if not, sudo apt-get install ocrad"; fi
+if [ "$(which convert)"   == "" ]; then echo "$bot might work, if not, sudo apt-get install imagemagick"; fi
 
 compile() {
   echo "compiling $bot"
-  rm -rf $outdir &> /dev/null
-  mkdir $outdir &> /dev/null
-  scalac $SCALA_PLUGINS `scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' '` -Xlint -feature -unchecked -optimize -d $outdir -cp $cp *.scala
+  rm -rf -- "$outdir" &> /dev/null
+  mkdir -p -- "$outdir"
+  local warnings=$(scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' ')
+  scalac $SCALA_PLUGINS $warnings -Xlint -feature -unchecked -optimize -d $outdir -cp $cp -- *.scala
 }
 
 run() {
-  botname="org.psywerx.$bot"
-  runsecure="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp"
-  rununsecure="scala -cp $cp"
+  local botname="org.psywerx.$bot"
+  local runsecure="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp"
+  local rununsecure="scala -cp $cp"
   case "$args" in
-    -c)  echo "not gonna run $bot...";;
-    -d)  echo "making docs..." && scaladoc -d $docdir -cp $cp *.scala;;
-    -fb) echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
-    -s)  echo "dropping into scala console" && $runsecure;;
-    -us) echo "dropping into unsecure scala console" && $rununsecure;;
-    -f)  echo "running $bot..." && $runsecure $botname;;
-    -uf) echo "running $bot unsecurely..." && $rununsecure $botname;;
-     *)  echo "putting $bot into background..." && { $runsecure $botname &>> $logdir/$bot.log & }
+    -c)   echo "not gonna run $bot...";;
+    -d)   echo "making docs..." && scaladoc -d $docdir -cp $cp -- *.scala;;
+    -fb)  echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
+    -s)   echo "dropping into scala console" && $runsecure;;
+    -us)  echo "dropping into unsecure scala console" && $rununsecure;;
+    -f)   echo "running $bot..." && $runsecure $botname;;
+    -uf)  echo "running $bot unsecurely..." && $rununsecure $botname;;
+    -nop) echo "doing nothing...";;
+    *)    echo "putting $bot into background..." && { $runsecure $botname &>> $logdir/$bot.log & }
   esac
 }
 
-if [[ $bot.scala -nt $outdir/org/psywerx/$bot.class ]] || [[ util.scala -nt $outdir/org/psywerx/util.class ]] || [[ OCR.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ "$args" == "-c" ]]; then
+if [[ "$args" == "-c" ]] || [[ $bot.scala -nt $outdir/org/psywerx/$bot.class ]] || [[ util.scala -nt $outdir/org/psywerx/util.class ]] || [[ OCR.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ WordNet.scala -nt $outdir/org/psywerx/WordNet.class ]]; then
   compile && run
 else
   run
