@@ -248,7 +248,7 @@ final class haibot extends PircBot {
     lazy val sentences = message.sentences
     val users = getUserList
     //TODO: @nick nick. <- get the proper regex here
-    val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replaceAll("_", "")))
+    val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
     lazy val URLsWords = 
@@ -600,7 +600,7 @@ final class haibot extends PircBot {
           var shortTweet = out
           for(url <- URLs) {
             val bitlyUrl = bitly.shorten(url)
-            if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url: CharSequence, bitlyUrl.get: CharSequence)
+            if(bitlyUrl.isDefined) shortTweet = shortTweet.replace(url, bitlyUrl.get)
           }
           println(s"Shortened tweet from ${out.size} to ${shortTweet.size}")
           out = shortTweet
@@ -682,8 +682,8 @@ final class haibot extends PircBot {
           //TODO: sms
           val defaultParam = "onspeak|onjoin"
           def getParam(default: String = defaultParam): String = {
-            val commandLower = command.toLowerCase.replaceAll("onmsg", "onspeak")
-            val rawParamLower = withAlternative(rawParam.toLowerCase.replaceAll("onmsg", "onspeak"), null)
+            val commandLower = command.toLowerCase.replace("onmsg", "onspeak")
+            val rawParamLower = withAlternative(rawParam.toLowerCase.replace("onmsg", "onspeak"), null)
             
             if((commandLower == "onspeak") 
             || (commandLower == "onjoin")) commandLower
