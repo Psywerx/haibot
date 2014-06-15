@@ -260,7 +260,7 @@ final class haibot extends PircBot {
       (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
         .replaceAll(Regex.URL.toString, "")
         .replaceAll("@[a-z]+[ ,:]", "")
-        .replaceAll("^[ .]+","")
+        .replaceAll("^[ .]+", "")
         .trim
     
       val (yes, no, maybe, meh, please, quit) = (
@@ -558,7 +558,7 @@ final class haibot extends PircBot {
           .drop("@follow ".length)
           .trim
           .replaceAll("(https?[:]//)?(www.)?twitter.com/", "")
-          .replaceAll("@","")
+          .replace("@","")
           .split(" ")
           .toSet
         

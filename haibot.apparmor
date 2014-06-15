@@ -49,11 +49,11 @@ HAIBOTPATH {
   #/usr/bin/scala, rix,
   
   # Findbugs
-  #@{HOME}/bin/findbugs-*/** rUx,
+  @{HOME}/bin/findbugs-*/** rUx,
 
   # Scala REPL
-  #@{HOME}/.inputrc r,
-  #@{HOME}/.scala_history rw,
+  @{HOME}/.inputrc r,
+  @{HOME}/.scala_history rw,
   
   # Linter
   #@{HOME}/**/linter*.jar r,
