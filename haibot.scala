@@ -699,8 +699,8 @@ final class haibot extends PircBot {
           val msg = rawMsg.trim
           //TODO: possible bug if name and name++ are both present, and probably others ;)
           var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
-          var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replaceAll("[+]", ""))
-          nicks = nicks.map(_.replaceAll("[+]", ""))
+          var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replace("+", ""))
+          nicks = nicks.map(_.replace("+", ""))
           val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
           val watNicks = (if(!(param matches "[0-9]+") && (isHere contains this.name) || (isHere contains sender)) (Set(this.name, sender) & isHere) else Set.empty[String])

@@ -50,18 +50,23 @@ final object Caption extends RegexParsers {
   }
   def quote = """[@][^@]*[@]""".r ^^ { g => g.drop(1).dropRight(1) }
   
-  def apply(s: String): String = (
-    parse((quote | ".".r)*, parse((group | groupMaybe | text | quote)*, s).get.mkString.replaceAll("\\s+", " ").trim).get.mkString.replaceAll("\\s+", " ").trim
-            .replaceAll("%%%pipe%%%", "|")
-            .replaceAll("%%%lbrack%%%", "[")
-            .replaceAll("%%%rbrack%%%", "]")
-            .replaceAll("%%%lbrace%%%", "{")
-            .replaceAll("%%%rbrace%%%", "}")
-  ).replaceAll(" ,", ",")
-   .replaceAll(" [.]", ".")
-   .replaceAll(" [!]", "!")
-   .replaceAll(" [?]", "?")
-   .trim
+  def apply(s: String): String = 
+    (parse(
+      (quote | ".".r)*, 
+      parse((group | groupMaybe | text | quote)*, s).get.mkString.replaceAll("\\s+", " ").trim)
+        .get.mkString
+        .replaceAll("\\s+", " ")
+        .trim
+        .replace("%%%pipe%%%",   "|")
+        .replace("%%%lbrack%%%", "[")
+        .replace("%%%rbrack%%%", "]")
+        .replace("%%%lbrace%%%", "{")
+        .replace("%%%rbrace%%%", "}"))
+      .replace(" ,", ",")
+      .replace(" .", ".")
+      .replace(" !", "!")
+      .replace(" ?", "?")
+      .trim
 
   // standard string interpolation + Caption parsing
   implicit class C(val sc: StringContext) extends AnyVal {
@@ -82,11 +87,11 @@ final object Caption extends RegexParsers {
       while (ai.hasNext) {
         val arg = 
           ai.next.toString
-            .replaceAll("[|]", "%%%pipe%%%")
-            .replaceAll("[\\[]", "%%%lbrack%%%")
-            .replaceAll("[\\]]", "%%%rbrack%%%")
-            .replaceAll("[{]", "%%%lbrace%%%")
-            .replaceAll("[}]", "%%%rbrace%%%")
+            .replace("|", "%%%pipe%%%")
+            .replace("[", "%%%lbrack%%%")
+            .replace("]", "%%%rbrack%%%")
+            .replace("{", "%%%lbrace%%%")
+            .replace("}", "%%%rbrace%%%")
             
         builder append ("@"+arg+"@")
         val part = pi.next()
