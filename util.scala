@@ -270,7 +270,7 @@ object Net {
       else
         null)
       
-    val tempFile = File.createTempFile("temp", ext)
+    val tempFile = File.createTempFile("tempdl_", ext)
     tempFile.deleteOnExit
     
     if(download(url, tempFile)) {
