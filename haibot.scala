@@ -186,7 +186,7 @@ final class haibot extends PircBot {
     while(true) {
       Thread.sleep(10*1000)
       if(this.isConnected) {
-        getUserList.foreach(user => speakMessages(user, spoke = false, joined = false))
+        for(user <- getUserList) speakMessages(user, spoke = false, joined = false)
       }
     }
   }
@@ -238,7 +238,7 @@ final class haibot extends PircBot {
     setUserList(users)
     val userList = getUserList
     if(userList.size > 1) speak("o hai!", if(userList.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
-    userList.foreach(user => speakMessages(user, spoke = false, joined = true))
+    for(user <- userList) speakMessages(user, spoke = false, joined = true)
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String): Unit = {
@@ -334,17 +334,17 @@ final class haibot extends PircBot {
         "having sex with "+sentences(0).substring(sentences(0).indexOf(' ')+1).trim+"?",
         "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(' ')+1).trim)
     } else if(msg.containsAny("but sex", "but fuck") && 0.7.prob) { 
-      speak(c"{has someone mentioned|did someone mention} butt sex?")
+      speak(c"[has someone mentioned|did someone mention] butt sex?")
     } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu", "jebi se") 
            &&((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
       speak(
         c"U MAD, BRO?{ :P}",
         Memes.NO_U,
         "NO U!",
-        "This wouldn't happen if you made us better"+"."*0~3,
-        "Yeah, blame it on the bots"+"."*0~3)
+        c"This wouldn't happen if you made us better{.}1-3",
+        c"Yeah, blame it on the bots{.}1-3")
     } else if(msg.containsAny(sheSaid: _*) && 0.66.prob) {
-      speak("that's what she said!")
+      speak("That's what she said!")
       
     // ex meh_bot
     } else if((((msgBag & mehBag).size-1)*0.15 - (msgBag & nomehBag).size*0.33).prob) {
@@ -661,7 +661,7 @@ final class haibot extends PircBot {
 
             lastSMSTime = now
           } else {
-            speak(c"{Hmm, }[weird|strange]... Novatel {server} says:"+" "+response)
+            speak(c"{Hmm, }[weird|strange]... Novatel {server} says: $response")
           }
         }
       } else {
@@ -795,8 +795,8 @@ final class haibot extends PircBot {
             c"It {could|might} be about $keywordStr.")
         } getOrElse {
           List(
-            "I have no idea"+"."*0~3,
-            "I don't know what this is about"+"."*0~3)
+            c"I have no idea{.}1-3",
+            c"I don't know what this is about{.}1-3")
         } :_*)
     } else if(message.startsWithAny("@suggest")) thread {
       val cntReg = """@suggest[(]([1-5])[)].*""".r
@@ -992,7 +992,7 @@ final class haibot extends PircBot {
             //    "Let's talk more about you being "+memNoun.get+".")
             //} else
             c"{Perhaps|Maybe} {you're right}",
-            "Let's change the topic"+"."*0~3,
+            c"Let's change the topic{.}1-3",
             //if(memVerb.isDefined) {
             //  speak(
             //    "Let's talk about "+memVerb.get+" some more.")

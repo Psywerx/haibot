@@ -17,7 +17,7 @@ HAIBOTPATH {
   /etc/** r,
   /lib/** r,
   /tmp/tempdl_* rw,
-  /tmp/ocr_* rw,
+  /tmp/ocr_*.pnm rw,
   /tmp/hsperfdata_** rw,
   /usr/share/** r,
   @{PROC}/uptime r,
