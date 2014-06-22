@@ -4,12 +4,12 @@ import scala.collection.mutable
 import org.psywerx.util._
 
 class WordNet(folder: String) {
-  //format is actually (id,word,type)... I should probably keep the type (noun, verb, ...)
+  //format is actually (id, word, type)... I should probably keep the type (noun, verb, ...)
   type wn_s = (Int, String)
   //These take a while at startup...
   val (wn_sById, wn_sByWord) = {
     val wnFile = io.Source.fromFile(folder+"wn_s2.db")
-    val wn_sAll = wnFile.getLines.map(line => (line.take(9).toInt, line.drop(10).replace("''","'"))).toList
+    val wn_sAll = wnFile.getLines.map(line => (line.take(9).toInt, line.drop(10).replace("''", "'"))).toList
     wnFile.close()
     (wn_sAll.groupBy(_._1).withDefaultValue(List[wn_s]()), wn_sAll.groupBy(_._2).withDefaultValue(List[wn_s]()))
   }
@@ -87,7 +87,7 @@ class WordNet(folder: String) {
       .groupBy(_._1).map(e => e._1 -> e._2.map(_._2)).withDefaultValue(List[Int]())
   }
       
-  val wnDbs = List("hyp","sim","ins","mm","ms","mp","at").map(db => db -> getMapFromwn(s"wn_$db.db")).toMap
+  val wnDbs = List("hyp", "sim", "ins", "mm", "ms", "mp", "at").map(db => db -> getMapFromwn(s"wn_$db.db")).toMap
   val stoplist = {
     val file = io.Source.fromFile(folder+"stoplist")
     val out = file.getLines.toSet
@@ -110,7 +110,7 @@ class WordNet(folder: String) {
       }
       
       val words = in.split(" ").toList flatMap {
-        case wordReg(prefix,word,suffix) => 
+        case wordReg(prefix, word, suffix) => 
           if(word.size >= 3) {
             preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>
               if(!stoplist.contains(w)) {

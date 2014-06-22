@@ -18,7 +18,7 @@ final class haibot extends PircBot {
   val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
   
   val config = Store(".config").toMap
-  val (folder,login,name,chan,serv,ssl,port,pass,owner) = (
+  val (folder, login, name, chan, serv, ssl, port, pass, owner) = (
     config("folder"),
     config("login"),
     config("name"),
@@ -79,7 +79,7 @@ final class haibot extends PircBot {
   def bots = getFile(folder+"bots.db", allowFail = true).map(_.cleanNick).toSet
   
   implicit class IRCString(val s: String) { 
-    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$","")
+    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
     def isGirl: Boolean = girls.contains(s.cleanNick)
     def isTrusted: Boolean = trusted.contains(s.cleanNick)
     def isBot: Boolean = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
@@ -255,7 +255,7 @@ final class haibot extends PircBot {
       URLsText
         .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
         .split("\\s")
-        .filter(_.length.isBetween(3,34))///"Supercalifragilisticexpialidocious".size
+        .filter(_.length.isBetween(3, 34))///"Supercalifragilisticexpialidocious".size
     lazy val recentContext = 
       (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
         .replaceAll(Regex.URL.toString, "")
@@ -264,9 +264,9 @@ final class haibot extends PircBot {
         .trim
     
       val (yes, no, maybe, meh, please, quit) = (
-          message.startsWithAny("@yes","@yep","@yea","@sure","@suer"),
+          message.startsWithAny("@yes", "@yep", "@yea", "@sure", "@suer"),
           message.startsWithAny("@no", "@nein", "@nah", "@nay"),
-          message.startsWithAny("@maybe","@perhaps"),
+          message.startsWithAny("@maybe", "@perhaps"),
           message.startsWithAny("@meh", "@whatever"),
           message.startsWithAny("@please"),
           message.startsWithAny("@leave "+name, "@quit "+name, "@gtfo "+name, "@die "+name))
@@ -328,7 +328,7 @@ final class haibot extends PircBot {
       // naughty part
     } else if(msg.contains("i need an adult") && 0.9.prob) { 
       speak(c"I am an adult{!}{!}{!}")
-    } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2,5) && 0.75.prob) { 
+    } else if(msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2, 5) && 0.75.prob) { 
       speak(
         "how does "+sentences(0).trim+" feel?",
         "having sex with "+sentences(0).substring(sentences(0).indexOf(' ')+1).trim+"?",
@@ -359,7 +359,7 @@ final class haibot extends PircBot {
           c"{d}[a]3[w]3-5{!}2",
           c"{lol, }{how }cute{!} [:)|^_^]",
           c"so{.} cute.",
-          if((words & Set("fluff","puff")).nonEmpty) Memes.so_fluffy else "aww!")
+          if((words & Set("fluff", "puff")).nonEmpty) Memes.so_fluffy else "aww!")
       }
     } else if(msg.containsAny("i jasn","wat"," how","how", "kako","ne vem","krneki") 
            &&(if(message contains "?") 0.6 else 0.4).prob) {
@@ -379,7 +379,7 @@ final class haibot extends PircBot {
           "use pathogen.",
           "have you tried using pathogen?",
           "did you try with pathogen?")
-      } else if(msg.containsAny(" ljud", " folk","people") && 0.5.prob) {
+      } else if(msg.containsAny(" ljud", " folk", "people") && 0.5.prob) {
         speak(c"{yeah,} people are [weird|strange]{, I guess}...")
       } else if((mentions contains this.name) && 0.9.prob) {
         speak(c"I can't tell if you're asking me, or asking about me.")
@@ -500,7 +500,7 @@ final class haibot extends PircBot {
             .map(line => line.splitAt("Screen name  ".length))
             .map(line => (line._1.trim, line._2))
             .toMap,
-          Map[String,String]()
+          Map.empty[String, String]
         ).withDefaultValue("")
         
         if(tweetDetails("Text") != "") {
@@ -509,11 +509,11 @@ final class haibot extends PircBot {
           // fbcmd 2.x
           val returnFacebook = 
             Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
-              "",                                     // Post Message
-              " "+tweetDetails("Screen name"),        // Post Name
-              "https://twitter.com/statuses/"+tweetId,// Post Link
-              "via Twitter",                          // Post Caption
-              " "+tweetDetails("Text")).!             // Post Description
+              "",                                      // Post Message
+              " "+tweetDetails("Screen name"),         // Post Name
+              "https://twitter.com/statuses/"+tweetId, // Post Link
+              "via Twitter",                           // Post Caption
+              " "+tweetDetails("Text")).!              // Post Description
           
           val screenName = tweetDetails("Screen name")
           if(screenName.nonEmpty) {
@@ -537,10 +537,10 @@ final class haibot extends PircBot {
         val facebookReturn = Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST", tweetMsg).!
         
         (twitterReturn, facebookReturn) match {
-          case (0,0) => speak(c"It['s| is| has been] [posted|done]{.}", c"I['ve| have] done as you requested", c"I{'ve} tweeted it{, and facebook'd it}{!}", "Posted it.")
-          case (0,_) => speak("Tweeted it, but facebooking failed!")
-          case (_,0) => speak("Facebook'd it, but tweeting failed!")
-          case (_,_) => speak("Failed to post anywhere :(")
+          case (0, 0) => speak(c"It['s| is| has been] [posted|done]{.}", c"I['ve| have] done as you requested", c"I{'ve} tweeted it{, and facebook'd it}{!}", "Posted it.")
+          case (0, _) => speak("Tweeted it, but facebooking failed!")
+          case (_, 0) => speak("Facebook'd it, but tweeting failed!")
+          case (_, _) => speak("Failed to post anywhere :(")
         }
 
         tweetScore = Set.empty
@@ -558,7 +558,7 @@ final class haibot extends PircBot {
           .drop("@follow ".length)
           .trim
           .replaceAll("(https?[:]//)?(www.)?twitter.com/", "")
-          .replace("@","")
+          .replace("@", "")
           .split(" ")
           .toSet
         
@@ -868,7 +868,7 @@ final class haibot extends PircBot {
   }
 
   override def onPrivateMessage(sender: String, login: String, hostname: String, message: String): Unit = {
-    if(getUserList contains sender) message.makeEasy.replaceAll(
+    if(getUserList contains sender) message.makeEasy.replace(
       "i'm" -> "i am", 
       "i've" -> "i have", 
       "i'll" -> "i will", 
@@ -884,12 +884,12 @@ final class haibot extends PircBot {
           "Hi. How are you?")
       case "i" :: "am" :: x => 
         if(x.nonEmpty && x.head.endsWith("ing")) { // doING something
-          val x2 = x.map(word => if(List("my","mine") contains word) "your" else word)
+          val x2 = x.map(word => if(List("my", "mine") contains word) "your" else word)
           //Memory <= (IsVerbing, x2.mkString(" "))
           speakPriv(message, sender,
             "How does "+x2.mkString(" ")+" make you feel?",
             "How long have you been "+x2.mkString(" ")+"?")
-        } else if(x.nonEmpty && List("a","an","the").contains(x.head)) { // being A something
+        } else if(x.nonEmpty && List("a", "an", "the").contains(x.head)) { // being A something
           //Memory <= (IsNoun, x.mkString(" "))
           speakPriv(message, sender,
             "How long have you been "+x.mkString(" ")+"?",

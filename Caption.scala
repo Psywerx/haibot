@@ -16,7 +16,7 @@ final object Caption extends RegexParsers {
     var repeats = 1
     str = 
       if(str.takeRight(3) matches "[1-9]-[0-9]") {
-        val (n1,n2) = (str.takeRight(3).take(1).toInt, str.takeRight(1).toInt)
+        val (n1, n2) = (str.takeRight(3).take(1).toInt, str.takeRight(1).toInt)
         repeats = nextInt(n2-n1 + 1) + n1
         str.dropRight(3)
       } else if(str.takeRight(1) matches "[1-9]") {
@@ -34,7 +34,7 @@ final object Caption extends RegexParsers {
     var repeats = nextInt(2)
     str = 
       if(str.takeRight(3) matches "[0-9]-[0-9]") {
-        val (n1,n2) = (str.takeRight(3).take(1).toInt, str.takeRight(1).toInt)
+        val (n1, n2) = (str.takeRight(3).take(1).toInt, str.takeRight(1).toInt)
         repeats = nextInt(n2-n1 + 2) + n1
         if(repeats > n2) repeats = 0
         str.dropRight(3)

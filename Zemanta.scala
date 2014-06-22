@@ -1,8 +1,8 @@
 package org.psywerx
 
 class Zemanta(apiKey: String) {
-  import com.zemanta.api.{Zemanta => Zem,ZemantaResult}
-  import com.zemanta.api.suggest.{Article,Keyword,Image}
+  import com.zemanta.api.{Zemanta => Zem, ZemantaResult}
+  import com.zemanta.api.suggest.{Article, Keyword, Image}
   import scala.collection.JavaConversions.mapAsJavaMap
   import scala.collection.JavaConversions.asScalaBuffer
   

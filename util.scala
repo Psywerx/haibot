@@ -24,36 +24,46 @@ object util {
   
   
   implicit class PimpString(val s: String) { 
-    def replaceAll(m: (String, String)*): String = m.foldLeft(s)((out,rep)=> out.replaceAll(rep._1,rep._2))
+    def replace(m: (String, String)*): String = 
+      m.foldLeft(s)((out, rep) => out.replace(rep._1, rep._2))
+    def replaceAll(m: (String, String)*): String = 
+      m.foldLeft(s)((out, rep) => out.replaceAll(rep._1, rep._2))
     // TODO: containsPercent: Double for fuzzy reasoning
-    def containsAny(strs: String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.contains(str))
-    def startsWithAny(strs: String*): Boolean = strs.foldLeft(false)((acc,str) => acc || s.startsWith(str))
-    def endsWithAny(strs: String*): Boolean   = strs.foldLeft(false)((acc,str) => acc || s.endsWith(str))
+    def containsAny(strs: String*): Boolean = 
+      strs.foldLeft(false)((acc, str) => acc || s.contains(str))
+    def startsWithAny(strs: String*): Boolean = 
+      strs.foldLeft(false)((acc, str) => acc || s.startsWith(str))
+    def endsWithAny(strs: String*): Boolean = 
+      strs.foldLeft(false)((acc, str) => acc || s.endsWith(str))
     def sentences: Array[String] = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
-    def makeEasy: String = s.toLowerCase.map(char => ("čćžšđ".zip("cczsd").toMap).getOrElse(char, char)).replaceAll("[,:] ", " ") // lazy way to make text processing easier
+    private[this] val charMap = ("čćžšđ" zip "cczsd").toMap
+    def makeEasy: String = // lazy way to make text processing easier
+      s.toLowerCase
+        .map(char => charMap.getOrElse(char, char))
+        .replaceAll("[,:] ", " ")
     def maybe: String = if(nextBoolean) s else ""
     def findAll(r: Regex): List[String] = r.findAllIn(s).toList
     //def removeAll(rem: String): String = s.filterNot(rem contains _) //notsure wat
     def matches(r: Regex): Boolean = s.matches(r.toString)
-    def distance(s2: String): Int = distance(s,s2)
+    def distance(s2: String): Int = distance(s, s2)
     def distance(s1: String, s2: String): Int = {
       val memo = mutable.AnyRefMap[(List[Char], List[Char]), Int]()
-      def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a,b),c)
+      def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a, b), c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
-        if(!memo.contains((s1,s2)))
-          memo((s1,s2)) = (s1, s2) match {
+        if(!memo.contains((s1, s2)))
+          memo((s1, s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
             case (c1 :: t1, c2 :: t2) => 
               min(
-                sd(t1,s2) + 1,
-                sd(s1,t2) + 1,
-                sd(t1,t2) + (if(c1 == c2) 0 else 1))
+                sd(t1, s2) + 1,
+                sd(s1, t2) + 1,
+                sd(t1, t2) + (if(c1 == c2) 0 else 1))
           }
-        memo((s1,s2))
+        memo((s1, s2))
       }
 
-      sd( s1.toList, s2.toList )
+      sd(s1.toList, s2.toList)
     }
   }
   
@@ -194,7 +204,7 @@ object Time {
             .filter(filter) 
         }
         .distinct
-        .sortWith { (a,b) => b after a }
+        .sortWith((a, b) => b after a)
   )
 
   def getFutureDates(text: String): List[Date] = getDates(text, _.after(new Date))
@@ -208,7 +218,7 @@ object Time {
     func
     now-startTime
   }
-  private val sinceTimes = mutable.HashMap[Int,Int]()
+  private val sinceTimes = mutable.HashMap[Int, Int]()
   def since(timeRef: AnyRef): Int = {
     val hash = timeRef.hashCode
     val time = sinceTimes.getOrElseUpdate(hash, 0)

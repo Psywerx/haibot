@@ -40,7 +40,7 @@ object OCR {
           result.size.toDouble, 
           resSplit.count(word =>  common.contains(word)).toDouble, 
           resSplit.count(word => !common.contains(word)).toDouble,
-          resSplit.foldLeft(0d)((acc,res) => acc + res.size) / resSplit.size.toDouble
+          resSplit.foldLeft(0d)((acc, res) => acc + res.size) / resSplit.size.toDouble
         ))
       }
       
@@ -49,7 +49,7 @@ object OCR {
       val UNCOMMON = 2
       val AVGLEN = 3
       
-      Some((attrs.sortWith { case ((_,a),(_,b)) => 
+      Some((attrs.sortWith { case ((_, a), (_, b)) => 
         if(a(COMMON) == b(COMMON)) {
           (a(AVGLEN) > b(AVGLEN))
         } else {
