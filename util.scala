@@ -4,6 +4,7 @@ import collection.mutable
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.annotation.switch
 import scala.util.matching
 import scala.util.matching._
 import scala.util.Random._
@@ -234,7 +235,7 @@ object Time {
     val secs = time
     val (days, hours, minutes) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60))
     
-    ((days match {
+    (((days: @switch) match {
       case 0 => ""
       case 1 => s"$days day "
       case _ => s"$days days "
