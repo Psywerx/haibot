@@ -13,7 +13,7 @@ import java.io._
 object util {
   val folder = "util/"
   
-  def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative}
+  def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative }
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
 
@@ -80,11 +80,11 @@ object util {
   }
   
   
-  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty }}
+  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty } }
 
   implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
-  implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max}
+  implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max }
 
   //TODO: force utf8 for reading and writing  
   def getFile(name: String, allowFail: Boolean = false): List[String] = {
@@ -328,7 +328,7 @@ object Net {
 final object Store { def apply(file: String): Store = new Store(file) }
 final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
-  import util.{getFile, appendToFile, printToFile}
+  import util.{ getFile, appendToFile, printToFile }
   
   type Row = (String, String)
   private def rowToString(kv: Row): String = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1

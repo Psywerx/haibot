@@ -1,6 +1,6 @@
 package org.psywerx
 
-import java.net.{URLEncoder, MalformedURLException}
+import java.net.{ URLEncoder, MalformedURLException }
 import sun.misc.BASE64Encoder
 
 object NovatelSMS {  
