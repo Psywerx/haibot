@@ -65,7 +65,7 @@ object OCR {
     if(!file.isFile) None 
     else try {
       val fileStr = file.toString
-      // TODO: put params in file
+      //TODO: put params in file
       val engineCnt = 3
       val results: Seq[String] = 
         ((0 until engineCnt).flatMap { engine =>
@@ -82,7 +82,7 @@ object OCR {
                 case 2 => "-scale 107% -negate -scale 112%x100% -liquid-rescale 99%x101% -sharpen 3x6 -contrast-stretch 0x38% -threshold 12% -deskew 70%"
               })
               
-              //TODO fails with spaces, quoting doesn't help
+              //TODO: fails with spaces, quoting doesn't help
               val convertResult = (s"""convert $fileStr $convertParams $tmpImgName""").!
               if(convertResult != 0) None
               else {

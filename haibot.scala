@@ -10,6 +10,7 @@ import scala.util.Random._
 import java.io._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+import math._
 
 final object haibot { def main(args: Array[String]): Unit = new haibot }
 
@@ -33,8 +34,8 @@ final class haibot extends PircBot {
   this.setLogin(login)
   this.setName(name)
   locally {
-    var backoff = 10000L
-    var connected = true
+    var backoff = 10000L //ms
+    var connected = false
     do {
       try {
         // pircbot
@@ -42,13 +43,13 @@ final class haibot extends PircBot {
         // pircbot-ssl
         val sslFactory = if(ssl) new TrustingSSLSocketFactory else null
         this.connect(serv, port, pass, sslFactory)
+        connected = true
       } catch {
         case e: Exception => //TODO: this "reconnect" is untested
+          connected = false
           this.disconnect()
           Thread.sleep(backoff)
-          backoff += 1000
-          backoff = math.min(backoff, 200000)
-          connected = false
+          backoff = min(backoff+1000, 200000)
           e.printStackTrace
           println("Retrying in "+backoff/1000+"s ...")
       }
@@ -62,12 +63,12 @@ final class haibot extends PircBot {
   lazy val zemanta = new Zemanta(apiKeys("Zemanta"))
   lazy val bitly = new Bitly(apiKeys("bitly1"), apiKeys("bitly2"))
   lazy val novatel = new NovatelSMS(apiKeys("novatel_user"), apiKeys("novatel_pass"))
-  val smsCoolDown = 77
+  val smsCoolDown = 77 //seconds
   var lastSMSTime = 0
 
   val events = Store(folder+"events.db")
 
-  // TODO: cache them at least for a minute or so
+  //TODO: cache them at least for a minute or so
   def sheSaid = getFile(folder+"twss.db", allowFail = true)
   def awwwBag = getFile(folder+"awww.db", allowFail = true).toSet
   def noawwwBag = getFile(folder+"noawww.db", allowFail = true).toSet
@@ -157,7 +158,7 @@ final class haibot extends PircBot {
   val messages = Store(folder+"msgs.db")
   // Fetch messages for nick and speak them
   def speakMessages(nick: String, spoke: Boolean, joined: Boolean): Unit = synchronized {
-    val now = (new java.util.Date).getTime //TODO put into lib
+    val now = (new java.util.Date).getTime //TODO: put into lib
     var hadMsgs = false
     var allMsgs = messages.toList
     val msgs = allMsgs.filter { _._1 == nick.toLowerCase }
@@ -199,7 +200,7 @@ final class haibot extends PircBot {
   var shutdown = false
   override def onDisconnect(): Unit = {
     println("onDisconnect: event triggered.")
-    var backoff = 5000L
+    var backoff = 5000L //ms
     while(!this.isConnected && !shutdown) {
       try {
         this.reconnect()
@@ -213,7 +214,7 @@ final class haibot extends PircBot {
           println("onDisconnect: my nick is already in use on the server.")
           this.setName(name+"_")
       }
-      if(backoff < 60000) backoff += 5000
+      backoff = min(backoff+5000, 60000)
       Thread.sleep(backoff)
     }
   }
@@ -255,7 +256,7 @@ final class haibot extends PircBot {
       URLsText
         .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
         .split("\\s")
-        .filter(_.length.isBetween(3, 34))///"Supercalifragilisticexpialidocious".size
+        .filter(_.length.isBetween(3, 34))///"Supercalifragilisticexpialidocious".length
     lazy val recentContext = 
       (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
         .replaceAll(Regex.URL.toString, "")
@@ -383,7 +384,7 @@ final class haibot extends PircBot {
         speak(c"{yeah,} people are [weird|strange]{, I guess}...")
       } else if((mentions contains this.name) && 0.9.prob) {
         speak(c"I can't tell if you're asking me, or asking about me.")
-      } else if(0.27.prob || math.min(0.5, message.count(_ == '?') * 0.15).prob) {
+      } else if(0.27.prob || min(0.5, message.count(_ == '?') * 0.15).prob) {
         speak(
           c"[I am|I'm] [confused|not sure|asking myself] about this[ also|, too]{.}3",
           c"This [puzzles|confuses] me {greatly|very much}[ also|, too]{.}3",
@@ -636,7 +637,7 @@ final class haibot extends PircBot {
     if((message startsWith "@smsreset") && (sender startsWith owner)) {
       lastSMSTime = 0
     } else if(message startsWith "@sms ") {
-      val msg = message.drop("@sms ".size)
+      val msg = message.drop("@sms ".length)
       val (name, sms) = msg.splitAt(msg.indexOf(' '))
       val nums = Store(folder+"numbers.db").toMap
       if(!sender.isTrusted) {
@@ -846,17 +847,17 @@ final class haibot extends PircBot {
       speak(c"Sorry, {but} [I'm|I am] not [very|too] helpful{.}3")
     }
     
-    // checks twitter only every few minutes, and only if people are talking on channel
+    // Checks twitter only every few minutes, and only if people are talking on channel
     checkTwitter() 
 
-    //last msgs
+    // Last msgs
     lastMsgs :+= message
     lastMsgs = lastMsgs.take(10)
   }
   
   val lastPrivateMessage = mutable.AnyRefMap[String, String]() withDefaultValue ""
   def speakPriv(message: String, nick: String, msgs: String*): Unit = {
-    val nickClean = nick.replaceAll("[^a-zA-Z]", "") // TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
+    val nickClean = nick.replaceAll("[^a-zA-Z]", "") //TODO: use cleanNick + clean for filename - make File wrapper that takes care of that, get filename regex, etc., close file
     appendToFile("logs/chat_"+nickClean+".log", allowFail = true)(nickClean+" "+message)
   
     for(newMsg <- (msgs.toBuffer - lastPrivateMessage(nick)).randomOption) {

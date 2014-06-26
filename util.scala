@@ -29,14 +29,14 @@ object util {
       m.foldLeft(s)((out, rep) => out.replace(rep._1, rep._2))
     def replaceAll(m: (String, String)*): String = 
       m.foldLeft(s)((out, rep) => out.replaceAll(rep._1, rep._2))
-    // TODO: containsPercent: Double for fuzzy reasoning
+    //TODO: containsPercent: Double for fuzzy reasoning
     def containsAny(strs: String*): Boolean = 
       strs.foldLeft(false)((acc, str) => acc || s.contains(str))
     def startsWithAny(strs: String*): Boolean = 
       strs.foldLeft(false)((acc, str) => acc || s.startsWith(str))
     def endsWithAny(strs: String*): Boolean = 
       strs.foldLeft(false)((acc, str) => acc || s.endsWith(str))
-    def sentences: Array[String] = s.split("[.!?]+") // TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
+    def sentences: Array[String] = s.split("[.!?]+") //TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
     private[this] val charMap = ("čćžšđ" zip "cczsd").toMap
     def makeEasy: String = // lazy way to make text processing easier
       s.toLowerCase
@@ -256,7 +256,7 @@ object Net {
   def scrapeURLs(urls: String*): String =
     (urls
       .flatMap { _.findAll(Regex.URL) }
-      .map { url => if(url startsWith "www.") "http://"+url else url } //TODO https everywhere :)
+      .map { url => if(url startsWith "www") "http://"+url else url } //TODO: https everywhere :)
       .map { url => 
         try {          
           if(url.endsWithAny(badExts: _*)) ""
