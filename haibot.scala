@@ -190,34 +190,17 @@ final class haibot extends PircBot {
     }
   }
 
-  var userSet = Set.empty[String]
   def getUsers: Set[String] = {
-    // Refetch users on get, at most every 10 minutes
-    if(since(userSet) > 60*10) setUsers(getUsers(chan))
-    
-    userSet
+    val users = super.getUsers(chan)
+    if(users == null) Set.empty[String]
+    else users.map(_.getNick).toSet
   }
-  def setUsers(users: Array[User]): Unit = userSet.synchronized {
-    val users_ = if(users == null) Array[User]() else users
-    userSet = users_.map(_.getNick).toSet
-    since(userSet) // since also sets the timer
-  }
-  def addUser(user: String): Unit = userSet.synchronized { userSet += user }
-  def remUser(user: String): Unit = userSet.synchronized { userSet -= user }
-
+  
   override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
-    remUser(oldNick)
-    addUser(newNick)
     speakMessages(newNick, spoke = false, joined = true)
   }
-  override def onQuit(sourceNick: String, sourceLogin: String, sourceHostname: String, reason: String): Unit = {
-    remUser(sourceNick)
-  }
-  override def onPart(channel: String, sender: String, login: String, hostname: String): Unit = {
-    remUser(sender)
-  }
+  
   override def onJoin(channel: String, sender: String, login: String, hostname: String): Unit = {
-    addUser(sender)
     if(sender == this.name) {
       startTime = now
     } else {
@@ -233,11 +216,11 @@ final class haibot extends PircBot {
       joinTimes(sender.toLowerCase) = now
     }
   }
+  
   override def onUserList(channel: String, users: Array[User]): Unit = {
-    setUsers(users)
-    val userList = getUsers
-    if(userList.size > 1) speak("o hai!", if(userList.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
-    for(user <- userList) speakMessages(user, spoke = false, joined = true)
+    val users = getUsers
+    if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
+    for(user <- users) speakMessages(user, spoke = false, joined = true)
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String): Unit = {
