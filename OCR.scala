@@ -47,7 +47,7 @@ object OCR {
         }
         
         val SIZE = 0
-        val COMMON = 1 
+        val COMMON = 1
         val UNCOMMON = 2
         val AVGLEN = 3
         
@@ -55,21 +55,21 @@ object OCR {
           if(a(COMMON) == b(COMMON)) {
             (a(AVGLEN) > b(AVGLEN))
           } else {
-            (a(COMMON) > b(COMMON)) 
+            (a(COMMON) > b(COMMON))
           }
         }.head)._1)
     }
 
   def OCR(file: String): Option[String] = OCR(new File(file))
   def OCR(file: java.io.File): Option[String] = 
-    if(!file.isFile) None 
+    if(!file.isFile) None
     else try {
       val fileStr = file.toString
       //TODO: put params in file
       val engineCnt = 3
       val results: Seq[String] = 
         ((0 until engineCnt).flatMap { engine =>
-          // Temp image and output text files        
+          // Temp image and output text files
           val tmpImg = File.createTempFile("ocr_", ".pnm")
           val tmpImgName = tmpImg.toString
           tmpImg.deleteOnExit
@@ -93,7 +93,7 @@ object OCR {
                   case 2 => Seq("ocrad", "-lf", "--filter=letters", "--format=utf8", tmpImgName)
                 }).!!)
                 
-                if(ocrText.isEmpty) None 
+                if(ocrText.isEmpty) None
                 else Some(ocrText)
               }
             }, 20.seconds)
@@ -110,7 +110,7 @@ object OCR {
     } catch {
       case e: Exception => 
         println(s"EXCEPTION in $file ... $e")
-        None  
+        None
     }
     
 }

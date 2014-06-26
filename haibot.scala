@@ -128,21 +128,6 @@ final class haibot extends PircBot {
   var tweetLim = 2
   var tweetNames = Set.empty[String]
 
-  val userList_ = mutable.Set.empty[String]
-  def getUserList: Set[String] = {
-    if(since(userList_) > 5) {
-      setUserList(getUsers(chan))
-    }
-    
-    userList_.toSet
-  }
-  def setUserList(users: Array[User]): Unit = userList_.synchronized {
-    val users_ = if(users == null) Array[User]() else users
-    userList_.clear
-    userList_ ++= users_.map(_.getNick)
-    since(userList_) // since also sets the timer
-  }
-  
   var lastMsg_ = ""
   def speakNow(msgs: String*): Unit = {
     if(msgs.nonEmpty) {
@@ -182,21 +167,7 @@ final class haibot extends PircBot {
     }
     if(hadMsgs) messages replaceWith allMsgs
   }
-  
-  thread {
-    while(true) {
-      Thread.sleep(10*1000)
-      if(this.isConnected) {
-        for(user <- getUserList) speakMessages(user, spoke = false, joined = false)
-      }
-    }
-  }
-  
-  //TODO: keep note of this so you'll know who's who
-  override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
-    speakMessages(newNick, spoke = false, joined = true)
-  }
-  
+
   var shutdown = false
   override def onDisconnect(): Unit = {
     println("onDisconnect: event triggered.")
@@ -219,12 +190,39 @@ final class haibot extends PircBot {
     }
   }
 
+  var userSet = Set.empty[String]
+  def getUsers: Set[String] = {
+    // Refetch users on get, at most every 10 minutes
+    if(since(userSet) > 60*10) setUsers(getUsers(chan))
+    
+    userSet
+  }
+  def setUsers(users: Array[User]): Unit = userSet.synchronized {
+    val users_ = if(users == null) Array[User]() else users
+    userSet = users_.map(_.getNick).toSet
+    since(userSet) // since also sets the timer
+  }
+  def addUser(user: String): Unit = userSet.synchronized { userSet += user }
+  def remUser(user: String): Unit = userSet.synchronized { userSet -= user }
+
+  override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
+    remUser(oldNick)
+    addUser(newNick)
+    speakMessages(newNick, spoke = false, joined = true)
+  }
+  override def onQuit(sourceNick: String, sourceLogin: String, sourceHostname: String, reason: String): Unit = {
+    remUser(sourceNick)
+  }
+  override def onPart(channel: String, sender: String, login: String, hostname: String): Unit = {
+    remUser(sender)
+  }
   override def onJoin(channel: String, sender: String, login: String, hostname: String): Unit = {
+    addUser(sender)
     if(sender == this.name) {
       startTime = now
     } else {
       Thread.sleep(1000)
-      if(sender.startsWith(owner) && 0.05.prob) 
+      if(sender.startsWith(owner) && 0.05.prob)
         speak(
           c"welcome, father{!|.}",
           c"welcome back{!|.}",
@@ -236,8 +234,8 @@ final class haibot extends PircBot {
     }
   }
   override def onUserList(channel: String, users: Array[User]): Unit = {
-    setUserList(users)
-    val userList = getUserList
+    setUsers(users)
+    val userList = getUsers
     if(userList.size > 1) speak("o hai!", if(userList.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
     for(user <- userList) speakMessages(user, spoke = false, joined = true)
   }
@@ -247,7 +245,7 @@ final class haibot extends PircBot {
     val msg = message.makeEasy
     val msgBag = msg.split(" ").toSet
     lazy val sentences = message.sentences
-    val users = getUserList
+    val users = getUsers
     //TODO: @nick nick. <- get the proper regex here
     val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
@@ -295,7 +293,7 @@ final class haibot extends PircBot {
         """\o/""",
         "scoar!",
         if(0.2.prob) s"$sender++" else "yaaay!")
-    } else if((msg.startsWithAny("yes "+name, "exactly "+name) && 0.65.prob) 
+    } else if((msg.startsWithAny("yes "+name, "exactly "+name) && 0.65.prob)
            ||((msg.startsWithAny("yes ", "exactly ") && mentions.contains(name) && 0.3.prob))) {
       speak(
         "I knew it!",
@@ -308,8 +306,8 @@ final class haibot extends PircBot {
         s"yes, $sender.",
         "my brethren speaks of me!",
         s"I appreciate that, brother $sender.")
-    } else if(message.containsAny("0-9", "a-z", "A-Z", ")*", "]*", ".*", ".+") 
-           && message.indexOf('[') < message.indexOf(']') 
+    } else if(message.containsAny("0-9", "a-z", "A-Z", ")*", "]*", ".*", ".+")
+           && message.indexOf('[') < message.indexOf(']')
            && (if(message.containsAny("^", "$", "{", "}")) 0.7 else 0.5).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
@@ -336,7 +334,7 @@ final class haibot extends PircBot {
         "come on, "+sender+"... don't fuck "+sentences(0).substring(message.indexOf(' ')+1).trim)
     } else if(msg.containsAny("but sex", "but fuck") && 0.7.prob) { 
       speak(c"[has someone mentioned|did someone mention] butt sex?")
-    } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu", "jebi se") 
+    } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu", "jebi se")
            &&((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
       speak(
         c"U MAD, BRO?{ :P}",
@@ -362,7 +360,7 @@ final class haibot extends PircBot {
           c"so{.} cute.",
           if((words & Set("fluff", "puff")).nonEmpty) Memes.so_fluffy else "aww!")
       }
-    } else if(msg.containsAny("i jasn","wat"," how","how", "kako","ne vem","krneki") 
+    } else if(msg.containsAny("i jasn","wat"," how","how", "kako","ne vem","krneki")
            &&(if(message contains "?") 0.6 else 0.4).prob) {
       if(msg.contains("haskell") && !msg.contains("monad")) {
         speak(
@@ -391,7 +389,7 @@ final class haibot extends PircBot {
           c"[I don't know|I dunno|I have no idea|No idea]... hope [I've helped|this helps] {at least a little|in some way}{.}3",
           c"[I wouldn't|Don't] worry {about it|about that} {so much|too much}, I'm sure you'll figure it out {or something} {eventually|with time|in time}{.}3",
           c"I guess {you could say|one might say} that is some[thing|what| kind] of a [conundrum|mystery]{.}3",
-          (if(mentions.nonEmpty && 0.8.prob) 
+          (if(mentions.nonEmpty && 0.8.prob)
              c"[I don't know|I have no idea][, |...] but {yes, }${mentions.toSeq.random} might."
            else
              c"[Have you tried|Did you try|Have you attempted|Did you attempt|Tried] [searching the|looking on the|querying the|inquiring upon the|checking the|making use of the] [internet|intarweb|webosphere|DERPAnet|ARPAnet|cyberspace|electronic noosphere|information super-highway|W3 Infobahn]{s}?"
@@ -435,12 +433,12 @@ final class haibot extends PircBot {
       }
     } else if(message.startsWith("@event ")) {
       val dates = getFutureDates(message) ++ getFutureDates(URLsText)
-      //http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
-      //TODO: how do I find the title, boilerpipe?
-      val title = message 
-        //.replaceAll(Regex.Date.toString, "")
-        .replaceAll(Regex.URL.toString, "")
-        .substring("@event ".length).trim
+      //TODO: how do I find the title... boilerpipe? http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
+      val title = 
+        message
+          //.replaceAll(Regex.Date.toString, "")
+          .replaceAll(Regex.URL.toString, "")
+          .substring("@event ".length).trim
         
       val missing = mutable.ListBuffer[String]()
       if(title.isEmpty) missing += "title"
@@ -686,7 +684,7 @@ final class haibot extends PircBot {
             val commandLower = command.toLowerCase.replace("onmsg", "onspeak")
             val rawParamLower = withAlternative(rawParam.toLowerCase.replace("onmsg", "onspeak"), null)
             
-            if((commandLower == "onspeak") 
+            if((commandLower == "onspeak")
             || (commandLower == "onjoin")) commandLower
             else if(rawParamLower != null) {
               if((rawParamLower == "onspeak")
@@ -756,7 +754,7 @@ final class haibot extends PircBot {
                   c"{well, } [except|but not] for "+" "+Seq(
                     c"the [ppl|people|humans] I've just [complained about|mentioned]",
                     "the " +
-                      (if(dontMsgNicks.size == 1) 
+                      (if(dontMsgNicks.size == 1)
                         (if(dontMsgNicks.forall(_.isGirl)) c"[girl|woman|lady]" else c"[guy|man|gentleman]")
                       else
                         (if(dontMsgNicks.forall(_.isGirl)) c"[girls|women|ladies]" else if(dontMsgNicks.exists(_.isGirl)) c"[ppl|people|humans]" else c"[guise|guys|men|gentlemen]")
@@ -816,7 +814,7 @@ final class haibot extends PircBot {
           .getOrElse(List("Sorry, I've got nothing...")):_*)
     } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
-    } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)") 
+    } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)")
       || (message.startsWithAny("uptime ", "@uptime") && mentions.nonEmpty)
       || (message.startsWithAny(users.toSeq: _*) && message.split(" ").size <= 5 && message.contains("uptime"))) {
       
@@ -848,7 +846,7 @@ final class haibot extends PircBot {
     }
     
     // Checks twitter only every few minutes, and only if people are talking on channel
-    checkTwitter() 
+    checkTwitter()
 
     // Last msgs
     lastMsgs :+= message
@@ -869,7 +867,7 @@ final class haibot extends PircBot {
   }
 
   override def onPrivateMessage(sender: String, login: String, hostname: String, message: String): Unit = {
-    if(getUserList contains sender) message.makeEasy.replace(
+    if(getUsers contains sender) message.makeEasy.replace(
       "i'm" -> "i am", 
       "i've" -> "i have", 
       "i'll" -> "i will", 
@@ -905,10 +903,10 @@ final class haibot extends PircBot {
             "How long have you been "+x.mkString(" ")+"?")
         }
       case "i" :: "feel" :: "like" :: x => 
-          if(x.nonEmpty && x.head == "my") 
+          if(x.nonEmpty && x.head == "my")
             speakPriv(message, sender,
               "Why do you think your "+x.tail.mkString(" ")+"?")
-          else 
+          else
             speakPriv(message, sender,
               "What makes you think that?",
               "Why do you think that is?")
@@ -950,9 +948,9 @@ final class haibot extends PircBot {
           "What did you do before that?",
           "Are you sure it wasn't "+Seq("sooner", "later").random+"?")
       case "for" :: "instance" :: x => 
-          if(x.size > 1) 
+          if(x.size > 1)
             speakPriv(message, sender, "Can you think of any other examples?") //for instance, bla bla bla
-          else 
+          else
             speakPriv(message, sender, //"lets talk about something else" "for instance?"
               "Let's talk about what you're doing",
               "How are your life plans progressing",
@@ -967,9 +965,9 @@ final class haibot extends PircBot {
               })
       case "for" :: x => 
         speakPriv(message, sender,
-          if(x.contains("years")||x.contains("long")||x.contains("while")) 
+          if(x.contains("years")||x.contains("long")||x.contains("while"))
             "What can you recall from before that?"
-          else 
+          else
             "What did you think before that?")
       case "yes" :: x => 
         speakPriv(message, sender,
@@ -980,7 +978,7 @@ final class haibot extends PircBot {
         speakPriv(message, sender,
           "Why not?")
       case x => 
-        if(x.contains("you")) 
+        if(x.contains("you"))
           speakPriv(message, sender,
             "Lets talk about something else...",
             "Do you really think that about me?")

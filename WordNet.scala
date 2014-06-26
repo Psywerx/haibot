@@ -44,9 +44,9 @@ class WordNet(folder: String) {
         
         if(outWord.toLowerCase == word.toLowerCase)
           outWord = word
-        else if(allLower) 
+        else if(allLower)
           outWord = outWord.toLowerCase
-        else if(allUpper) 
+        else if(allUpper)
           outWord = outWord.toUpperCase
         else if(hasCapital && part <= 0.25)
           outWord = outWord.capitalize

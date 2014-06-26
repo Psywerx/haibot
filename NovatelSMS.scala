@@ -3,7 +3,7 @@ package org.psywerx
 import java.net.{ URLEncoder, MalformedURLException }
 import sun.misc.BASE64Encoder
 
-object NovatelSMS {  
+object NovatelSMS {
   val responseMap = Map(
     "ok" -> "Ok",
     "auth" -> "Unsuccessful authentication",
@@ -15,7 +15,7 @@ object NovatelSMS {
   ) withDefaultValue "Unknown error"
 }
 
-class NovatelSMS(username: String, password: String) {  
+class NovatelSMS(username: String, password: String) {
   private val BASE64Encoder = new BASE64Encoder
   def sendSMS(msg: String, number: String): String = {
     try {

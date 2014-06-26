@@ -72,7 +72,7 @@ object util {
   implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
   implicit class Seqs[A](val s: Seq[A]) { 
-    def random: A = s(nextInt(s.size)) 
+    def random: A = s(nextInt(s.size))
     def randomOption: Option[A] = if(s.isEmpty) None else Some(random)
   }
   implicit class Maps[A, B](val m: Map[A, B]) {
@@ -86,7 +86,7 @@ object util {
   implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
   implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max }
 
-  //TODO: force utf8 for reading and writing  
+  //TODO: force utf8 for reading and writing
   def getFile(name: String, allowFail: Boolean = false): List[String] = {
     try {
       val file = io.Source.fromFile(name)
@@ -108,7 +108,7 @@ object util {
   }
 
   //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
-  def using[A <: Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }  
+  def using[A <: Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
   
   def appendToFile(fileName: String, allowFail: Boolean = false)(textData: String): Unit = 
     printToFile(fileName, allowFail)(textData, append = true)
@@ -192,9 +192,9 @@ object Time {
       .replaceAll("[,\\s]+", " ")
 
   def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] = (
-    if(text == null) 
+    if(text == null)
       Nil
-    else 
+    else
       dateFormats
         .flatMap { case (regex, format) => 
           text
@@ -202,7 +202,7 @@ object Time {
             .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
             .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
             .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
-            .filter(filter) 
+            .filter(filter)
         }
         .distinct
         .sortWith((a, b) => b after a)
@@ -258,13 +258,13 @@ object Net {
       .flatMap { _.findAll(Regex.URL) }
       .map { url => if(url startsWith "www") "http://"+url else url } //TODO: https everywhere :)
       .map { url => 
-        try {          
+        try {
           if(url.endsWithAny(badExts: _*)) ""
           else extractor.getText(new URL(url))
         } catch {
           case e: Exception => // java.net.MalformedURLException
             e.printStackTrace()
-            "" 
+            ""
         }
       }
       .mkString(" ")
@@ -285,13 +285,13 @@ object Net {
     tempFile.deleteOnExit
     
     if(download(url, tempFile)) {
-      Some(tempFile) 
+      Some(tempFile)
     } else {
       tempFile.delete
       None
     }
   }
-  def withDownload[A](url: String)(func: Option[File] => A): A = {  
+  def withDownload[A](url: String)(func: Option[File] => A): A = {
     val tempFile = tempDownload(url)
     try {
       func(tempFile)
