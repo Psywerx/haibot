@@ -7,6 +7,7 @@ import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.annotation.switch
 import java.io.File
+import java.nio.file.Files
 
 object OCR {
   val allowedSingleLetters = Set("i", "a", "e", "o", "y", "u")
@@ -70,9 +71,9 @@ object OCR {
       val results: Seq[String] = 
         ((0 until engineCnt).flatMap { engine =>
           // Temp image and output text files
-          val tmpImg = File.createTempFile("ocr_", ".pnm")
-          val tmpImgName = tmpImg.toString
-          tmpImg.deleteOnExit
+          val tempImg = Files.createTempFile("ocr_", ".pnm").toFile
+          tempImg.deleteOnExit
+          val tempImgName = tempImg.toString
           try {
             Await.result(future {
               // preprocess
@@ -83,14 +84,14 @@ object OCR {
               })
               
               //TODO: fails with spaces, quoting doesn't help
-              val convertResult = (s"""convert $fileStr $convertParams $tmpImgName""").!
+              val convertResult = (s"""convert $fileStr $convertParams $tempImgName""").!
               if(convertResult != 0) None
               else {
                 // OCR
                 val ocrText = stringFilter(((engine: @switch) match {
-                  case 0 => Seq("tesseract", tmpImgName, "stdout")
-                  case 1 => Seq("gocr", "-C", "a-zA-Z", "-i", tmpImgName)
-                  case 2 => Seq("ocrad", "-lf", "--filter=letters", "--format=utf8", tmpImgName)
+                  case 0 => Seq("tesseract", tempImgName, "stdout")
+                  case 1 => Seq("gocr", "-C", "a-zA-Z", "-i", tempImgName)
+                  case 2 => Seq("ocrad", "-lf", "--filter=letters", "--format=utf8", tempImgName)
                 }).!!)
                 
                 if(ocrText.isEmpty) None
@@ -101,7 +102,7 @@ object OCR {
             case e: Exception => 
               None
           } finally {
-            tmpImg.delete
+            tempImg.delete
           }
         })
 

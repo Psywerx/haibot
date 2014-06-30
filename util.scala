@@ -9,6 +9,7 @@ import scala.util.matching
 import scala.util.matching._
 import scala.util.Random._
 import java.io._
+import java.nio.file.Files
 
 object util {
   val folder = "util/"
@@ -247,7 +248,6 @@ object Time {
 object Net {
   import de.l3s.boilerpipe.extractors._
   import java.net._
-  import java.io.File
   import util._
   val extractor = KeepEverythingExtractor.INSTANCE
   
@@ -271,17 +271,7 @@ object Net {
       .trim)
 
   def tempDownload(url: String): Option[File] = {
-    val lastDot = url.lastIndexOf('.')
-    val lastColon = url.lastIndexOf(':')
-    val ext = 
-      (if((lastDot != -1) && (url.length-lastDot <= 5))
-        url.substring(lastDot)
-      else if((lastDot != -1 && lastColon > lastDot) && (url.length-lastDot <= 11)) // special case for .jpeg:large
-        url.substring(lastDot, lastColon)
-      else
-        null)
-      
-    val tempFile = File.createTempFile("tempdl_", ext)
+    val tempFile = Files.createTempFile("tempdl_", null).toFile
     tempFile.deleteOnExit
     
     if(download(url, tempFile)) {
@@ -299,9 +289,8 @@ object Net {
       tempFile.foreach { _.delete }
     }
   }
-  def download(urlStr: String, outFile: java.io.File): Boolean = {
+  def download(urlStr: String, outFile: File): Boolean = {
     try {
-      import java.io._
       import java.nio.channels._
 
       Await.ready(future {

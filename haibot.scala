@@ -46,7 +46,6 @@ final class haibot extends PircBot {
         connected = true
       } catch {
         case e: Exception => //TODO: this "reconnect" is untested
-          connected = false
           this.disconnect()
           Thread.sleep(backoff)
           backoff = min(backoff+1000, 200000)
@@ -487,9 +486,9 @@ final class haibot extends PircBot {
         
         if(tweetDetails("Text") != "") {
           // fbcmd 1.1
-          // val returnFacebook = Seq("fbcmd", "PPOST", apiKeys("facebookpage"), ...
+          // val facebookReturn = Seq("fbcmd", "PPOST", apiKeys("facebookpage"), ...
           // fbcmd 2.x
-          val returnFacebook = 
+          val facebookReturn = 
             Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
               "",                                      // Post Message
               " "+tweetDetails("Screen name"),         // Post Name
