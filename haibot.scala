@@ -794,7 +794,7 @@ final class haibot extends PircBot {
           .map(_.filterNot(article => URLs.contains(article.url)).take(cnt)).emptyToNone
           .map(articleList => for(article <- articleList) yield article.title + " " + bitly.tryShorten(article.url))
           .getOrElse(List("Sorry, I've got nothing...")):_*)
-    } else if(message.contains("@all") && !(users.contains("botko") || users.contains("_botko_"))) {
+    } else if(message.contains("@all") && !users.exists(_ matches "_*botko_*")) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)")
       || (message.startsWithAny("uptime ", "@uptime") && mentions.nonEmpty)
