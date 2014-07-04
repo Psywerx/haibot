@@ -68,15 +68,16 @@ final class haibot extends PircBot {
   val events = Store(folder+"events.db")
 
   //TODO: cache them at least for a minute or so
-  def sheSaid        = getFile(folder+"twss.db",        allowFail = true)
-  def awwwBag        = getFile(folder+"awww.db",        allowFail = true).toSet
-  def noawwwBag      = getFile(folder+"noawww.db",      allowFail = true).toSet
-  def mehBag         = getFile(folder+"meh.db",         allowFail = true).toSet
-  def nomehBag       = getFile(folder+"nomeh.db",       allowFail = true).toSet
-  def mustNotBeNamed = getFile(folder+"dontmention.db", allowFail = true).toSet
-  def girls          = getFile(folder+"girls.db",       allowFail = true).map(_.cleanNick).toSet
-  def trusted        = getFile(folder+"trusted.db",     allowFail = true).map(_.cleanNick).toSet
-  def bots           = getFile(folder+"bots.db",        allowFail = true).map(_.cleanNick).toSet
+  def sheSaid        = getFile(folder+"twss.db",          allowFail = true)
+  def awwwBag        = getFile(folder+"awww.db",          allowFail = true).toSet
+  def noawwwBag      = getFile(folder+"noawww.db",        allowFail = true).toSet
+  def mehBag         = getFile(folder+"meh.db",           allowFail = true).toSet
+  def nomehBag       = getFile(folder+"nomeh.db",         allowFail = true).toSet
+  def mustNotBeNamed = getFile(folder+"dontmention.db",   allowFail = true).toSet
+  def noOnlineOnMsg  = getFile(folder+"noonlineonmsg.db", allowFail = true).map(_.cleanNick).toSet
+  def girls          = getFile(folder+"girls.db",         allowFail = true).map(_.cleanNick).toSet
+  def trusted        = getFile(folder+"trusted.db",       allowFail = true).map(_.cleanNick).toSet
+  def bots           = getFile(folder+"bots.db",          allowFail = true).map(_.cleanNick).toSet
   
   implicit class IRCString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
@@ -655,11 +656,8 @@ final class haibot extends PircBot {
     val msgReg = """ *@(msg|tell|ask|onmsg|onspeak|onjoin)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r
     if(message matches msgReg.toString) {
       message match {
-        case msgReg(command, rawParam, rawNicks, rawMsg) if (command == "ask") && !(rawMsg contains "?") =>
-          speak("That's not a question... try again ;)")
-          
         case msgReg(command, rawParam, rawNicks, rawMsg) =>
-        
+          
           //TODO: sms
           val defaultParam = "onspeak|onjoin"
           def getParam(default: String = defaultParam): String = {
@@ -684,10 +682,11 @@ final class haibot extends PircBot {
           nicks = nicks.map(_.replace("+", ""))
           val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
+          val noOnlineOnMsgNicks = isHere.filter(here => noOnlineOnMsg.contains(here.cleanNick))
           val watNicks = (if(!(param matches "[0-9]+") && (isHere contains this.name) || (isHere contains sender)) (Set(this.name, sender) & isHere) else Set.empty[String])
-          val toMsgNicks = ((nicks &~ errNicks) &~ watNicks)
+          val toMsgNicks = (((nicks &~ errNicks) &~ watNicks) &~ noOnlineOnMsgNicks)
           toPlusNicks = (toPlusNicks &~ errNicks)
-          val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks
+          val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks ++ noOnlineOnMsgNicks
           
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
           def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
@@ -706,6 +705,15 @@ final class haibot extends PircBot {
           }
           if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).nonEmpty) { //TODO: test a++,b,c... also make sure if names are relevant
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
+          }
+          if(noOnlineOnMsgNicks.nonEmpty) {
+            if(noOnlineOnMsgNicks.size > 1) {
+              val nicks = noOnlineOnMsgNicks.init.mkString(", ") + ", and " + noOnlineOnMsgNicks.last
+              speak(s"""${nicks} don't do online msgs.""")
+            } else {
+              val nick = noOnlineOnMsgNicks.head
+              speak(s"""${nick} doesn't do online msgs.""")
+            }
           }
           if(toMsgNicks.nonEmpty) {
             var anyMsg = false
