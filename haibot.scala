@@ -68,15 +68,15 @@ final class haibot extends PircBot {
   val events = Store(folder+"events.db")
 
   //TODO: cache them at least for a minute or so
-  def sheSaid = getFile(folder+"twss.db", allowFail = true)
-  def awwwBag = getFile(folder+"awww.db", allowFail = true).toSet
-  def noawwwBag = getFile(folder+"noawww.db", allowFail = true).toSet
-  def mehBag = getFile(folder+"meh.db", allowFail = true).toSet
-  def nomehBag = getFile(folder+"nomeh.db", allowFail = true).toSet
+  def sheSaid        = getFile(folder+"twss.db",        allowFail = true)
+  def awwwBag        = getFile(folder+"awww.db",        allowFail = true).toSet
+  def noawwwBag      = getFile(folder+"noawww.db",      allowFail = true).toSet
+  def mehBag         = getFile(folder+"meh.db",         allowFail = true).toSet
+  def nomehBag       = getFile(folder+"nomeh.db",       allowFail = true).toSet
   def mustNotBeNamed = getFile(folder+"dontmention.db", allowFail = true).toSet
-  def girls = getFile(folder+"girls.db", allowFail = true).map(_.cleanNick).toSet
-  def trusted = getFile(folder+"trusted.db", allowFail = true).map(_.cleanNick).toSet
-  def bots = getFile(folder+"bots.db", allowFail = true).map(_.cleanNick).toSet
+  def girls          = getFile(folder+"girls.db",       allowFail = true).map(_.cleanNick).toSet
+  def trusted        = getFile(folder+"trusted.db",     allowFail = true).map(_.cleanNick).toSet
+  def bots           = getFile(folder+"bots.db",        allowFail = true).map(_.cleanNick).toSet
   
   implicit class IRCString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
@@ -96,7 +96,7 @@ final class haibot extends PircBot {
         val mentions = Seq("t", "mentions", "-n", "5").!!.trim
         if(mentions(0) == '@') {
           val lastTweets = getFile(folder+"lasttweets.db")
-          val mentionList = mentions.replaceAll("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw))
+          val mentionList = mentions.replace("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !(lastTweets contains tw))
           if(mentionList.nonEmpty) {
             // Save the last few mentions
             val newLastTweets = (mentionList ++ lastTweets).take(10)
@@ -151,7 +151,7 @@ final class haibot extends PircBot {
         (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1, s2)  => (s1, s2.tail) }
       
       val params = param.split("[|]").toSet
-      val timeParams = withAlternative(params.filter { _ matches "[0-9]+" }.map{ _.toLong }, Set())
+      val timeParams = withAlternative(params.filter { _ matches "[0-9]+" }.map{ _.toLong }, Set.empty)
       
       if((params("onspeak") && spoke)
       || (params("onjoin") && joined)
@@ -651,7 +651,7 @@ final class haibot extends PircBot {
       }
     }
     
-    // @msg
+    /// @msg
     val msgReg = """ *@(msg|tell|ask|onmsg|onspeak|onjoin)(?:[(]([^)]*)[)])? ([-+a-zA-Z0-9_,^]*):? ?(.*?)""".r
     if(message matches msgReg.toString) {
       message match {
