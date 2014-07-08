@@ -75,13 +75,15 @@ final class haibot extends PircBot {
   def nomehBag       = getFile(folder+"nomeh.db",         allowFail = true).toSet
   def mustNotBeNamed = getFile(folder+"dontmention.db",   allowFail = true).toSet
   def noOnlineOnMsg  = getFile(folder+"noonlineonmsg.db", allowFail = true).map(_.cleanNick).toSet
-  def girls          = getFile(folder+"girls.db",         allowFail = true).map(_.cleanNick).toSet
+  def females        = getFile(folder+"females.db",       allowFail = true).map(_.cleanNick).toSet
+  def males          = getFile(folder+"males.db",         allowFail = true).map(_.cleanNick).toSet
   def trusted        = getFile(folder+"trusted.db",       allowFail = true).map(_.cleanNick).toSet
   def bots           = getFile(folder+"bots.db",          allowFail = true).map(_.cleanNick).toSet
   
-  implicit class IRCString(val s: String) { 
+  implicit class IRCNickString(val s: String) { 
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
-    def isGirl: Boolean = girls.contains(s.cleanNick)
+    def isFemale: Boolean = females.contains(s.cleanNick)
+    def isMale: Boolean = males.contains(s.cleanNick)
     def isTrusted: Boolean = trusted.contains(s.cleanNick)
     def isBot: Boolean = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
   }
@@ -592,7 +594,7 @@ final class haibot extends PircBot {
       }
       
       if(tweet.size >= 1 && tweet.size <= 140) {
-        val andGals = if((girls & users).nonEmpty) c"{and gals}" else ""
+        val andGals = if((females & users).nonEmpty && nextBoolean) c"{and gals}" else ""
         speak(
           c"Some[one|body] {pls|please} confirm {, and I'll post it}{.}",
           c"Does anyone {else} {in here|here} think it's a good idea to [tweet|post] [this|this tweet|that]? {:)}",
@@ -647,8 +649,8 @@ final class haibot extends PircBot {
           }
         }
       } else {
-        def hisForm(nick: String): String = if(nick.isGirl) "her" else "his"
-        speak(c"I don't have ${hisForm(name)} number.{.. and no, you can't tell me it :P} {Sorry about this}")
+        def theirForm(nick: String): String = if(nick.isFemale) "her" else if(nick.isMale) "his" else "their"
+        speak(c"I don't have ${theirForm(name)} number.{.. and no, you can't tell me it :P} {Sorry about this}")
       }
     }
     
@@ -688,8 +690,8 @@ final class haibot extends PircBot {
           toPlusNicks = (toPlusNicks &~ errNicks)
           val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks ++ noOnlineOnMsgNicks
           
-          def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "her" else "him") else "them"
-          def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isGirl) "she" else "he") else "they"
+          def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isFemale) "her" else if(nicks.head.isMale) "him" else "them") else "them"
+          def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isFemale) "she" else if(nicks.head.isMale) "he" else "they") else "they"
           def sForm(nicks: Set[String]): String = if(nicks.size == 1) "s" else "" // find(s)
           //def multiForm(nicks: Set[String]): String = if(nicks.size == 1) "" else "s" // guy(s)
           
@@ -741,16 +743,18 @@ final class haibot extends PircBot {
               
               if(dontMsgNicks.nonEmpty) {
                 say = say.map(_ + " (" + 
-                  c"{well, } [except|but not] for "+" "+Seq(
-                    c"the [ppl|people|humans] I've just [complained about|mentioned]",
-                    "the " +
-                      (if(dontMsgNicks.size == 1)
-                        (if(dontMsgNicks.forall(_.isGirl)) c"[girl|woman|lady]" else c"[guy|man|gentleman]")
-                      else
-                        (if(dontMsgNicks.forall(_.isGirl)) c"[girls|women|ladies]" else if(dontMsgNicks.exists(_.isGirl)) c"[ppl|people|humans]" else c"[guise|guys|men|gentlemen]")
-                      )+" "+c"I've just [complained about|mentioned]",
-                      dontMsgNicks.init.mkString(", ")+(if(dontMsgNicks.size > 1) " and " else "")+dontMsgNicks.last
-                    ).random + ")")
+                  c"{well, } [except|but not] for"+" "+Seq("the " +
+                    (if(dontMsgNicks.forall(_.isFemale))
+                      (if(dontMsgNicks.size == 1) c"[girl|woman|lady]" else c"[girls|women|ladies]")
+                    else if(dontMsgNicks.forall(_.isMale))
+                      (if(dontMsgNicks.size == 1) c"[guy|man|gentleman]" else c"[guise|guys|men|gentlemen]")
+                    else if(dontMsgNicks.exists(_.isBot))
+                      (if(dontMsgNicks.size == 1) c"[one]" else c"[ones]")
+                    else
+                      (if(dontMsgNicks.size == 1) c"[person|human]" else c"[ppl|people|humans]")
+                    )+" "+c"I've just [complained about|mentioned]",
+                    dontMsgNicks.init.mkString(", ")+(if(dontMsgNicks.size > 1) " and " else "")+dontMsgNicks.last
+                  ).random + ")")
               }
               
               speak(say: _*)

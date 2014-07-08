@@ -28,7 +28,8 @@ Here's the secret: The magic is config and .db files!
     twss.db - some snippets that would make one say "that's what she said".
     bots.db - the names of other known bots on the channel.
     dontmention.db - don't mention these names, because it might annoy them.
-    girls.db - to phrase certain replies correctly. Not trying to be creepy :)
+    females.db - to phrase certain replies correctly.
+    males.db - to phrase certain replies correctly.
 util/
     badexts.db - some extensions you don't want to even consider downloading
     stoplist.db - stopwords for some text processing
