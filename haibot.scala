@@ -60,7 +60,7 @@ final class haibot extends PircBot {
 
   lazy val wordnet = new WordNet("lib/WordNet/")
   lazy val zemanta = new Zemanta(apiKeys("Zemanta"))
-  lazy val bitly = new Bitly(apiKeys("bitly1"), apiKeys("bitly2"))
+  lazy val bitly   = new Bitly(apiKeys("bitly1"), apiKeys("bitly2"))
   lazy val novatel = new NovatelSMS(apiKeys("novatel_user"), apiKeys("novatel_pass"))
   val smsCoolDown = 77 //seconds
   var lastSMSTime = 0
@@ -79,12 +79,16 @@ final class haibot extends PircBot {
   def males          = getFile(folder+"males.db",         allowFail = true).map(_.cleanNick).toSet
   def trusted        = getFile(folder+"trusted.db",       allowFail = true).map(_.cleanNick).toSet
   def bots           = getFile(folder+"bots.db",          allowFail = true).map(_.cleanNick).toSet
+  val untrusted      = Store(folder+"untrusted.db")
   
-  implicit class IRCNickString(val s: String) { 
-    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
+  implicit class IRCNickString(val s: String) {
+    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-(nexus|work)$", "")
     def isFemale: Boolean = females.contains(s.cleanNick)
     def isMale: Boolean = males.contains(s.cleanNick)
-    def isTrusted: Boolean = trusted.contains(s.cleanNick) && tempDontTrustSet(s.cleanNick) == 0
+    def isTrusted: Boolean = 
+        ((trusted.contains(s.cleanNick))
+      && (tempDontTrustSet(s.cleanNick) == 0)
+      && (!untrusted.contains(s.cleanNick)))
     def isBot: Boolean = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
   }
   
@@ -92,15 +96,18 @@ final class haibot extends PircBot {
   val trustTimeOut = 15000 //ms
   def tempDontTrust(nick: String): Unit = thread {
     tempDontTrustSet.synchronized {
-      val trustLvl = math.max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick))
-      tempDontTrustSet(nick) = trustLvl + 1
-      tempDontTrustSet(nick.cleanNick) += trustLvl + 1
+      val trustLvl = max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick)) + 1
+      tempDontTrustSet(nick)           = trustLvl
+      tempDontTrustSet(nick.cleanNick) = trustLvl
+      if(trustLvl >= 4 && !untrusted.contains(nick.cleanNick)) {
+        untrusted += nick.cleanNick
+      }
     }
     Thread.sleep(trustTimeOut)
     tempDontTrustSet.synchronized {
-      val trustLvl = math.max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick))
-      tempDontTrustSet(nick) -= trustLvl - 1
-      tempDontTrustSet(nick.cleanNick) -= trustLvl - 1
+      val trustLvl = max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick)) - 1
+      tempDontTrustSet(nick)           = trustLvl
+      tempDontTrustSet(nick.cleanNick) = trustLvl
     }
   }
   
@@ -138,13 +145,13 @@ final class haibot extends PircBot {
   }
   
   //TODO: this is horrible and error-prone, make class
-  var tweetScore = Set.empty[String]
+  var tweetScore    = Set.empty[String]
   var tweetPlsScore = Set.empty[String]
   var tweetNegScore = Set.empty[String]
+  var tweetNames    = Set.empty[String]
   var tweetMsg = ""
   var tweetId = ""
-  var tweetLim = 2
-  var tweetNames = Set.empty[String]
+  var tweetLim = 3
 
   var lastMsg_ = ""
   def speakNow(msgs: String*): Unit = {
@@ -463,20 +470,19 @@ final class haibot extends PircBot {
       speak("I have removed "+rem.length+" event"+(if(rem.length != 1) "s" else ""))
     // Twitter/FB part
     } else if(yes || maybe || please) {
-      val beggedBefore = (tweetPlsScore contains sender)
+      val beggedBefore = (tweetPlsScore contains sender.cleanNick)
           
-      if(sender.isTrusted) {
-        if(yes || (maybe && 0.5.prob)) tweetScore += sender
-      } else {
-        tempDontTrust(sender)
-      }
+      if(!sender.isTrusted) tempDontTrust(sender)
+      
+      if(sender.isTrusted && (yes || (maybe && 0.5.prob)))
+        tweetScore += sender.cleanNick
       
       if(please) {
         if(beggedBefore && 0.4.prob)
           speak("Come on "+sender+", stop begging", "You may beg only once, "+sender+".")
 
         if(!beggedBefore && sender.isTrusted)
-          tweetPlsScore += sender
+          tweetPlsScore += sender.cleanNick
       }
       
       import sys.process._
@@ -488,10 +494,10 @@ final class haibot extends PircBot {
         else
           speak("Failed to follow :/")
       
-        tweetScore = Set.empty
+        tweetScore    = Set.empty
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
-        tweetNames = Set.empty
+        tweetNames    = Set.empty
       } else if(tweetMsg == null && (tweetId matches "[0-9]*") && isOverTweetLimit) {
         val returnTwitter = Seq("t", "retweet", tweetId).!
         
@@ -533,7 +539,7 @@ final class haibot extends PircBot {
         else
           speak("Failed to retweet :/")
 
-        tweetScore = Set.empty
+        tweetScore    = Set.empty
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
         tweetMsg = ""
@@ -548,13 +554,13 @@ final class haibot extends PircBot {
           case (_, _) => speak("Failed to post anywhere :(")
         }
 
-        tweetScore = Set.empty
+        tweetScore    = Set.empty
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
         tweetMsg = ""
       }
     } else if(no || (meh && 0.5.prob)) {
-      tweetNegScore += sender
+      tweetNegScore += sender.cleanNick
     } else if(message.startsWith("@checktweets") && sender.isTrusted) {
       checkTwitter(force = true)
     } else if(message.startsWith("@follow ")) {
@@ -570,11 +576,11 @@ final class haibot extends PircBot {
       if(names forall { _ matches "[A-Za-z0-9_]{1,20}" }) {
         tweetMsg = null
         tweetId = null
-        tweetNames = names
-        tweetScore = Set(sender)
+        tweetNames    = names
+        tweetScore    = Set(sender.cleanNick)
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
-        tweetLim = 2
+        tweetLim = if(sender.isTrusted) 2 else 3
         speak(
           "Someone pls confirm.",
           "Please confirm.",
@@ -587,10 +593,10 @@ final class haibot extends PircBot {
       val Regex.tweet(tId) = URLs.find(_ matches Regex.tweet).head
       tweetMsg = null
       tweetId = tId
-      tweetScore = Set(sender)
+      tweetScore    = Set(sender.cleanNick)
       tweetNegScore = Set.empty
       tweetPlsScore = Set.empty
-      tweetLim = 2
+      tweetLim = if(sender.isTrusted) 2 else 3
       speak(
         c"A retweet of [this|that|the] tweet {, perhaps|, maybe}?",
         c"[Want me to|Should I|Am I to|Is it OK if I|Is it OK to|May I|Can I] retweet [this|that] {tweet}?",
@@ -626,7 +632,7 @@ final class haibot extends PircBot {
           c"I need a vote{, before I post this}{.}",
           c"Someone {should} {simply} confirm this {, and I'll post it}{.}")
         tweetMsg = tweet
-        tweetScore = Set(sender)
+        tweetScore    = Set(sender.cleanNick)
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
         tweetLim = if(sender.isTrusted) 2 else 3

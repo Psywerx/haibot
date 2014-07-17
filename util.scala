@@ -329,6 +329,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   def +=(r: Row) { appendToFile(file) { rowToString(r) } }
   def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
   def ?(k: String): List[String] = getFile(file, allowFail = true) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def contains(k: String) = this.?(k).nonEmpty
   def *(): List[Row] = 
     getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(' ')
