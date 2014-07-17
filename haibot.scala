@@ -84,8 +84,24 @@ final class haibot extends PircBot {
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-nexus$", "")
     def isFemale: Boolean = females.contains(s.cleanNick)
     def isMale: Boolean = males.contains(s.cleanNick)
-    def isTrusted: Boolean = trusted.contains(s.cleanNick)
+    def isTrusted: Boolean = trusted.contains(s.cleanNick) && tempDontTrustSet(s.cleanNick) == 0
     def isBot: Boolean = (s.startsWith("_") && s.endsWith("_")) || bots.contains(s.cleanNick)
+  }
+  
+  val tempDontTrustSet = mutable.AnyRefMap.empty[String, Long] withDefaultValue 0
+  val trustTimeOut = 15000 //ms
+  def tempDontTrust(nick: String): Unit = thread {
+    tempDontTrustSet.synchronized {
+      val trustLvl = math.max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick))
+      tempDontTrustSet(nick) = trustLvl + 1
+      tempDontTrustSet(nick.cleanNick) += trustLvl + 1
+    }
+    Thread.sleep(trustTimeOut)
+    tempDontTrustSet.synchronized {
+      val trustLvl = math.max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick))
+      tempDontTrustSet(nick) -= trustLvl - 1
+      tempDontTrustSet(nick.cleanNick) -= trustLvl - 1
+    }
   }
   
   var lastMsgs = List[String]()
@@ -199,6 +215,8 @@ final class haibot extends PircBot {
   }
   
   override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
+    tempDontTrust(oldNick)
+    tempDontTrust(newNick)
     speakMessages(newNick, spoke = false, joined = true)
   }
   
@@ -447,8 +465,11 @@ final class haibot extends PircBot {
     } else if(yes || maybe || please) {
       val beggedBefore = (tweetPlsScore contains sender)
           
-      if(sender.isTrusted && (yes || (maybe && 0.5.prob)))
-        tweetScore += sender
+      if(sender.isTrusted) {
+        if(yes || (maybe && 0.5.prob)) tweetScore += sender
+      } else {
+        tempDontTrust(sender)
+      }
       
       if(please) {
         if(beggedBefore && 0.4.prob)
@@ -609,9 +630,6 @@ final class haibot extends PircBot {
         tweetNegScore = Set.empty
         tweetPlsScore = Set.empty
         tweetLim = if(sender.isTrusted) 2 else 3
-        if(tweetLim > 2) {
-          speak("Also, I don't think I know you... I need "+(tweetLim-1)+" votes for you")
-        }
       } else {
         speak("That's too long to tweet, you twit! ("+tweet.size+" char)")
       }
@@ -624,7 +642,7 @@ final class haibot extends PircBot {
       val (name, sms) = msg.splitAt(msg.indexOf(' '))
       val nums = Store(folder+"numbers.db").toMap
       if(!sender.isTrusted) {
-        speak(c"{Sorry, }you're not on the trusted user list{ (yet?)}.")
+        speak(c"{Sorry, }I don't trust you{ (yet?)}.")
       } else if(name.trim.isEmpty || sms.trim.isEmpty) {
         speak(c"You['ve forgotten| forgot] the name or {possibly} the message.")
       } else if(nums contains name.toLowerCase) {
