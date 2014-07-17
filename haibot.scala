@@ -80,9 +80,10 @@ final class haibot extends PircBot {
   def trusted        = getFile(folder+"trusted.db",       allowFail = true).map(_.cleanNick).toSet
   def bots           = getFile(folder+"bots.db",          allowFail = true).map(_.cleanNick).toSet
   val untrusted      = Store(folder+"untrusted.db")
+  val seen           = Store(folder+"seen.db")
   
   implicit class IRCNickString(val s: String) {
-    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-(nexus|work)$", "")
+    def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-?(nexus|work|home|(an)?droid|i?phone)$", "")
     def isFemale: Boolean = females.contains(s.cleanNick)
     def isMale: Boolean = males.contains(s.cleanNick)
     def isTrusted: Boolean = 
@@ -224,6 +225,9 @@ final class haibot extends PircBot {
   override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
     tempDontTrust(oldNick)
     tempDontTrust(newNick)
+    if(!seen.contains(newNick.cleanNick)) {
+      seen += newNick.cleanNick
+    }
     speakMessages(newNick, spoke = false, joined = true)
   }
   
@@ -231,23 +235,34 @@ final class haibot extends PircBot {
     if(sender == this.name) {
       startTime = now
     } else {
-      Thread.sleep(1000)
+      joinTimes(sender.toLowerCase) = now
       if(sender.startsWith(owner) && 0.05.prob)
-        speak(
+        speak( //TODO: detect netsplit
           c"welcome, father{!|.}",
           c"welcome back{!|.}",
           c"hi, you{!}",
           c"I've missed you, $sender{.}")
+      
+      if(!seen.contains(sender.cleanNick)) {
+        seen += sender.cleanNick
+        if(0.2.prob) speak(
+          c"welcome to #psywerx, $sender",
+          c"oh cool, new people... or at least new enough that I don't recognize them")
+      }
 
       speakMessages(sender, spoke = false, joined = true)
-      joinTimes(sender.toLowerCase) = now
     }
   }
   
   override def onUserList(channel: String, users: Array[User]): Unit = {
     val users = getUsers
     if(users.size > 1) speak("o hai!", if(users.size == 2) "hi, you!" else "hai guise!", "ohai", c"hello{!}", "hi", "hi there!")
-    for(user <- users) speakMessages(user, spoke = false, joined = true)
+    for(user <- users) {
+      if(!seen.contains(user.cleanNick)) {
+        seen += user.cleanNick
+      }
+      speakMessages(user, spoke = false, joined = true)
+    }
   }
 
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String): Unit = {
@@ -709,10 +724,11 @@ final class haibot extends PircBot {
           val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
           val noOnlineOnMsgNicks = isHere.filter(here => noOnlineOnMsg.contains(here.cleanNick))
+          val neverSeen = nicks.filterNot(nick => seen.contains(nick.cleanNick))
           val watNicks = (if(!(param matches "[0-9]+") && (isHere contains this.name) || (isHere contains sender)) (Set(this.name, sender) & isHere) else Set.empty[String])
-          val toMsgNicks = (((nicks &~ errNicks) &~ watNicks) &~ noOnlineOnMsgNicks)
+          val toMsgNicks = ((((nicks &~ errNicks) &~ watNicks) &~ noOnlineOnMsgNicks) &~ neverSeen)
           toPlusNicks = (toPlusNicks &~ errNicks)
-          val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks ++ noOnlineOnMsgNicks
+          val dontMsgNicks = errNicks ++ (if(msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks ++ noOnlineOnMsgNicks ++ neverSeen
           
           def themForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isFemale) "her" else if(nicks.head.isMale) "him" else "them") else "them"
           def theyForm(nicks: Set[String]): String = if(nicks.size == 1) (if(nicks.head.isFemale) "she" else if(nicks.head.isMale) "he" else "they") else "they"
@@ -728,6 +744,9 @@ final class haibot extends PircBot {
           }
           if(errNicks.nonEmpty) {
             speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
+          }
+          if(neverSeen.nonEmpty) {
+            speak(c"[Probably|Possibly|Perhaps] [some|a] [typo|misspelling], {be}cause [I've never|I haven't] [seen|heard of] "+" "+neverSeen.mkString(", ")+" "+c"[a|']round [here|these parts].")
           }
           if(msg.isEmpty && (toMsgNicks &~ toPlusNicks).nonEmpty) { //TODO: test a++,b,c... also make sure if names are relevant
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
