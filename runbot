@@ -143,7 +143,7 @@ run() {
   esac
 }
 
-if [[ "$args" == "-c" ]] || [[ $bot.scala -nt $outdir/org/psywerx/$bot.class ]] || [[ util.scala -nt $outdir/org/psywerx/util.class ]] || [[ OCR.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ WordNet.scala -nt $outdir/org/psywerx/WordNet.class ]]; then
+if [[ "$args" == "-c" ]] || [[ $bot.scala -nt $outdir/org/psywerx/$bot.class ]] || [[ util.scala -nt $outdir/org/psywerx/util.class ]] || [[ OCR.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ WordNet.scala -nt $outdir/org/psywerx/WordNet.class ]] || [[ Caption.scala -nt $outdir/org/psywerx/Caption.class ]]; then
   compile && run
 else
   run

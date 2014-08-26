@@ -11,7 +11,7 @@ import scala.util.Random._
 import java.io._
 import java.nio.file.Files
 
-object util {
+final object util {
   val folder = "util/"
   
   def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative }

@@ -336,7 +336,7 @@ final class haibot extends PircBot {
            && (if(message.containsAny("^", "$", "{", "}")) 0.7 else 0.5).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
-        c"Regex{es}[!]2 {M|m}y favorite thing[!]2",
+        c"Regex{es}[!]2 [M|m]y favorite thing[!]2",
         c"mm{m}{m}, regex{es}{!|...}",
         c"{wow, }I wonder what that matches.{.}")
     } else if((msg.containsAny("tnx", "thanks", "hvala"))
@@ -804,7 +804,7 @@ final class haibot extends PircBot {
             }
           }
         case _ =>
-          speak(c"Sorry, but I {really|kind of|unfortunately} don't know what to do with this.")
+          speak(c"Sorry, but I {really|kind of|unfortunately} don't know what to do{ with this}.")
       }
     } else if(message.startsWithAny("@reword ", "@rephrase ")) {
       val toReword = message.dropWhile(_ != ' ').tail
