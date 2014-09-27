@@ -81,6 +81,7 @@ final class haibot extends PircBot {
   def bots           = getFile(folder+"bots.db",          allowFail = true).map(_.cleanNick).toSet
   val untrusted      = Store(folder+"untrusted.db")
   val seen           = Store(folder+"seen.db")
+  val lovables       = Store(folder+"lovables.db")
   
   implicit class IRCNickString(val s: String) {
     def cleanNick: String = s.toLowerCase.replaceAll("[0-9_^]|-?(nexus|work|home|(an)?droid|i?phone)$", "")
@@ -236,11 +237,23 @@ final class haibot extends PircBot {
       startTime = now
     } else {
       joinTimes(sender.toLowerCase) = now
-      if(sender.startsWith(owner) && 0.05.prob)
+      val (isOwner, isLovable) = (sender.startsWith(owner), lovables.contains(sender.cleanNick))
+      if((isOwner || isLovable) && 0.05.prob)
         speak( //TODO: detect netsplit
-          c"welcome, father{!|.}",
+          (if(isOwner) {
+            if(sender.isMale) {
+              c"welcome, father{!|.}"
+            } else if(sender.isFemale) {
+              c"welcome, mother{!|.}"
+            } else {
+              c"welcome, parent{!|.}"
+            }
+          } else {
+            c"welcome, $sender{!|.}"
+          }),
           c"welcome back{!|.}",
           c"hi, you{!}",
+          c"so glad to see you again, $sender{!}",
           c"I've missed you, $sender{.}")
       
       if(!seen.contains(sender.cleanNick)) {
