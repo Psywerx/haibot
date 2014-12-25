@@ -95,7 +95,7 @@ final class haibot extends PircBot {
   }
   
   val tempDontTrustSet = mutable.AnyRefMap.empty[String, Long] withDefaultValue 0
-  val trustTimeOut = 15000 //ms
+  val trustTimeOut = 15000L //ms
   def tempDontTrust(nick: String): Unit = thread {
     tempDontTrustSet.synchronized {
       val trustLvl = max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick)) + 1
@@ -301,7 +301,7 @@ final class haibot extends PircBot {
         .trim
     
       val (yes, no, maybe, meh, please, quit) = (
-          message.startsWithAny("@yes", "@yep", "@yea", "@sure", "@suer"),
+          message.startsWithAny("@yes", "@yep", "@yea", "@sure", "@suer", "@ok"),
           message.startsWithAny("@no", "@nein", "@nah", "@nay"),
           message.startsWithAny("@maybe", "@perhaps"),
           message.startsWithAny("@meh", "@whatever"),
@@ -316,12 +316,12 @@ final class haibot extends PircBot {
     } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "'ello ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
       var hai = Seq("ohai", "o hai", c"[hello|hi] {there}")
       if(mentions.contains(name) && 0.7.prob) {
-        hai.transform(_ + " " + sender)
+        hai = hai.map(_ + " " + sender)
       } else if(mentions.nonEmpty && !mentions.contains(name) && 0.7.prob) {
-        hai.transform(_ + " " + mentions.toSeq.random)
+        hai = hai.map(_ + " " + mentions.toSeq.random)
       }
       
-      hai.transform(_ + " " + c"{:)|!|^_^}").transform(_.replaceAll(" !", "!").trim) //first new caption system fail :/
+      hai = hai.map(_ + " " + c"{:)|!|^_^}").map(_.replaceAll(" !", "!").trim) //first new caption system fail :/
       
       speak(hai: _*)
     } else if(message.contains(name+"++") && 0.65.prob) {
