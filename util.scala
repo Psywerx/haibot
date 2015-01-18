@@ -31,12 +31,9 @@ final object util {
     def replaceAll(m: (String, String)*): String = 
       m.foldLeft(s)((out, rep) => out.replaceAll(rep._1, rep._2))
     //TODO: containsPercent: Double for fuzzy reasoning
-    def containsAny(strs: String*): Boolean = 
-      strs.foldLeft(false)((acc, str) => acc || s.contains(str))
-    def startsWithAny(strs: String*): Boolean = 
-      strs.foldLeft(false)((acc, str) => acc || s.startsWith(str))
-    def endsWithAny(strs: String*): Boolean = 
-      strs.foldLeft(false)((acc, str) => acc || s.endsWith(str))
+    def containsAny(strs: String*): Boolean   = strs.exists(str => s.contains(str))
+    def startsWithAny(strs: String*): Boolean = strs.exists(str => s.startsWith(str))
+    def endsWithAny(strs: String*): Boolean   = strs.exists(str => s.endsWith(str))
     def sentences: Array[String] = s.split("[.!?]+") //TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
     private[this] val charMap = ("čćžšđ" zip "cczsd").toMap
     def makeEasy: String = // lazy way to make text processing easier

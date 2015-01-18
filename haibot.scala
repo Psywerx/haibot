@@ -756,7 +756,7 @@ final class haibot extends PircBot {
               Memes.NO_U)
           }
           if(errNicks.nonEmpty) {
-            speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) "doesn't sound like a real name to me." else "don't sound like real names to me."))
+            speak("no offence, but "+errNicks.mkString(", ")+(if(errNicks.size == 1) " doesn't sound like a real name to me." else " don't sound like real names to me."))
           }
           if(neverSeen.nonEmpty) {
             speak(c"[Probably|Possibly|Perhaps] [some|a] [typo|misspelling], {be}cause [I've never|I haven't] [seen|heard of] "+" "+neverSeen.mkString(", ")+" "+c"[a|']round [here|these parts].")
