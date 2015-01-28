@@ -352,9 +352,9 @@ final class haibot extends PircBot {
         c"Regex{es}[!]2 [M|m]y favorite thing[!]2",
         c"mm{m}{m}, regex{es}{!|...}",
         c"{wow, }I wonder what that matches.{.}")
-    } else if((msg.containsAny("tnx", "thanks", "hvala"))
+    } else if((msg.containsAny("thx", "tnx", "thanks", "hvala"))
            &&((mentions.contains(name) && 0.8.prob) || (msg.contains(" alot ") && 0.5.prob))) {
-      if(msg.matches(".* alot([.,?! ]|$)") && !msg.contains("hvala")&& 0.9.prob) {
+      if(msg.matches(".* alot([.,?! ]|$)") && !msg.contains("hvala") && 0.9.prob) {
         speak(Memes.thanks_alot)
       } else {
         speak(
