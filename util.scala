@@ -198,8 +198,17 @@ object Time {
           text
             .findAll(regex)
             .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
-            .map{date => if(date.getMonth == 0 && date.getYear == 70) { date.setYear((new Date).getYear); date.setMonth((new Date).getMonth); date.setDate((new Date).getDate) }; date } //TODO: hacky hack hack
-            .map{date => if(date.getYear == 70) date.setYear((new Date).getYear); date} //TODO: hacky hack hack
+            .map{ date => //TODO: hacky hack hack
+              if(date.getMonth == 0 && date.getYear == 70) { 
+                date.setYear((new Date).getYear)
+                date.setMonth((new Date).getMonth)
+                date.setDate((new Date).getDate)
+              } else if(date.getYear == 70) {
+                date.setYear((new Date).getYear)
+              }
+              
+              date
+            }
             .filter(filter)
         }
         .distinct
@@ -253,8 +262,8 @@ object Net {
   def scrapeURLs(urls: String*): String =
     (urls
       .flatMap { _.findAll(Regex.URL) }
-      .map { url => if(url startsWith "www") "http://"+url else url } //TODO: https everywhere :)
-      .map { url => 
+      .map { _url => 
+        val url = if(_url startsWith "www") "http://"+_url else _url //TODO: https everywhere :)
         try {
           if(url.endsWithAny(badExts: _*)) ""
           else extractor.getText(new URL(url))

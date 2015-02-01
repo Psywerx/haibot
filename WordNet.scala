@@ -97,7 +97,10 @@ class WordNet(folder: String) {
   
   def getWeights: Map[String, Double] = {
     val file = io.Source.fromFile(folder+"weights")
-    val out = file.getLines.toList.map(_.split(" ")).map(e => (e(0), e(1).toDouble)).toMap.withDefaultValue(1d)
+    val out = file.getLines.toList.map { line =>
+      val elts = line.split(" ")
+      (elts(0), elts(1).toDouble)
+    }.toMap.withDefaultValue(1d)
     file.close()
     out
   }

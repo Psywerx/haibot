@@ -321,7 +321,7 @@ final class haibot extends PircBot {
         hai = hai.map(_ + " " + mentions.toSeq.random)
       }
       
-      hai = hai.map(_ + " " + c"{:)|!|^_^}").map(_.replaceAll(" !", "!").trim) //first new caption system fail :/
+      hai = hai.map(h => (h + " " + c"{:)|!|^_^}").replace(" !", "!").trim) //first new caption system fail :/
       
       speak(hai: _*)
     } else if(message.contains(name+"++") && 0.65.prob) {
