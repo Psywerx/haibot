@@ -25,7 +25,7 @@ final object util {
     })).start
   
   
-  implicit class PimpString(val s: String) { 
+  implicit class StringImplicits(val s: String) { 
     def replace(m: (String, String)*): String = 
       m.foldLeft(s)((out, rep) => out.replace(rep._1, rep._2))
     def replaceAll(m: (String, String)*): String = 
@@ -67,7 +67,7 @@ final object util {
   }
   
   //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
-  implicit class PimpInt(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
+  implicit class IntImplicits(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
   implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size))
