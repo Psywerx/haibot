@@ -149,10 +149,11 @@ final object Caption extends RegexParsers {
         (c"[$cleanRand]", Set(cleanRand)),
         (c"{$cleanRand}", Set(cleanRand, "")),
         (c"$cleanRand[$cleanRand]$cleanRand{$cleanRand}", Set(cleanRand*3, cleanRand*4)),
-        (c"$cleanRand[$rand]$cleanRand$rand", Set(cleanRand+rand+cleanRand+rand))
+        (c"$cleanRand[$rand]$cleanRand$rand", Set(cleanRand+rand+cleanRand+rand)),
+        (c"$rand {:)|!|^_^}", Set(rand+" :)", rand+"!", rand+" ^_^"))
       )
     }
-        
+    
     for(i <- 1 to 5000; (cap, resSet) <- cases(); if(!resSet.contains(cap))) {
       println
       println(cap)

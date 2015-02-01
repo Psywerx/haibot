@@ -314,16 +314,14 @@ final class haibot extends PircBot {
       shutdown = true
       sys.exit(0)
     } else if(msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "'ello ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
-      var hai = Seq("ohai", "o hai", c"[hello|hi] {there}")
-      if(mentions.contains(name) && 0.7.prob) {
-        hai = hai.map(_ + " " + sender)
-      } else if(mentions.nonEmpty && !mentions.contains(name) && 0.7.prob) {
-        hai = hai.map(_ + " " + mentions.toSeq.random)
-      }
+      val mention = 
+        if(mentions.contains(name) && 0.7.prob) sender
+        else if(mentions.nonEmpty && !mentions.contains(name) && 0.7.prob) mentions.toSeq.random
+        else ""
+
+      val hais = Seq("ohai", "o hai", c"[hello|hi] {there}").map(hai => c"$hai $mention {:)|!|^_^}")
       
-      hai = hai.map(h => (h + " " + c"{:)|!|^_^}").replace(" !", "!").trim) //first new caption system fail :/
-      
-      speak(hai: _*)
+      speak(hais: _*)
     } else if(message.contains(name+"++") && 0.65.prob) {
       speak(
         c"woo{o}hoo{o}!",
