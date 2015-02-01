@@ -6,7 +6,7 @@ class Zemanta(apiKey: String) {
   import scala.collection.JavaConversions.mapAsJavaMap
   import scala.collection.JavaConversions.asScalaBuffer
   
-  def suggestKeywords(text: String, cnt: Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.map(_.name).take(cnt))
+  def suggestKeywords(text: String, cnt: Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.take(cnt).map(_.name))
   def suggestArticles(text: String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
   def suggestImages(text: String): Option[List[Image]] = suggest(text).map(_.getConfidenceSortedImages(true).toList)
   
