@@ -104,6 +104,15 @@ if [ ! -e "lib/$bitly.jar" ]; then
 fi
 cp+=":lib/$bitly.jar"
 
+if [ "$(which scalac)" == "" ]; then
+    scalaver="2.11.6"
+    echo "trying to get scala-$scalaver"
+    wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz &> /dev/null
+    tar -xvzf scala-$scalaver.tgz
+    PATH="$PATH:scala-$scalaver/bin"
+    [ "$(which scalac)" == "" ] && echo "getting scala-$scalaver failed" && exit
+fi
+
 args="$1"
 bot="haibot"
 outdir="bin"
