@@ -21,7 +21,7 @@ else
         unzip $pb.zip &> /dev/null
         rm $pb.zip &> /dev/null
         cd ..
-        [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit
+        [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit 1
         echo "successfully got $pb"
     fi
     cp+=":lib/$pb/pircbot.jar"
@@ -39,7 +39,7 @@ if [ ! -e "lib/$zem/$zem-java.jar" ]; then
     #rm $zemzip &> /dev/null
     wget https://github.com/Zemanta/zemapi-java/raw/3a37e13d7adaf22087a24c4c7125cc683b3a3c0a/$zem-java.jar &> /dev/null
     cd ../..
-    [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit
+    [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit 1
     echo "successfully got $zem"
 fi
 cp+=":lib/$zem/$zem-java.jar"
@@ -53,7 +53,7 @@ if [ ! -e "lib/$bp/$bp.jar" ]; then
     tar xvzf $bp-bin.tar.gz &> /dev/null
     rm $bp-bin.tar.gz &> /dev/null
     cd ..
-    [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit
+    [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit 1
     echo "successfully got $bp"
 fi
 cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
@@ -87,7 +87,7 @@ if [ ! -e "lib/WordNet/wn_s2.db" ]; then
         mv prolog WordNet
     fi
     cd ..
-    [ ! -e "lib/WordNet" ] && echo "getting $wn failed" && exit
+    [ ! -e "lib/WordNet" ] && echo "getting $wn failed" && exit 1
     echo "successfully got $wn"
 fi
 
@@ -99,18 +99,18 @@ if [ ! -e "lib/$bitly.jar" ]; then
     cd lib
     wget http://bitlyj.googlecode.com/files/$bitly.jar &> /dev/null
     cd ..
-    [ ! -e "lib/$bitly.jar" ] && echo "getting $bitly failed" && exit
+    [ ! -e "lib/$bitly.jar" ] && echo "getting $bitly failed" && exit 1
     echo "successfully got $bitly"
 fi
 cp+=":lib/$bitly.jar"
 
-if [ "$(which scalac)" == "" ]; then
+if [ "$(command -v scalac)" == "" ]; then
     scalaver="2.11.6"
     echo "trying to get scala-$scalaver"
     wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz &> /dev/null
     tar -xvzf scala-$scalaver.tgz &> /dev/null
     PATH="$PATH:scala-$scalaver/bin"
-    [ "$(which scalac)" == "" ] && echo "getting scala-$scalaver failed" && exit
+    [ "$(command -v scalac)" == "" ] && echo "getting scala-$scalaver failed" && exit 1
 fi
 
 args="$1"
