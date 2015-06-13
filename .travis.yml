@@ -6,8 +6,5 @@ jdk:
   - openjdk7
   - oraclejdk7
   - oraclejdk8
-install:
-  - pip install bashate
 script:
-  - bashate -i E011 runbot
   - ./runbot -c
