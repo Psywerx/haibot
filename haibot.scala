@@ -116,7 +116,7 @@ final class haibot extends PircBot {
   var lastMsgs = List[String]()
   
   var twitterCheck = 0
-  val twitterCheckInterval = 5*60
+  val twitterCheckInterval = 5*60 //s
   def checkTwitter(force: Boolean = false): Unit = synchronized {
     if(since(twitterCheck) > twitterCheckInterval || force) {
       try {
@@ -513,6 +513,9 @@ final class haibot extends PircBot {
       
       import sys.process._
       def isOverTweetLimit: Boolean = (tweetScore.size-tweetNegScore.size >= tweetLim) || (please && !beggedBefore && 0.25.prob)
+      
+      println(s"Tweet status: ${ tweetScore ++ tweetPlsScore }, need $tweetLim")
+      
       if(tweetMsg == null && tweetId == null && tweetNames.nonEmpty) {
         val twitterReturn = (Seq("t", "follow") ++ tweetNames).!
         if(twitterReturn == 0)
@@ -722,7 +725,7 @@ final class haibot extends PircBot {
               if((rawParamLower == "onspeak")
               || (rawParamLower == "onjoin")
               || (rawParamLower.split("[|]").toSet == Set("onjoin", "onspeak"))) rawParamLower
-              else Time.getFutureDates(rawParam).lastOption.map(_.getTime.toString) getOrElse default
+              else Time.getFutureDates(rawParam).lastOption.fold(default)(_.getTime.toString)
             } else default
           }
           val param = getParam()

@@ -1,0 +1,14 @@
+language: scala
+scala:
+  - 2.11.6
+jdk:
+  - openjdk6
+  - openjdk7
+  - oraclejdk7
+  - oraclejdk8
+sudo: false
+install:
+  - pip install bashate
+script:
+  - bashate -i E011 runbot
+  - ./runbot -c

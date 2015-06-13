@@ -329,12 +329,12 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   private def rowToString(kv: Row): String = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
   
   def isValidKey(s: String): Boolean = s matches keyFormat
-  def replaceWith(kvs: Seq[Row]) { printToFile(file)(kvs.map(rowToString).mkString("\n")) }
-  def ++=(kvs: Seq[Row]) { appendToFile(file) { kvs.map(rowToString).mkString("\n") } }
-  def +=(k: String, v: String = null) { appendToFile(file)(rowToString((k, v))) }
-  def +=(r: Row) { appendToFile(file) { rowToString(r) } }
-  def -=(k: String) { Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! } //TODO: dumps tmp files into folder sometimes
-  def ?(k: String): List[String] = getFile(file, allowFail = true) filter { line => line.nonEmpty && (line == k || line.startsWith(k + " ")) } map { _.drop(k.size + 1) }
+  def replaceWith(kvs: Seq[Row]): Unit = printToFile(file)(kvs.map(rowToString).mkString("\n"))
+  def ++=(kvs: Seq[Row]): Unit = appendToFile(file) { kvs.map(rowToString).mkString("\n") }
+  def +=(k: String, v: String = null): Unit = appendToFile(file)(rowToString((k, v)))
+  def +=(r: Row): Unit = appendToFile(file)(rowToString(r))
+  def -=(k: String): Unit = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! //TODO: dumps tmp files into folder sometimes
+  def ?(k: String): List[String] = getFile(file, allowFail = true).filter(line => line.nonEmpty && (line == k || line.startsWith(k + " "))).map(_.drop(k.size + 1))
   def contains(k: String) = this.?(k).nonEmpty
   def *(): List[Row] = 
     getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
