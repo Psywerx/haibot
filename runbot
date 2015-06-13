@@ -2,14 +2,15 @@
 
 echo "Hai!"
 
-#classpath
+# classpath
 cp="."
 
 mkdir -p lib
 
-#pircbot
+# pircbot
 pb="pircbot-1.5.0"
 if [ -e "lib/${pb}-ssl.jar" ]; then
+    #see: https://github.com/mrenouf/pircbot-ssl
     cp+=":lib/${pb}-ssl.jar"
 else
     echo "warning: using non-ssl pircbot"
@@ -26,23 +27,24 @@ else
     cp+=":lib/$pb/pircbot.jar"
 fi
 
-#zemanta
+# zemanta 
 zem="zemapi"
 if [ ! -e "lib/$zem/$zem-java.jar" ]; then
     echo "trying to get $zem"
     mkdir -p lib/$zem
     cd lib/$zem
-    zemzip="zemapi-februar2012-java.zip"
-    wget http://developer.zemanta.com/media/files/code/$zemzip &> /dev/null
-    unzip $zemzip &> /dev/null
-    rm $zemzip &> /dev/null
+    #zemzip="zemapi-februar2012-java.zip"
+    #wget http://developer.zemanta.com/media/files/code/$zemzip &> /dev/null
+    #unzip $zemzip &> /dev/null
+    #rm $zemzip &> /dev/null
+    wget https://github.com/Zemanta/zemapi-java/raw/3a37e13d7adaf22087a24c4c7125cc683b3a3c0a/$zem-java.jar &> /dev/null
     cd ../..
     [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit
     echo "successfully got $zem"
 fi
 cp+=":lib/$zem/$zem-java.jar"
 
-#boilerpipe
+# boilerpipe
 bp="boilerpipe-1.2.0"
 if [ ! -e "lib/$bp/$bp.jar" ]; then
     echo "trying to get $bp"
@@ -56,7 +58,7 @@ if [ ! -e "lib/$bp/$bp.jar" ]; then
 fi
 cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
 
-#prolog wordnet db
+# prolog wordnet db
 wn="WNprolog-3.0"
 if [ ! -e "lib/WordNet/wn_s2.db" ]; then
     echo "trying to get $wn"
@@ -66,9 +68,9 @@ if [ ! -e "lib/WordNet/wn_s2.db" ]; then
     rm $wn.tar.gz &> /dev/null
     if [ -e "prolog/wn_s.pl" ]; then
         cd prolog
-        #deleting stuff because I have no space left on target machine :)
+        # deleting stuff because I have no space left on target machine :)
         rm -f -- *.5 *.7 *.html *.pdf *.ps
-        #strip prolog syntax
+        # strip prolog syntax
         echo "converting $wn"
         for pl in *.pl; do
             skip=$( echo $(expr length "$pl")-6+2 | bc )
@@ -89,7 +91,7 @@ if [ ! -e "lib/WordNet/wn_s2.db" ]; then
     echo "successfully got $wn"
 fi
 
-#bitlyj
+# bitlyj
 bitly="bitlyj-2.0.0"
 if [ ! -e "lib/$bitly.jar" ]; then
     echo "trying to get $bitly"
