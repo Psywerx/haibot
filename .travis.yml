@@ -7,7 +7,7 @@ jdk:
   - oraclejdk7
   - oraclejdk8
 install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq bc tesseract-ocr gocr ocrad imagemagick
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install tesseract gocr ocrad imagemagick
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq bc tesseract-ocr gocr ocrad imagemagick; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install tesseract gocr ocrad imagemagick; fi
 script:
   - ./runbot -c
