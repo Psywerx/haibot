@@ -98,6 +98,7 @@ cp="${cp}:lib/$bitly.jar"
     fi
     PATH="${PATH}:scala-$scalaver/bin"
     [ "$(command -v scalac)" ] || { echo "getting scala-$scalaver failed"; exit 1; }
+    echo "successfully got scala-$scalaver"
 }
 
 args="$1"
