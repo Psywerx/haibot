@@ -7,140 +7,128 @@ cp="."
 
 mkdir -p lib
 
-# pircbot
-pb="pircbot-1.5.0"
-if [ -e "lib/${pb}-ssl.jar" ]; then
-    #see: https://github.com/mrenouf/pircbot-ssl
-    cp+=":lib/${pb}-ssl.jar"
-else
-    echo "warning: using non-ssl pircbot"
-    if [ ! -e "lib/$pb/pircbot.jar" ]; then
-        echo "trying to get $pb"
-        cd lib
-        wget http://www.jibble.org/files/$pb.zip &> /dev/null
-        unzip $pb.zip &> /dev/null
-        rm $pb.zip &> /dev/null
-        cd ..
-        [ ! -e "lib/$pb/pircbot.jar" ] && echo "getting $pb failed" && exit 1
-        echo "successfully got $pb"
-    fi
-    cp+=":lib/$pb/pircbot.jar"
-fi
+# pircbot-ssl
+pb="pircbot-1.5.0-ssl"
+#see: https://github.com/mrenouf/pircbot-ssl ... with one simple code change, regular pircbot works too
+[ -e "lib/${pb}.jar" ] || { echo "$pb not found"; exit 1; }
+cp="${cp}:lib/${pb}.jar"
 
 # zemanta 
 zem="zemapi"
-if [ ! -e "lib/$zem/$zem-java.jar" ]; then
+[ -e "lib/$zem/$zem-java.jar" ] || {
     echo "trying to get $zem"
     mkdir -p lib/$zem
     cd lib/$zem
     #zemzip="zemapi-februar2012-java.zip"
-    #wget http://developer.zemanta.com/media/files/code/$zemzip &> /dev/null
-    #unzip $zemzip &> /dev/null
-    #rm $zemzip &> /dev/null
-    wget https://github.com/Zemanta/zemapi-java/raw/3a37e13d7adaf22087a24c4c7125cc683b3a3c0a/$zem-java.jar &> /dev/null
+    #wget http://developer.zemanta.com/media/files/code/$zemzip > /dev/null 2>&1
+    #unzip $zemzip > /dev/null 2>&1
+    #rm $zemzip > /dev/null 2>&1
+    wget https://github.com/Zemanta/zemapi-java/raw/3a37e13d7adaf22087a24c4c7125cc683b3a3c0a/$zem-java.jar > /dev/null 2>&1
     cd ../..
-    [ ! -e "lib/$zem/$zem-java.jar" ] && echo "getting $zem failed" && exit 1
+    [ -e "lib/$zem/$zem-java.jar" ] || { echo "getting $zem failed"; exit 1; }
     echo "successfully got $zem"
-fi
-cp+=":lib/$zem/$zem-java.jar"
+}
+cp="${cp}:lib/$zem/$zem-java.jar"
 
 # boilerpipe
 bp="boilerpipe-1.2.0"
-if [ ! -e "lib/$bp/$bp.jar" ]; then
+[ -e "lib/$bp/$bp.jar" ] || {
     echo "trying to get $bp"
     cd lib
-    wget https://boilerpipe.googlecode.com/files/$bp-bin.tar.gz &> /dev/null
-    tar xvzf $bp-bin.tar.gz &> /dev/null
-    rm $bp-bin.tar.gz &> /dev/null
+    wget https://boilerpipe.googlecode.com/files/$bp-bin.tar.gz > /dev/null 2>&1
+    tar xvzf $bp-bin.tar.gz > /dev/null 2>&1
+    rm $bp-bin.tar.gz > /dev/null 2>&1
     cd ..
-    [ ! -e "lib/$bp/$bp.jar" ] && echo "getting $bp failed" && exit 1
+    [ -e "lib/$bp/$bp.jar" ] || { echo "getting $bp failed"; exit 1; }
     echo "successfully got $bp"
-fi
-cp+=":lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
+}
+cp="${cp}:lib/$bp/$bp.jar:lib/$bp/lib/nekohtml-1.9.13.jar:lib/$bp/lib/xerces-2.9.1.jar"
 
 # prolog wordnet db
 wn="WNprolog-3.0"
-if [ ! -e "lib/WordNet/wn_s2.db" ]; then
+[ -e "lib/WordNet/wn_s2.db" ] || {
     echo "trying to get $wn"
     cd lib
-    wget http://wordnetcode.princeton.edu/3.0/$wn.tar.gz &> /dev/null
-    tar xvzf $wn.tar.gz &> /dev/null
-    rm $wn.tar.gz &> /dev/null
-    if [ -e "prolog/wn_s.pl" ]; then
-        cd prolog
-        # deleting stuff because I have no space left on target machine :)
-        rm -f -- *.5 *.7 *.html *.pdf *.ps
-        # strip prolog syntax
-        echo "converting $wn"
-        for pl in *.pl; do
-            skip=$( echo $(expr length "$pl")-6+2 | bc )
-            cut -b $skip- -- "$pl" | awk 'sub("..$", "")' > "$(basename "$pl" .pl).db"
-            rm -f -- "$pl"
-        done
-        echo "compressing $wn"
-        cut -d, -f 1,3 wn_s.db > wn_s2.db
-        sed -i "s/,'/,/g" wn_s2.db
-        sed -i "s/'$//g" wn_s2.db
-        # stoplist and weights - you might want to do better than touch :)
-        touch stoplist weights
-        cd ..
-        mv prolog WordNet
-    fi
+    wget http://wordnetcode.princeton.edu/3.0/$wn.tar.gz > /dev/null 2>&1
+    tar xvzf $wn.tar.gz > /dev/null 2>&1
+    rm $wn.tar.gz > /dev/null 2>&1
+    [ -e "prolog/wn_s.pl" ] || { echo "getting $wn failed"; exit 1; }
+    cd prolog
+    # deleting stuff because I have no space left on target machine :)
+    rm -f -- *.5 *.7 *.html *.pdf *.ps
+    # strip prolog syntax
+    echo "converting $wn"
+    for pl in *.pl; do
+        skip=$( echo $(expr length "$pl")-6+2 | bc )
+        cut -b $skip- -- "$pl" | awk 'sub("..$", "")' > "$(basename "$pl" .pl).db"
+        rm -f -- "$pl"
+    done
+    echo "compressing $wn"
+    cut -d, -f 1,3 wn_s.db > wn_s2.db
+    sed -i "s/,'/,/g" wn_s2.db
+    sed -i "s/'$//g" wn_s2.db
+    # stoplist and weights - you might want to do better than touch :)
+    touch stoplist weights
     cd ..
-    [ ! -e "lib/WordNet" ] && echo "getting $wn failed" && exit 1
+    mv prolog WordNet
+    cd ..
+    [ -e "lib/WordNet" ] || { echo "getting $wn failed"; exit 1; }
     echo "successfully got $wn"
-fi
+}
 
 # bitlyj
 bitly="bitlyj-2.0.0"
-if [ ! -e "lib/$bitly.jar" ]; then
+[ -e "lib/$bitly.jar" ] || {
     echo "trying to get $bitly"
-    mkdir lib &> /dev/null
+    mkdir lib > /dev/null 2>&1
     cd lib
-    wget http://bitlyj.googlecode.com/files/$bitly.jar &> /dev/null
+    wget http://bitlyj.googlecode.com/files/$bitly.jar > /dev/null 2>&1
     cd ..
-    [ ! -e "lib/$bitly.jar" ] && echo "getting $bitly failed" && exit 1
+    [ -e "lib/$bitly.jar" ] || { echo "getting $bitly failed"; exit 1; }
     echo "successfully got $bitly"
-fi
-cp+=":lib/$bitly.jar"
+}
+cp="${cp}:lib/$bitly.jar"
 
-if [ "$(command -v scalac)" == "" ]; then
+[ "$(command -v scalac)" ] || {
     scalaver="2.11.6"
-    echo "trying to get scala-$scalaver"
-    wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz &> /dev/null
-    tar -xvzf scala-$scalaver.tgz &> /dev/null
-    PATH="$PATH:scala-$scalaver/bin"
-    [ "$(command -v scalac)" == "" ] && echo "getting scala-$scalaver failed" && exit 1
-fi
+    if [ ! -e "scala-$scalaver/bin/scalac" ]; then
+        echo "trying to get scala-$scalaver"
+        wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz > /dev/null 2>&1
+        tar -xvzf scala-$scalaver.tgz > /dev/null 2>&1
+    fi
+    PATH="${PATH}:scala-$scalaver/bin"
+    [ "$(command -v scalac)" ] || { echo "getting scala-$scalaver failed"; exit 1; }
+}
 
 args="$1"
 bot="haibot"
 outdir="bin"
 docdir="doc"
-cp+=":$outdir"
+cp="${cp}:$outdir"
 logdir="logs"
 mkdir -p -- "$logdir"
 mkdir -p -- "$outdir"
 
-if [ "$(which t)"         == "" ]; then echo "$bot might work, if not, set up t - the twitter client."; fi
-if [ "$(which fbcmd)"     == "" ]; then echo "$bot might work, if not, set up fbcmd - the facebook client."; fi
-if [ "$(which tesseract)" == "" ]; then echo "$bot might work, if not, sudo apt-get install tesseract-ocr"; fi
-if [ "$(which gocr)"      == "" ]; then echo "$bot might work, if not, sudo apt-get install gocr"; fi
-if [ "$(which ocrad)"     == "" ]; then echo "$bot might work, if not, sudo apt-get install ocrad"; fi
-if [ "$(which convert)"   == "" ]; then echo "$bot might work, if not, sudo apt-get install imagemagick"; fi
+[ "$(command -v t)"         ] || echo "$bot might work, if not, set up t - the twitter client."
+[ "$(command -v fbcmd)"     ] || echo "$bot might work, if not, set up fbcmd - the facebook client."
+[ "$(command -v tesseract)" ] || echo "$bot might work, if not, sudo apt-get install tesseract-ocr"
+[ "$(command -v gocr)"      ] || echo "$bot might work, if not, sudo apt-get install gocr"
+[ "$(command -v ocrad)"     ] || echo "$bot might work, if not, sudo apt-get install ocrad"
+[ "$(command -v convert)"   ] || echo "$bot might work, if not, sudo apt-get install imagemagick"
 
 compile() {
     echo "compiling $bot"
-    rm -rf -- "$outdir" &> /dev/null
+    rm -rf -- "$outdir" > /dev/null 2>&1
     mkdir -p -- "$outdir"
-    local warnings=$(scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' ')
+    warnings=$(scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' ')
+    # TODO shwordsplit on zsh
     scalac $SCALA_PLUGINS $warnings -Xlint -feature -unchecked -optimize -d $outdir -cp $cp -- *.scala
 }
 
 run() {
-    local botname="org.psywerx.$bot"
-    local runsecure="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp"
-    local rununsecure="scala -cp $cp"
+    botname="org.psywerx.$bot"
+    runsecure="scala -Djava.security.manager -Djava.security.policy==haibot.policy -cp $cp"
+    rununsecure="scala -cp $cp"
     case "$args" in
         -c)   echo "not gonna run $bot...";;
         -d)   echo "making docs..." && scaladoc -d $docdir -cp $cp -- *.scala;;
@@ -150,12 +138,13 @@ run() {
         -f)   echo "running $bot..." && $runsecure $botname;;
         -uf)  echo "running $bot unsecurely..." && $rununsecure $botname;;
         -nop) echo "doing nothing...";;
-        *)    echo "putting $bot into background..." && { $runsecure $botname &>> $logdir/$bot.log & }
+        *)    echo "putting $bot into background..." && { $runsecure $botname >> $logdir/$bot.log 2>&1 & }
     esac
 }
 
-if [[ "$args" == "-c" ]] || [[ $bot.scala -nt $outdir/org/psywerx/$bot.class ]] || [[ util.scala -nt $outdir/org/psywerx/util.class ]] || [[ OCR.scala -nt $outdir/org/psywerx/OCR.class ]] || [[ WordNet.scala -nt $outdir/org/psywerx/WordNet.class ]] || [[ Caption.scala -nt $outdir/org/psywerx/Caption.class ]]; then
+if [ "$args" = "-c" ] || [ $bot.scala -nt $outdir/org/psywerx/$bot.class ] || [ util.scala -nt $outdir/org/psywerx/util.class ] || [ OCR.scala -nt $outdir/org/psywerx/OCR.class ] || [ WordNet.scala -nt $outdir/org/psywerx/WordNet.class ] || [ Caption.scala -nt $outdir/org/psywerx/Caption.class ]; then
     compile && run
 else
     run
 fi
+
