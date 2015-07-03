@@ -121,8 +121,7 @@ compile() {
     echo "compiling $bot"
     rm -rf -- "$outdir" > /dev/null 2>&1
     mkdir -p -- "$outdir"
-    warnings=$(scalac -Y 2>&1 | grep warn | cut -d' ' -f 3 | tr '\n' ' ')
-    # TODO shwordsplit on zsh
+    warnings=$(scalac -Y 2>&1 | grep -- -Ywarn | cut -d' ' -f 3 | tr '\n' ' ')
     scalac $SCALA_PLUGINS $warnings -Xlint -feature -unchecked -optimize -d $outdir -cp $cp -- *.scala
 }
 
