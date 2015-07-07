@@ -20,7 +20,7 @@ class Zemanta(apiKey: String) {
       ))
 
       val zemResult = zem.suggest(request)
-      if(!zemResult.isError) {
+      if (!zemResult.isError) {
         Some(zemResult)
       } else {
         None

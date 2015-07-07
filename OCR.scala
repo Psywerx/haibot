@@ -55,7 +55,7 @@ object OCR {
         val AVGLEN = 3
         
         Some((attrs.sortWith { case ((_, a), (_, b)) => 
-          if(a(COMMON) == b(COMMON)) {
+          if (a(COMMON) == b(COMMON)) {
             (a(AVGLEN) > b(AVGLEN))
           } else {
             (a(COMMON) > b(COMMON))
@@ -65,7 +65,7 @@ object OCR {
 
   def OCR(file: String): Option[String] = OCR(new File(file))
   def OCR(file: java.io.File): Option[String] = 
-    if(!file.isFile) None
+    if (!file.isFile) None
     else try {
       val fileStr = file.toString
       //TODO: put params in file
@@ -87,7 +87,7 @@ object OCR {
               
               //TODO: fails with spaces, quoting doesn't help
               val convertResult = (s"""convert $fileStr $convertParams $tempImgName""").!
-              if(convertResult != 0) None
+              if (convertResult != 0) None
               else {
                 // OCR
                 val ocrText = stringFilter(((engine: @switch) match {
@@ -96,7 +96,7 @@ object OCR {
                   case 2 => Seq("ocrad", "-lf", "--filter=letters", "--format=utf8", tempImgName)
                 }).!!)
                 
-                if(ocrText.isEmpty) None
+                if (ocrText.isEmpty) None
                 else Some(ocrText)
               }
             }, 20.seconds)

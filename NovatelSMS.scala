@@ -22,8 +22,8 @@ class NovatelSMS(username: String, password: String) {
       //TODO: base64 encode everything, as is recommended by API
       assert(msg.length <= 500)
       assert(number matches "(00)?[386][0-9]+")
-      assert(!(username contains "&"))
-      assert(!(password contains "&"))
+      assert(!username.contains("&"))
+      assert(!password.contains("&"))
       
       val msg64 = URLEncoder.encode(BASE64Encoder.encode(msg.getBytes))
       
@@ -35,7 +35,7 @@ class NovatelSMS(username: String, password: String) {
       
       response(0) match {
         case "ok" => NovatelSMS.responseMap("ok")
-        case "error" if(response.size == 2) => NovatelSMS.responseMap(response(1))
+        case "error" if (response.size == 2) => NovatelSMS.responseMap(response(1))
         case _ => NovatelSMS.responseMap("error")
       }
     } catch {

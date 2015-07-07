@@ -21,17 +21,17 @@ final object Caption extends RegexParsers {
   def group = ((brack | brace) ~ "([0-9](-[0-9])?)?".r) ^^ {
     case lB ~ options ~ rB ~ reps =>
       val repeats = 
-        (if(reps matches "[0-9]-[0-9]") {
+        (if (reps matches "[0-9]-[0-9]") {
           val (n1, n2) = (reps.take(1).toInt, reps.takeRight(1).toInt)
           lB match {
             case "[" =>
               nextInt(n2-n1 + 1) + n1
             case "{" =>
               var repeats = nextInt(n2-n1 + 2) + n1
-              if(repeats > n2) repeats = 0
+              if (repeats > n2) repeats = 0
               repeats
           }
-        } else if(reps matches "[0-9]") {
+        } else if (reps matches "[0-9]") {
           lB match {
             case "[" => nextInt(reps.toInt) + 1
             case "{" => nextInt(reps.toInt + 1)
@@ -102,7 +102,7 @@ final object Caption extends RegexParsers {
     
     def cases() = {
       val special = Seq("|", "[", "]", "{", "}", "@", "@@@", "%", "%%%%")
-      val rand = Array.fill(100)(if(nextDouble > 0.8) scala.util.Random.nextPrintableChar.toString else special.random).mkString
+      val rand = Array.fill(100)(if (nextDouble > 0.8) scala.util.Random.nextPrintableChar.toString else special.random).mkString
       val cleanRand = special.foldLeft(rand)((acc, spec) => acc.replace(spec, ""))
       
       Vector(
@@ -154,7 +154,7 @@ final object Caption extends RegexParsers {
       )
     }
     
-    for(i <- 1 to 5000; (cap, resSet) <- cases(); if(!resSet.contains(cap))) {
+    for (i <- 1 to 5000; (cap, resSet) <- cases(); if (!resSet.contains(cap))) {
       println
       println(cap)
       resSet.foreach(println)

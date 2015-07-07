@@ -40,7 +40,7 @@ final object util {
       s.toLowerCase
         .map(char => charMap.getOrElse(char, char))
         .replaceAll("[,:] ", " ")
-    def maybe: String = if(nextBoolean) s else ""
+    def maybe: String = if (nextBoolean) s else ""
     def findAll(r: Regex): List[String] = r.findAllIn(s).toList
     //def removeAll(rem: String): String = s.filterNot(rem contains _) //notsure wat
     def matches(r: Regex): Boolean = s.matches(r.toString)
@@ -49,7 +49,7 @@ final object util {
       val memo = mutable.AnyRefMap[(List[Char], List[Char]), Int]()
       def min(a: Int, b: Int, c: Int): Int = math.min(math.min(a, b), c)
       def sd(s1: List[Char], s2: List[Char]): Int = {
-        if(!memo.contains((s1, s2)))
+        if (!memo.contains((s1, s2)))
           memo((s1, s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
@@ -57,7 +57,7 @@ final object util {
               min(
                 sd(t1, s2) + 1,
                 sd(s1, t2) + 1,
-                sd(t1, t2) + (if(c1 == c2) 0 else 1))
+                sd(t1, t2) + (if (c1 == c2) 0 else 1))
           }
         memo((s1, s2))
       }
@@ -71,7 +71,7 @@ final object util {
 
   implicit class Seqs[A](val s: Seq[A]) { 
     def random: A = s(nextInt(s.size))
-    def randomOption: Option[A] = if(s.isEmpty) None else Some(random)
+    def randomOption: Option[A] = if (s.isEmpty) None else Some(random)
   }
   implicit class Maps[A, B](val m: Map[A, B]) {
     def apply(a: A, b: B): B = m.getOrElse(a, b)
@@ -190,7 +190,7 @@ object Time {
       .replaceAll("[,\\s]+", " ")
 
   def getDates(text: String, filter: (Date => Boolean) = (d: Date) => true): List[Date] = (
-    if(text == null)
+    if (text == null)
       Nil
     else
       dateFormats
@@ -199,11 +199,11 @@ object Time {
             .findAll(regex)
             .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
             .map{ date => //TODO: hacky hack hack
-              if(date.getMonth == 0 && date.getYear == 70) { 
+              if (date.getMonth == 0 && date.getYear == 70) { 
                 date.setYear((new Date).getYear)
                 date.setMonth((new Date).getMonth)
                 date.setDate((new Date).getDate)
-              } else if(date.getYear == 70) {
+              } else if (date.getYear == 70) {
                 date.setYear((new Date).getYear)
               }
               
@@ -246,7 +246,7 @@ object Time {
       case 0 => ""
       case 1 => s"$days day "
       case _ => s"$days days "
-    }) + (if(secs < 90) s"$secs seconds" else if(minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
+    }) + (if (secs < 90) s"$secs seconds" else if (minutes.toInt < 60 && hours.toInt == 0 && days == 0) s"${minutes.toInt} min" else s"$hours:$minutes"))
   }
   def getSinceString(time: Int): String = getSinceZeroString(since(time))
 }
@@ -263,9 +263,9 @@ object Net {
     (urls
       .flatMap { _.findAll(Regex.URL) }
       .map { _url => 
-        val url = if(_url startsWith "www") "http://"+_url else _url //TODO: https everywhere :)
+        val url = if (_url startsWith "www") "http://"+_url else _url //TODO: https everywhere :)
         try {
-          if(url.endsWithAny(badExts: _*)) ""
+          if (url.endsWithAny(badExts: _*)) ""
           else extractor.getText(new URL(url))
         } catch {
           case e: Exception => // java.net.MalformedURLException
@@ -280,7 +280,7 @@ object Net {
     val tempFile = Files.createTempFile("tempdl_", null).toFile
     tempFile.deleteOnExit
     
-    if(download(url, tempFile)) {
+    if (download(url, tempFile)) {
       Some(tempFile)
     } else {
       tempFile.delete
@@ -326,7 +326,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   import util.{ getFile, appendToFile, printToFile }
   
   type Row = (String, String)
-  private def rowToString(kv: Row): String = if(kv._2 != null) kv._1 + " " + kv._2 else kv._1
+  private def rowToString(kv: Row): String = if (kv._2 != null) kv._1 + " " + kv._2 else kv._1
   
   def isValidKey(s: String): Boolean = s matches keyFormat
   def replaceWith(kvs: Seq[Row]): Unit = printToFile(file)(kvs.map(rowToString).mkString("\n"))
@@ -341,7 +341,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   def *(): List[Row] = 
     getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(' ')
-      if(sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
+      if (sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     }
   
   def toList = *
@@ -349,7 +349,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
 
   def ?-(key: String): List[String] = {
     val out = ?(key)
-    if(out.nonEmpty) this -= key
+    if (out.nonEmpty) this -= key
     out
   }
 }

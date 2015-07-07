@@ -24,9 +24,9 @@ class WordNet(folder: String) {
     case wordReg(prefix, word, suffix) => 
       val (hasCapital, allUpper, allLower) = (word matches capital, word matches upperCase, word matches lowerCase)
       val part = // percent of uppercase... fOr PEopLe wHo wrItE lIke THis
-        if(allUpper) {
+        if (allUpper) {
           1d
-        } else if(allLower) {
+        } else if (allLower) {
           0d
         } else {
           val upper = word.count(char => char == Character.toUpperCase(char)).toDouble
@@ -39,20 +39,20 @@ class WordNet(folder: String) {
           .map(_._1).distinct.flatMap(id => wn_sById(id).map(_._2)) // query all synonyms by id
           .filter(w => w != word && w.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
       
-      if(synonyms.nonEmpty) {
+      if (synonyms.nonEmpty) {
         var outWord = synonyms.random
         
-        if(outWord.toLowerCase == word.toLowerCase)
+        if (outWord.toLowerCase == word.toLowerCase)
           outWord = word
-        else if(allLower)
+        else if (allLower)
           outWord = outWord.toLowerCase
-        else if(allUpper)
+        else if (allUpper)
           outWord = outWord.toUpperCase
-        else if(hasCapital && part <= 0.25)
+        else if (hasCapital && part <= 0.25)
           outWord = outWord.capitalize
-        else if(outWord matches lowerCase) {
-          outWord = outWord.map(char => if(part.prob) Character.toUpperCase(char) else Character.toLowerCase(char)) //see part
-          if(hasCapital) outWord = outWord.capitalize
+        else if (outWord matches lowerCase) {
+          outWord = outWord.map(char => if (part.prob) Character.toUpperCase(char) else Character.toLowerCase(char)) //see part
+          if (hasCapital) outWord = outWord.capitalize
         }
         
         prefix + outWord + suffix
@@ -109,14 +109,14 @@ class WordNet(folder: String) {
     try {
       val scores = mutable.AnyRefMap[String, Double]()
       def addToScore(str: String, add: Double): Unit = {
-        if(!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
+        if (!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
       }
       
       val words = in.split(" ").toList flatMap {
         case wordReg(prefix, word, suffix) => 
-          if(word.size >= 3) {
+          if (word.size >= 3) {
             preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>
-              if(!stoplist.contains(w)) {
+              if (!stoplist.contains(w)) {
                 addToScore(w, 1)
                 wn_sByWord(w)
               } else {
@@ -131,7 +131,7 @@ class WordNet(folder: String) {
       
       val weights = getWeights
       
-      for(db <- wnDbs; word <- words; wId <- db._2(word._1); relatedWord <- wn_sById(wId)) {
+      for (db <- wnDbs; word <- words; wId <- db._2(word._1); relatedWord <- wn_sById(wId)) {
         addToScore(relatedWord._2, weights(db._1))
       }
       
