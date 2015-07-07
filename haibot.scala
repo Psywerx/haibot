@@ -95,13 +95,17 @@ final class haibot extends PircBot {
   }
   
   val tempDontTrustSet = mutable.AnyRefMap.empty[String, Long] withDefaultValue 0
-  val trustTimeOut = 15000L //ms
+  val trustTimeOut = 20000L //ms
   def tempDontTrust(nick: String): Unit = thread {
     tempDontTrustSet.synchronized {
       val trustLvl = max(tempDontTrustSet(nick), tempDontTrustSet(nick.cleanNick)) + 1
       tempDontTrustSet(nick)           = trustLvl
       tempDontTrustSet(nick.cleanNick) = trustLvl
-      if(trustLvl >= 4 && !untrusted.contains(nick.cleanNick)) {
+      if(trustLvl >= 5 && trusted.contains(nick.cleanNick) && !untrusted.contains(nick.cleanNick)) {
+        speak("I don't trust you anymore, " + nick + " :(")
+        untrusted += nick.cleanNick
+      }
+      if(trustLvl >= 3 && !trusted.contains(nick.cleanNick) && !untrusted.contains(nick.cleanNick)) {
         untrusted += nick.cleanNick
       }
     }
@@ -224,8 +228,10 @@ final class haibot extends PircBot {
   }
   
   override def onNickChange(oldNick: String, login: String, hostname: String, newNick: String): Unit = {
-    tempDontTrust(oldNick)
     tempDontTrust(newNick)
+    if (newNick.cleanNick != oldNick.cleanNick) {
+      tempDontTrust(oldNick)
+    }
     if(!seen.contains(newNick.cleanNick)) {
       seen += newNick.cleanNick
     }
@@ -264,6 +270,8 @@ final class haibot extends PircBot {
       }
 
       speakMessages(sender, spoke = false, joined = true)
+      
+      if(!sender.isTrusted) tempDontTrust(sender)
     }
   }
   
@@ -372,6 +380,7 @@ final class haibot extends PircBot {
       speak(c"[has someone mentioned|did someone mention] butt sex?")
     } else if(msg.containsAny("shutup", "shut up", "fuck you", "damn", "stfu", "jebi se")
            &&((mentions.contains(name) && 0.9.prob) || ((mentions & bots).nonEmpty && 0.8.prob))) {
+      tempDontTrust(sender)
       speak(
         c"U MAD, BRO?{ :P}",
         Memes.NO_U,
