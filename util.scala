@@ -330,12 +330,14 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   
   def isValidKey(s: String): Boolean = s matches keyFormat
   def replaceWith(kvs: Seq[Row]): Unit = printToFile(file)(kvs.map(rowToString).mkString("\n"))
-  def ++=(kvs: Seq[Row]): Unit = appendToFile(file) { kvs.map(rowToString).mkString("\n") }
-  def +=(k: String, v: String = null): Unit = appendToFile(file)(rowToString((k, v)))
+  def ++=(kvs: Iterable[Row]): Unit = appendToFile(file) { kvs.map(rowToString).mkString("\n") }
+  def +=(k: String, v: String): Unit = appendToFile(file)(rowToString((k, v)))
+  def +=(k: String): Unit = += (k, null)
   def +=(r: Row): Unit = appendToFile(file)(rowToString(r))
   def -=(k: String): Unit = Seq("sed", "-i", s"""/^$k$$\\|^$k[ ].*$$/d""", file).!! //TODO: dumps tmp files into folder sometimes
   def ?(k: String): List[String] = getFile(file, allowFail = true).filter(line => line.nonEmpty && (line == k || line.startsWith(k + " "))).map(_.drop(k.size + 1))
-  def contains(k: String) = this.?(k).nonEmpty
+  def contains(k: String): Boolean = this.?(k).nonEmpty
+  def containsAny(ks: Iterable[String]): Boolean = ks.exists(this.contains)
   def *(): List[Row] = 
     getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
       val sep = res.indexOf(' ')
