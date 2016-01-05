@@ -30,18 +30,18 @@ object OCR {
       .filter(_.size >= 2).toSet   // word at least length 2
   }
 
-  def selectResult(results: Seq[String]): Option[String] = 
+  def selectResult(results: Seq[String]): Option[String] =
     (results.size: @switch) match {
       case 0 => None
       case 1 => Some(results.head)
       case _ =>
         val common = commonWords(results)
-        
-        val attrs = results.map { result => 
+
+        val attrs = results.map { result =>
           val resSplit = result.split(" ")
           (result, Array(
-            result.size.toDouble, 
-            resSplit.count(word =>  common.contains(word)).toDouble, 
+            result.size.toDouble,
+            resSplit.count(word =>  common.contains(word)).toDouble,
             resSplit.count(word => !common.contains(word)).toDouble,
             resSplit.foldLeft(0d)((acc, res) => acc + res.size) / resSplit.size.toDouble
           ))
@@ -54,7 +54,7 @@ object OCR {
         val UNCOMMON = 2
         val AVGLEN = 3
         
-        Some((attrs.sortWith { case ((_, a), (_, b)) => 
+        Some((attrs.sortWith { case ((_, a), (_, b)) =>
           if (a(COMMON) == b(COMMON)) {
             (a(AVGLEN) > b(AVGLEN))
           } else {
@@ -64,13 +64,13 @@ object OCR {
     }
 
   def OCR(file: String): Option[String] = OCR(new File(file))
-  def OCR(file: java.io.File): Option[String] = 
+  def OCR(file: java.io.File): Option[String] =
     if (!file.isFile) None
     else try {
       val fileStr = file.toString
       //TODO: put params in file
       val engineCnt = 3
-      val results: Seq[String] = 
+      val results: Seq[String] =
         ((0 until engineCnt).flatMap { engine =>
           // Temp image and output text files
           val tempImg = Files.createTempFile("ocr_", ".pnm").toFile
@@ -101,7 +101,7 @@ object OCR {
               }
             }, 20.seconds)
           } catch {
-            case e: Exception => 
+            case e: Exception =>
               None
           } finally {
             tempImg.delete

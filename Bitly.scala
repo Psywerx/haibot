@@ -2,7 +2,7 @@ package org.psywerx
 
 class Bitly(apiKey1: String, apiKey2: String) {
   import com.rosaloves.bitlyj.Bitly
-  
+
   lazy val bitly = Bitly.as(apiKey1, apiKey2)
 
   def shorten(s: String): Option[String] = {
@@ -13,7 +13,7 @@ class Bitly(apiKey1: String, apiKey2: String) {
         None
     }
   }
-  
+
   // try, or else return original
   def tryShorten(s: String): String = shorten(s) getOrElse s
 }

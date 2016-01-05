@@ -13,7 +13,7 @@ import java.nio.file.Files
 
 final object util {
   val folder = "util/"
-  
+
   def withAlternative[T](func: => T, alternative: => T ): T = try { func } catch { case _: Throwable => alternative }
   def withExit[T](func: => T, exit: => Any = { }): T = try { func } catch { case _: Throwable => exit; sys.exit(-1) }
   def tryOption[T](func: => T): Option[T] = try { Some(func) } catch { case _: Throwable => None }
@@ -23,12 +23,12 @@ final object util {
       def run(): Unit =
         try { func } catch { case e: Exception => e.printStackTrace }
     })).start
-  
-  
-  implicit class StringImplicits(val s: String) { 
-    def replace(m: (String, String)*): String = 
+
+
+  implicit class StringImplicits(val s: String) {
+    def replace(m: (String, String)*): String =
       m.foldLeft(s)((out, rep) => out.replace(rep._1, rep._2))
-    def replaceAll(m: (String, String)*): String = 
+    def replaceAll(m: (String, String)*): String =
       m.foldLeft(s)((out, rep) => out.replaceAll(rep._1, rep._2))
     //TODO: containsPercent: Double for fuzzy reasoning
     def containsAny(strs: String*): Boolean   = strs.exists(str => s.contains(str))
@@ -53,7 +53,7 @@ final object util {
           memo((s1, s2)) = (s1, s2) match {
             case (_, Nil) => s1.length
             case (Nil, _) => s2.length
-            case (c1 :: t1, c2 :: t2) => 
+            case (c1 :: t1, c2 :: t2) =>
               min(
                 sd(t1, s2) + 1,
                 sd(s1, t2) + 1,
@@ -69,7 +69,7 @@ final object util {
   //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
   implicit class IntImplicits(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
-  implicit class Seqs[A](val s: Seq[A]) { 
+  implicit class Seqs[A](val s: Seq[A]) {
     def random: A = s(nextInt(s.size))
     def randomOption: Option[A] = if (s.isEmpty) None else Some(random)
   }
@@ -108,11 +108,11 @@ final object util {
   //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
   def using[A <: Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
   
-  def appendToFile(fileName: String, allowFail: Boolean = false)(textData: String): Unit = 
+  def appendToFile(fileName: String, allowFail: Boolean = false)(textData: String): Unit =
     printToFile(fileName, allowFail)(textData, append = true)
-  def printToFile(fileName: String, allowFail: Boolean = false)(textData: String, append: Boolean = false): Unit = 
+  def printToFile(fileName: String, allowFail: Boolean = false)(textData: String, append: Boolean = false): Unit =
     try {
-      using (new FileWriter(fileName, append)) { 
+      using (new FileWriter(fileName, append)) {
         fileWriter => using (new PrintWriter(fileWriter)) {
           printWriter => printWriter.println(textData)
         }
@@ -170,7 +170,7 @@ object Time {
     ("""\d{1,2}\s[a-z]{3,}\s\d{4}""".r, new SimpleDateFormat("dd MMMM yyyy")),
     ("""\d{1,2}[.]\s[a-z]{3,}\s\d{4}""".r, new SimpleDateFormat("dd. MMMM yyyy")))
 
-  private def deLocale(dateStr: String): String = 
+  private def deLocale(dateStr: String): String =
     dateStr
       .replaceAll("januar(ja|jem)?", "january")
       .replaceAll("februar(ja|jem)?", "february")
@@ -194,12 +194,12 @@ object Time {
       Nil
     else
       dateFormats
-        .flatMap { case (regex, format) => 
+        .flatMap { case (regex, format) =>
           text
             .findAll(regex)
             .flatMap(dateStr => tryOption(format.parse(deLocale(dateStr))))
             .map{ date => //TODO: hacky hack hack
-              if (date.getMonth == 0 && date.getYear == 70) { 
+              if (date.getMonth == 0 && date.getYear == 70) {
                 date.setYear((new Date).getYear)
                 date.setMonth((new Date).getMonth)
                 date.setDate((new Date).getDate)
@@ -262,7 +262,7 @@ object Net {
   def scrapeURLs(urls: String*): String =
     (urls
       .flatMap { _.findAll(Regex.URL) }
-      .map { _url => 
+      .map { _url =>
         val url = if (_url startsWith "www") "http://"+_url else _url //TODO: https everywhere :)
         try {
           if (url.endsWithAny(badExts: _*)) ""
@@ -312,7 +312,7 @@ object Net {
       
       true
     } catch {
-      case e: Exception => 
+      case e: Exception =>
         e.printStackTrace
         false
     }
@@ -338,8 +338,8 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
   def ?(k: String): List[String] = getFile(file, allowFail = true).filter(line => line.nonEmpty && (line == k || line.startsWith(k + " "))).map(_.drop(k.size + 1))
   def contains(k: String): Boolean = this.?(k).nonEmpty
   def containsAny(ks: Iterable[String]): Boolean = ks.exists(this.contains)
-  def *(): List[Row] = 
-    getFile(file, allowFail = true) filterNot { _.isEmpty } map { res => 
+  def *(): List[Row] =
+    getFile(file, allowFail = true) filterNot { _.isEmpty } map { res =>
       val sep = res.indexOf(' ')
       if (sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     }

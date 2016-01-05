@@ -24,15 +24,15 @@ class NovatelSMS(username: String, password: String) {
       assert(number matches "(00)?[386][0-9]+")
       assert(!username.contains("&"))
       assert(!password.contains("&"))
-      
+
       val msg64 = URLEncoder.encode(BASE64Encoder.encode(msg.getBytes))
-      
+
       val url = s"""http://smsgw0.novatel.si/sms.php?msg_enc_type=base64&msg=${msg64}&username=${username}&password=${password}&to=${number}"""
       println("Sending SMS as: "+url)
-      
+
       val response = io.Source.fromURL(url).mkString.split(" ")
       println("SMS response: "+response.mkString(" "))
-      
+
       response(0) match {
         case "ok" => NovatelSMS.responseMap("ok")
         case "error" if (response.size == 2) => NovatelSMS.responseMap(response(1))

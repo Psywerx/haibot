@@ -17,7 +17,7 @@ final object haibot { def main(args: Array[String]): Unit = new haibot }
 final class haibot extends PircBot {
   var startTime = now
   val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
-  
+
   val config = Store(".config").toMap
   val (folder, login, name, chan, serv, ssl, port, pass, owner) = (
     config("folder"),
@@ -29,7 +29,7 @@ final class haibot extends PircBot {
     config("port", "6667").toInt,
     config("pass", null),
     config("owner")) //owner prefix actually
-  
+
   this.setVerbose(true)
   this.setLogin(login)
   this.setName(name)
@@ -88,7 +88,7 @@ final class haibot extends PircBot {
     def isFemale: Boolean = females.contains(s.cleanNick)
     def isMale: Boolean = males.contains(s.cleanNick)
     def isOwner: Boolean = s.startsWith(owner)
-    def isTrusted: Boolean = 
+    def isTrusted: Boolean =
         ((trusted.contains(s.cleanNick))
       && (tempDistrustLvls(s.cleanNick) == 0)
       && (!untrusted.contains(s.cleanNick)))
@@ -104,7 +104,9 @@ final class haibot extends PircBot {
     
     tempDistrustLvls.synchronized {
       val distrustLvl = allNicks.map(tempDistrustLvls.apply).max + 1
-      for (nick <- allNicks) tempDistrustLvls(nick) = distrustLvl
+      for (nick <- allNicks) {
+        tempDistrustLvls(nick) = distrustLvl
+      }
       
       if (distrustLvl >= 3) {
         cleanNicks
@@ -149,7 +151,7 @@ final class haibot extends PircBot {
           }
         }
       } catch {
-        case e: Exception => 
+        case e: Exception =>
           e.printStackTrace
       } finally {
         twitterCheck = now
@@ -186,7 +188,7 @@ final class haibot extends PircBot {
     var allMsgs = messages.toList
     val msgs = allMsgs.filter { _._1 == nick.toLowerCase }
     for (row @ (_nick, rawMsg) <- msgs) {
-      val (param, msg) = 
+      val (param, msg) =
         (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1, s2)  => (s1, s2.tail) }
       
       val params = param.split("[|]").toSet
@@ -215,7 +217,7 @@ final class haibot extends PircBot {
         this.reconnect()
         this.joinChannel(chan)
       } catch {
-        case e: IOException => 
+        case e: IOException =>
           println("onDisconnect: it was not possible to reconnect to the server.")
         case e: IrcException =>
           println("onDisconnect: the server would not let me join it.")
@@ -300,12 +302,12 @@ final class haibot extends PircBot {
     val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
     val URLs = message.findAll(Regex.URL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
-    lazy val URLsWords = 
+    lazy val URLsWords =
       URLsText
         .replaceAll("[^a-zA-Z0-9 .'/-]", " ") //notsure if I should have this one here
         .split("\\s")
         .filter(_.length.isBetween(3, 34))///"Supercalifragilisticexpialidocious".length
-    lazy val recentContext = 
+    lazy val recentContext =
       (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
         .replaceAll(Regex.URL.toString, "")
         .replaceAll("@[a-z]+[ ,:]", "")
@@ -326,7 +328,7 @@ final class haibot extends PircBot {
       shutdown = true
       sys.exit(0)
     } else if (msg.startsWithAny("hai ", "ohai ", "o hai ", "hi ", "'ello ", "ello ", "oh hai", "hello") && (0.35.prob || (0.9.prob && mentions.contains(name)))) {
-      val mention = 
+      val mention =
         if (mentions.contains(name) && 0.7.prob) sender
         else if (mentions.nonEmpty && !mentions.contains(name) && 0.7.prob) mentions.toSeq.random
         else ""
@@ -483,7 +485,7 @@ final class haibot extends PircBot {
     } else if (message.startsWith("@event ")) {
       val dates = getFutureDates(message) ++ getFutureDates(URLsText)
       //TODO: how do I find the title... boilerpipe? http://metabroadcast.com/blog/boilerpipe-or-how-to-extract-information-from-web-pages-with-minimal-fuss
-      val title = 
+      val title =
         message
           //.replaceAll(Regex.Date.toString, "")
           .replaceAll(Regex.URL.toString, "")
@@ -560,7 +562,7 @@ final class haibot extends PircBot {
           // fbcmd 1.1
           // val facebookReturn = Seq("fbcmd", "PPOST", apiKeys("facebookpage"), ...
           // fbcmd 2.x
-          val facebookReturn = 
+          val facebookReturn =
             Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
               "",                                      // Post Message
               " "+tweetDetails("Screen name"),         // Post Name
@@ -606,7 +608,7 @@ final class haibot extends PircBot {
     } else if (message.startsWithAny("@checktweet", "@checktwitt") && sender.isTrusted) {
       checkTwitter(force = true)
     } else if (message.startsWith("@follow ")) {
-      val names = 
+      val names =
         message
           .drop("@follow ".length)
           .trim
@@ -705,8 +707,8 @@ final class haibot extends PircBot {
             speak(
               c"I['ve| have] done it.",
               c"{o}k{.|, chief}",
-              c"it['s| is| has been] done{.}", 
-              c"ay{-ay} {cap'n|captain}!", 
+              c"it['s| is| has been] done{.}",
+              c"ay{-ay} {cap'n|captain}!",
               c"{sure,|ok,|ok yeah,|ay,} I['ll| will] relay the [msg|message]{.}")
 
             lastSMSTime = now
@@ -801,8 +803,8 @@ final class haibot extends PircBot {
             if (anyMsg) {
               var say = List(
                 c"{o}k{.|, chief}",
-                c"it['ll| shall| will] [be|get] done{.}", 
-                c"ay{-ay} {cap'n|captain}!", 
+                c"it['ll| shall| will] [be|get] done{.}",
+                c"ay{-ay} {cap'n|captain}!",
                 c"{sure,|ok,|ok yeah,|ay,} I['ll| will]"+" "+Seq(
                   c"[tell|relay it to] ${themForm(toMsgNicks)}{.}",
                   c"make [sure|certain]"+" "+(
@@ -810,7 +812,7 @@ final class haibot extends PircBot {
                       c"${theyForm(toMsgNicks)} [get|recieve]${sForm(toMsgNicks)} this {msg|message}"
                     else
                       c"this {msg|message} reaches ${themForm(toMsgNicks)} {when ${theyForm(toMsgNicks)} return${sForm(toMsgNicks)}} {here}")).random + c"{.}")
-              
+
               if (dontMsgNicks.nonEmpty) {
                 say = say.map(_ + " (" + 
                   c"{well, } [except|but not] for"+" "+Seq("the " +

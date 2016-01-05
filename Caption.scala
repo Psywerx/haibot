@@ -9,18 +9,18 @@ import org.psywerx.util.Seqs
 //TODO: needs multilevel parsing
 final object Caption extends RegexParsers {
   override val skipWhitespace = false
-  
+
   val text = ".+?".r
   val notBrack = """[^\[\]]""".r
   val notBrace = """[^{}]""".r
   def quote = """@@@.*?@@@""".r ^^ { g => g.drop(3).dropRight(3) }
-  
+
   def brack = "[" ~ rep(quote | notBrack) ~ "]"
   def brace = "{" ~ rep(quote | notBrace) ~ "}"
-  
+
   def group = ((brack | brace) ~ "([0-9](-[0-9])?)?".r) ^^ {
     case lB ~ options ~ rB ~ reps =>
-      val repeats = 
+      val repeats =
         (if (reps matches "[0-9]-[0-9]") {
           val (n1, n2) = (reps.take(1).toInt, reps.takeRight(1).toInt)
           lB match {
@@ -39,13 +39,13 @@ final object Caption extends RegexParsers {
         } else {
           1
         })
-      
+
       val option = options.mkString.split('|').toSeq.random
-    
+
       option * repeats
   }
 
-  def apply(s: String): String = 
+  def apply(s: String): String =
     parseAll((group | quote | text)*, s).get.mkString
       .replaceAll("\\s+", " ").trim
       .replace("%%%%pipe%%%%", "|")
@@ -77,7 +77,7 @@ final object Caption extends RegexParsers {
       val argsIter: Iterator[Any] = args.iterator
       val builder = new StringBuilder(process(partsIter.next()))
       while (argsIter.hasNext) {
-        val arg = 
+        val arg =
           argsIter.next.toString
             .replace("|", "%%%%pipe%%%%")
             .replace("[", "%%%lbrack%%%")
@@ -107,33 +107,33 @@ final object Caption extends RegexParsers {
       
       Vector(
         (c"[hello|hi], welcome to #psywerx", Set("hello, welcome to #psywerx", "hi, welcome to #psywerx")),
-        (c"{hello|hi}, welcome to #psywerx", 
+        (c"{hello|hi}, welcome to #psywerx",
           Set("hello, welcome to #psywerx", "hi, welcome to #psywerx", ", welcome to #psywerx")),
-        (c"welcome to [something|something] {something|something} #psywerx", 
+        (c"welcome to [something|something] {something|something} #psywerx",
           Set("welcome to something something #psywerx", "welcome to something #psywerx")),
-        (c"[hello|hi], welcome to #psywerx, $str1", 
+        (c"[hello|hi], welcome to #psywerx, $str1",
           Set("hello, welcome to #psywerx, "+str1, "hi, welcome to #psywerx, "+str1)),
-        (c"[hello|hi], welcome to #psywerx, $str2", 
+        (c"[hello|hi], welcome to #psywerx, $str2",
           Set("hello, welcome to #psywerx, "+str2, "hi, welcome to #psywerx, "+str2)),
-        (c"[hello|hi], welcome to #psywerx, $str3", 
+        (c"[hello|hi], welcome to #psywerx, $str3",
           Set("hello, welcome to #psywerx, "+str3, "hi, welcome to #psywerx, "+str3)),
-        (c"[hello|hi], welcome to #psywerx, $str4", 
+        (c"[hello|hi], welcome to #psywerx, $str4",
           Set("hello, welcome to #psywerx, "+str4, "hi, welcome to #psywerx, "+str4)),
-        (c"[hello], welcome to #psywerx, $str2 lol [wat|cat]", 
+        (c"[hello], welcome to #psywerx, $str2 lol [wat|cat]",
           Set("hello, welcome to #psywerx, "+str2+" lol wat", "hello, welcome to #psywerx, "+str2+" lol cat")),
-        (c"[hello], welcome to #psywerx, $str3 lol [wat|cat]", 
+        (c"[hello], welcome to #psywerx, $str3 lol [wat|cat]",
           Set("hello, welcome to #psywerx, "+str3+" lol wat", "hello, welcome to #psywerx, "+str3+" lol cat")),
         (c"[hi]3-3, welcome to #psywerx", Set("hihihi, welcome to #psywerx")),
         (c"[hi]2-3, welcome to #psywerx", Set("hihi, welcome to #psywerx", "hihihi, welcome to #psywerx")),
-        (c"{hi}2-3, welcome to #psywerx", 
+        (c"{hi}2-3, welcome to #psywerx",
           Set(", welcome to #psywerx", "hihi, welcome to #psywerx", "hihihi, welcome to #psywerx")),
-        (c"{}2-3[]5-7, welcome to #psywerx", 
+        (c"{}2-3[]5-7, welcome to #psywerx",
           Set(", welcome to #psywerx")),
-        (c"{h}0-1[i]0-1, welcome to #psywerx", 
+        (c"{h}0-1[i]0-1, welcome to #psywerx",
           Set(", welcome to #psywerx", "h, welcome to #psywerx", "hi, welcome to #psywerx", "i, welcome to #psywerx")),
-        (c"[hello|hi], we@@@@[l]{c}@o@@@@me to #psywerx", 
+        (c"[hello|hi], we@@@@[l]{c}@o@@@@me to #psywerx",
           Set("hello, we@[l]{c}@o@me to #psywerx", "hi, we@[l]{c}@o@me to #psywerx")),
-        (c"this reaches ${str1} {when ${str2} return${str3}} [here]", 
+        (c"this reaches ${str1} {when ${str2} return${str3}} [here]",
           Set("this reaches "+str1+" here", "this reaches "+str1+" when "+str2+" return"+str3+" here")),
         (c"{h}5", Set("hhhhh", "hhhh", "hhh",  "hh", "h", "")),
         (c"[h]5", Set("hhhhh", "hhhh", "hhh",  "hh", "h")),

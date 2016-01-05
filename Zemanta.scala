@@ -8,7 +8,7 @@ class Zemanta(apiKey: String) {
   def suggestKeywords(text: String, cnt: Int = 3): Option[List[String]] = suggest(text).map(_.getConfidenceSortedKeywords(true).toList.take(cnt).map(_.name))
   def suggestArticles(text: String): Option[List[Article]] = suggest(text).map(_.getConfidenceSortedArticles(true).toList)
   def suggestImages(text: String): Option[List[Image]] = suggest(text).map(_.getConfidenceSortedImages(true).toList)
-  
+
   def suggest(text: String): Option[ZemantaResult] = {
     try {
       val zem = new Zem(apiKey, "http://api.zemanta.com/services/rest/0.0/")
@@ -26,7 +26,7 @@ class Zemanta(apiKey: String) {
         None
       }
     } catch {
-      case e: Exception => 
+      case e: Exception =>
         e.printStackTrace
         None
     }
