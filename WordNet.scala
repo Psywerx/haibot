@@ -113,7 +113,7 @@ class WordNet(folder: String) {
       }
 
       val words = in.split(" ").toList flatMap {
-        case wordReg(prefix, word, suffix) => 
+        case wordReg(prefix, word, suffix) =>
           if (word.size >= 3) {
             preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>
               if (!stoplist.contains(w)) {

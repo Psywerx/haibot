@@ -65,7 +65,7 @@ final object util {
       sd(s1.toList, s2.toList)
     }
   }
-  
+
   //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
   implicit class IntImplicits(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
@@ -76,8 +76,7 @@ final object util {
   implicit class Maps[A, B](val m: Map[A, B]) {
     def apply(a: A, b: B): B = m.getOrElse(a, b)
   }
-  
-  
+
   implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty } }
 
   implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
@@ -107,7 +106,7 @@ final object util {
 
   //def using[A <: {def close(): Unit}, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
   def using[A <: Closeable, B](param: A)(func: A => B): B = try { func(param) } finally { param.close() }
-  
+
   def appendToFile(fileName: String, allowFail: Boolean = false)(textData: String): Unit =
     printToFile(fileName, allowFail)(textData, append = true)
   def printToFile(fileName: String, allowFail: Boolean = false)(textData: String, append: Boolean = false): Unit =
@@ -134,13 +133,13 @@ object Memes {
   val it_was_you = """http://bit.ly/zg0jQt"""
   val thanks_alot = """http://i.imgur.com/NAE5F9i.png"""
 }
-  
+
 object Time {
   //wish I knew a better way.
   import java.util.Date
   import java.text._
   import util._
-  
+
   private val timeReg = """[\s,]{0,2}(ob\s)?((\d{1,2}:\d{2})|(\d{1,2}h))"""
   private val dateFormats = List[(matching.Regex, SimpleDateFormat)](
     (timeReg.r, new SimpleDateFormat("HH:mm")),
@@ -206,7 +205,7 @@ object Time {
               } else if (date.getYear == 70) {
                 date.setYear((new Date).getYear)
               }
-              
+
               date
             }
             .filter(filter)
@@ -216,7 +215,7 @@ object Time {
   )
 
   def getFutureDates(text: String): List[Date] = getDates(text, _.after(new Date))
-  
+
   private val timeDivisor = 1000000L*1000L //s
   //val timeDivisor = 1000000L //ms
   def now: Int = (System.nanoTime/timeDivisor).toInt
@@ -232,16 +231,16 @@ object Time {
     val time = sinceTimes.getOrElseUpdate(hash, 0)
     val nowTime = now
     sinceTimes(hash) = nowTime
-    
+
     nowTime-time
   }
-  
+
   // used for uptime
   private def pad(i: Int, p: Int = 2): String = "0"*(p-i.toString.size)+i.toString
   def getSinceZeroString(time: Int): String = {
     val secs = time
     val (days, hours, minutes) = ((secs/60/60/24), pad((secs/60/60)%24), pad((secs/60)%60))
-    
+
     (((days: @switch) match {
       case 0 => ""
       case 1 => s"$days day "
@@ -256,7 +255,7 @@ object Net {
   import java.net._
   import util._
   val extractor = KeepEverythingExtractor.INSTANCE
-  
+
   //TODO: use download + file -i or some proper mime solution, this is risky as fuck
   def badExts: List[String] = getFile(util.folder+"badexts.db")
   def scrapeURLs(urls: String*): String =
@@ -279,7 +278,7 @@ object Net {
   def tempDownload(url: String): Option[File] = {
     val tempFile = Files.createTempFile("tempdl_", null).toFile
     tempFile.deleteOnExit
-    
+
     if (download(url, tempFile)) {
       Some(tempFile)
     } else {
@@ -309,7 +308,7 @@ object Net {
           fos.close
         }
       }, 10.seconds)
-      
+
       true
     } catch {
       case e: Exception =>
@@ -324,10 +323,10 @@ final object Store { def apply(file: String): Store = new Store(file) }
 final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""") {
   import sys.process._
   import util.{ getFile, appendToFile, printToFile }
-  
+
   type Row = (String, String)
   private def rowToString(kv: Row): String = if (kv._2 != null) kv._1 + " " + kv._2 else kv._1
-  
+
   def isValidKey(s: String): Boolean = s matches keyFormat
   def replaceWith(kvs: Seq[Row]): Unit = printToFile(file)(kvs.map(rowToString).mkString("\n"))
   def ++=(kvs: Iterable[Row]): Unit = appendToFile(file) { kvs.map(rowToString).mkString("\n") }
@@ -343,7 +342,7 @@ final class Store(file: String, keyFormat: String = """([-_a-zA-Z0-9]{1,16})""")
       val sep = res.indexOf(' ')
       if (sep == -1) (res, null) else (res.substring(0, sep), res.substring(sep+1))
     }
-  
+
   def toList = *
   def toMap = *.toMap
 

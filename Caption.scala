@@ -68,7 +68,7 @@ final object Caption extends RegexParsers {
     def checkLengths(args: Seq[Any]): Unit =
       if (parts.length != args.length + 1)
         throw new IllegalArgumentException("wrong number of arguments for interpolated string")
-        
+
     def c(args: Any*): String = Caption(standardInterpolator(treatEscapes, args))
 
     def standardInterpolator(process: String => String, args: Seq[Any]): String = {
@@ -85,7 +85,7 @@ final object Caption extends RegexParsers {
             .replace("{", "%%%lbrace%%%")
             .replace("}", "%%%rbrace%%%")
             .replace("@", "%%%atsign%%%")
-            
+
         builder append ("@@@"+arg+"@@@")
         val part = partsIter.next()
         builder append process(part)
@@ -93,18 +93,18 @@ final object Caption extends RegexParsers {
       builder.toString
     }
   }
-  
+
   def test() = {
     val str1 = "hello"
     val str2 = "hello [nope nope@ nope] @@@{cheeki breeki} @ ayy @@@lmao @"
     val str3 = """https://www.google.si/maps/dir/August-Bebel-Stra%C3%9Fe,+Bielefeld,+Germany/August-Bebel-Stra%C3%9Fe+8,+33602+Bielefeld,+Germany/@52.0306075,8.5365767,16z/data=!4m14!4m13!1m5!1m1!1s0x47ba3d0fcb66b3a3:0xd3692e498e1463e7!2m2!1d8.5397073!2d52.0223094!1m5!1m1!1s0x47ba3d6d57e68a65:0x3339d46a21206dce!2m2!1d8.539759!2d52.0314863!3e2?hl=en"""
     val str4 = "hello [nope n{ope@ nope] @@@{che]eki breeki} @ ay}y {}{[][]}{][}{}@@@lmao @"
-    
+
     def cases() = {
       val special = Seq("|", "[", "]", "{", "}", "@", "@@@", "%", "%%%%")
       val rand = Array.fill(100)(if (nextDouble > 0.8) scala.util.Random.nextPrintableChar.toString else special.random).mkString
       val cleanRand = special.foldLeft(rand)((acc, spec) => acc.replace(spec, ""))
-      
+
       Vector(
         (c"[hello|hi], welcome to #psywerx", Set("hello, welcome to #psywerx", "hi, welcome to #psywerx")),
         (c"{hello|hi}, welcome to #psywerx",
@@ -153,7 +153,7 @@ final object Caption extends RegexParsers {
         (c"$rand {:)|!|^_^}", Set(rand+" :)", rand+"!", rand+" ^_^"))
       )
     }
-    
+
     for (i <- 1 to 5000; (cap, resSet) <- cases(); if (!resSet.contains(cap))) {
       println
       println(cap)

@@ -46,14 +46,14 @@ object OCR {
             resSplit.foldLeft(0d)((acc, res) => acc + res.size) / resSplit.size.toDouble
           ))
         }
-        
+
         //TODO: put this in a case class or something :)
-        
+
         val SIZE = 0
         val COMMON = 1
         val UNCOMMON = 2
         val AVGLEN = 3
-        
+
         Some((attrs.sortWith { case ((_, a), (_, b)) =>
           if (a(COMMON) == b(COMMON)) {
             (a(AVGLEN) > b(AVGLEN))
@@ -84,7 +84,7 @@ object OCR {
                 case 1 => "-shear 1.0x1.0 -deskew 60% -negate -morphology Convolve Diamond:1 -swirl 0.2 -auto-gamma -threshold 58% -scale 100%x97% -colorspace Gray -sigmoidal-contrast 12x80%"
                 case 2 => "-scale 107% -negate -scale 112%x100% -liquid-rescale 99%x101% -sharpen 3x6 -contrast-stretch 0x38% -threshold 12% -deskew 70%"
               })
-              
+
               //TODO: fails with spaces, quoting doesn't help
               val convertResult = (s"""convert $fileStr $convertParams $tempImgName""").!
               if (convertResult != 0) None
@@ -95,7 +95,7 @@ object OCR {
                   case 1 => Seq("gocr", "-C", "a-zA-Z", "-i", tempImgName)
                   case 2 => Seq("ocrad", "-lf", "--filter=letters", "--format=utf8", tempImgName)
                 }).!!)
-                
+
                 if (ocrText.isEmpty) None
                 else Some(ocrText)
               }
@@ -111,10 +111,10 @@ object OCR {
       println(results.mkString("\n"))
       selectResult(results)
     } catch {
-      case e: Exception => 
+      case e: Exception =>
         println(s"EXCEPTION in $file ... $e")
         None
     }
-    
+
 }
 
