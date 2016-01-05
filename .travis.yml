@@ -1,13 +1,8 @@
 language: scala
-os:
-  - linux
-  - osx
+os: linux
 jdk:
   - openjdk7
   - oraclejdk7
   - oraclejdk8
-install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; sudo apt-get install -qq bc tesseract-ocr gocr ocrad imagemagick; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install tesseract gocr ocrad imagemagick; fi
-script:
-  - ./runbot -c
+install: if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; sudo apt-get install -qq bc tesseract-ocr gocr ocrad imagemagick; fi
+script: ./runbot -c
