@@ -47,7 +47,7 @@ object OCR {
           ))
         }
         
-        // TODO put this in a case class or something :)
+        //TODO: put this in a case class or something :)
         
         val SIZE = 0
         val COMMON = 1

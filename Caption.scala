@@ -73,12 +73,12 @@ final object Caption extends RegexParsers {
 
     def standardInterpolator(process: String => String, args: Seq[Any]): String = {
       checkLengths(args)
-      val pi = parts.iterator
-      val ai = args.iterator
-      val builder = new StringBuilder(process(pi.next()))
-      while (ai.hasNext) {
+      val partsIter: Iterator[String] = parts.iterator
+      val argsIter: Iterator[Any] = args.iterator
+      val builder = new StringBuilder(process(partsIter.next()))
+      while (argsIter.hasNext) {
         val arg = 
-          ai.next.toString
+          argsIter.next.toString
             .replace("|", "%%%%pipe%%%%")
             .replace("[", "%%%lbrack%%%")
             .replace("]", "%%%rbrack%%%")
@@ -87,7 +87,7 @@ final object Caption extends RegexParsers {
             .replace("@", "%%%atsign%%%")
             
         builder append ("@@@"+arg+"@@@")
-        val part = pi.next()
+        val part = partsIter.next()
         builder append process(part)
       }
       builder.toString
