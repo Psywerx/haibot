@@ -735,11 +735,11 @@ final class haibot extends PircBot {
             val rawParamLower = withAlternative(rawParam.toLowerCase.replace("onmsg", "onspeak"), null)
 
             if ((commandLower == "onspeak")
-            || (commandLower == "onjoin")) commandLower
+            ||  (commandLower == "onjoin")) commandLower
             else if (rawParamLower != null) {
               if ((rawParamLower == "onspeak")
-              || (rawParamLower == "onjoin")
-              || (rawParamLower.split("[|]").toSet == Set("onjoin", "onspeak"))) rawParamLower
+              ||  (rawParamLower == "onjoin")
+              ||  (rawParamLower.split("[|]").toSet == Set("onjoin", "onspeak"))) rawParamLower
               else Time.getFutureDates(rawParam).lastOption.fold(default)(_.getTime.toString)
             } else default
           }

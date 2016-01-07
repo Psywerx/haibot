@@ -85,7 +85,7 @@ object OCR {
                 case 2 => "-scale 107% -negate -scale 112%x100% -liquid-rescale 99%x101% -sharpen 3x6 -contrast-stretch 0x38% -threshold 12% -deskew 70%"
               })
 
-              //TODO: fails with spaces, quoting doesn't help
+              //TODO: fails with spaces in names, quoting doesn't work, and it seems convertParams need to be passed as string
               val convertResult = (s"""convert $fileStr $convertParams $tempImgName""").!
               if (convertResult != 0) None
               else {
@@ -99,7 +99,7 @@ object OCR {
                 if (ocrText.isEmpty) None
                 else Some(ocrText)
               }
-            }, 20.seconds)
+            }, 30.seconds)
           } catch {
             case e: Exception =>
               None

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<BugCollection version="2.0.3">
+<BugCollection version="3.0.1">
   <Project projectName="haibot">
     <Jar>bin</Jar>
     <AuxClasspathEntry>lib/bitlyj-2.0.0.jar</AuxClasspathEntry>
@@ -10,6 +10,7 @@
     <AuxClasspathEntry>lib/boilerpipe-1.2.0/boilerpipe-sources-1.2.0.jar</AuxClasspathEntry>
     <AuxClasspathEntry>lib/boilerpipe-1.2.0/lib/nekohtml-1.9.13.jar</AuxClasspathEntry>
     <AuxClasspathEntry>lib/boilerpipe-1.2.0/lib/xerces-2.9.1.jar</AuxClasspathEntry>
+    <!-- One of pircbot jars will be missing -->
     <AuxClasspathEntry>lib/pircbot-1.5.0/pircbot.jar</AuxClasspathEntry>
     <AuxClasspathEntry>lib/pircbot-1.5.0-ssl.jar</AuxClasspathEntry>
     <AuxClasspathEntry>lib/zemapi/zemapi-java-test.jar</AuxClasspathEntry>
