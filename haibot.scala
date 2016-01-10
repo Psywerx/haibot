@@ -411,8 +411,8 @@ final class haibot extends PircBot {
           c"so{.} cute.",
           if ((words & Set("fluff", "puff")).nonEmpty) Memes.so_fluffy else "aww!")
       }
-    } else if (msg.containsAny("i jasn","wat"," how","how", "kako","ne vem","krneki")
-            &&  (if (message contains "?") 0.6 else 0.4).prob) {
+    } else if (msg.containsAny("i jasn","what","wat","how","kako","ne vem","krneki")
+           &&  (if (message contains "?") 0.6 else 0.3).prob) {
       if (msg.contains("haskell") && !msg.contains("monad")) {
         speak(
           "have you tried with monads?",
@@ -424,7 +424,7 @@ final class haibot extends PircBot {
           "have you tried reversing the polarity of your polish notation?",
           "have you tried adding more parentheses?",
           "have you written any macros to address this?")
-      } else if (msg.contains(" vim")) {
+      } else if (msg.contains(" vim ")) {
         speak(
           "use pathogen.",
           "have you tried using pathogen?",
@@ -752,7 +752,7 @@ final class haibot extends PircBot {
           nicks = nicks.map(_.replace("+", ""))
           val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
-          val noOnlineOnMsgNicks = isHere.filter(here => noOnlineOnMsg.contains(here.cleanNick))
+          val noOnlineOnMsgNicks = isHere.filter(here => (here.cleanNick != sender.cleanNick) && noOnlineOnMsg.contains(here.cleanNick))
           val neverSeen = nicks.filterNot(nick => seen.contains(nick.cleanNick))
           val watNicks = (if (!param.matches("[0-9]+") && (isHere.contains(this.name) || isHere.contains(sender))) (Set(this.name, sender) & isHere) else Set.empty[String])
           val toMsgNicks = ((((nicks &~ errNicks) &~ watNicks) &~ noOnlineOnMsgNicks) &~ neverSeen)
@@ -775,7 +775,7 @@ final class haibot extends PircBot {
             speak("no offence, but "+errNicks.mkString(", ")+(if (errNicks.size == 1) " doesn't sound like a real name to me." else " don't sound like real names to me."))
           }
           if (neverSeen.nonEmpty) {
-            speak(c"[Probably|Possibly|Perhaps] [some|a] [typo|misspelling], {be}cause [I've never|I haven't] [seen|heard of] "+" "+neverSeen.mkString(", ")+" "+c"[a|']round [here|these parts].")
+            speak(c"[Probably|Possibly|Perhaps|Might be] [some|a] [typo|misspelling], {be}cause [I've never|I haven't] [seen|heard of] "+" "+neverSeen.mkString(", ")+" "+c"[a|']round [here|these parts].")
           }
           if (msg.isEmpty && (toMsgNicks &~ toPlusNicks).nonEmpty) { //TODO: test a++,b,c... also make sure if names are relevant
             speak("hmm... but what should I tell "+themForm(toMsgNicks &~ toPlusNicks)+"?")
@@ -803,10 +803,12 @@ final class haibot extends PircBot {
             if (anyMsg) {
               var say = List(
                 c"{o}k{.|, chief}",
+                c"[S|s]ure thing{.}",
                 c"it['ll| shall| will] [be|get] done{.}",
-                c"ay{-ay} {cap'n|captain}!",
-                c"{sure,|ok,|ok yeah,|ay,} I['ll| will]"+" "+Seq(
+                c"ay{-ay}{,} {cap'n|captain}!",
+                c"{sure,|Of course,|ok,|ok yeah,|ay,} I['ll| will| shall]"+" "+Seq(
                   c"[tell|relay it to] ${themForm(toMsgNicks)}{.}",
+                  c"let ${themForm(toMsgNicks)} know{.}"
                   c"make [sure|certain]"+" "+(
                     if (isHere.nonEmpty)
                       c"${theyForm(toMsgNicks)} [get|recieve]${sForm(toMsgNicks)} this {msg|message}"
