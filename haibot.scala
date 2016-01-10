@@ -808,7 +808,7 @@ final class haibot extends PircBot {
                 c"ay{-ay}{,} {cap'n|captain}!",
                 c"{sure,|Of course,|ok,|ok yeah,|ay,} I['ll| will| shall]"+" "+Seq(
                   c"[tell|relay it to] ${themForm(toMsgNicks)}{.}",
-                  c"let ${themForm(toMsgNicks)} know{.}"
+                  c"let ${themForm(toMsgNicks)} know{.}",
                   c"make [sure|certain]"+" "+(
                     if (isHere.nonEmpty)
                       c"${theyForm(toMsgNicks)} [get|recieve]${sForm(toMsgNicks)} this {msg|message}"
