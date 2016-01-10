@@ -94,7 +94,7 @@ final object Caption extends RegexParsers {
     }
   }
 
-  def test() = {
+  def test(): Unit = {
     val str1 = "hello"
     val str2 = "hello [nope nope@ nope] @@@{cheeki breeki} @ ayy @@@lmao @"
     val str3 = """https://www.google.si/maps/dir/August-Bebel-Stra%C3%9Fe,+Bielefeld,+Germany/August-Bebel-Stra%C3%9Fe+8,+33602+Bielefeld,+Germany/@52.0306075,8.5365767,16z/data=!4m14!4m13!1m5!1m1!1s0x47ba3d0fcb66b3a3:0xd3692e498e1463e7!2m2!1d8.5397073!2d52.0223094!1m5!1m1!1s0x47ba3d6d57e68a65:0x3339d46a21206dce!2m2!1d8.539759!2d52.0314863!3e2?hl=en"""
