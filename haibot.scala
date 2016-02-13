@@ -300,7 +300,7 @@ final class haibot extends PircBot {
     val users = getUsers
     //TODO: @nick nick. <- get the proper regex here
     val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
-    val URLs = message.findAll(Regex.URL).distinct
+    val URLs = message.findAll(Regex.webURL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
     lazy val URLsWords =
       URLsText
@@ -309,7 +309,7 @@ final class haibot extends PircBot {
         .filter(_.length.isBetween(3, 34))///"Supercalifragilisticexpialidocious".length
     lazy val recentContext =
       (URLsText + ". " + lastMsgs.mkString(". ") + ". " + message)
-        .replaceAll(Regex.URL.toString, "")
+        .replaceAll(Regex.webURL.toString, "")
         .replaceAll("@[a-z]+[ ,:]", "")
         .replaceAll("^[ .]+", "")
         .trim
@@ -488,7 +488,7 @@ final class haibot extends PircBot {
       val title =
         message
           //.replaceAll(Regex.Date.toString, "")
-          .replaceAll(Regex.URL.toString, "")
+          .replaceAll(Regex.webURL.toString, "")
           .substring("@event ".length).trim
 
       val missing = mutable.ListBuffer[String]()
