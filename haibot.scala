@@ -500,7 +500,7 @@ final class haibot extends PircBot {
         val it_them = if (missing.size == 1) "it" else "them"
         speak("I don't have "+missing.mkString(", ")+s" for this. Paste ${it_them} in text form, pls.")
       } else {
-        speak("Is this right? "+dates(0)+" -- "+title)
+        speak("Is this right? "+dates.head+" -- "+title)
         speak("Yeah, looks OK, but I'm not gonna save it anywhere or anything :)")
         //events + (dates(0).replaceAll("[/. ]","_"), title+" "+URLs.mkString(" "))
       }

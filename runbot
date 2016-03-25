@@ -90,7 +90,7 @@ bitly="bitlyj-2.0.0"
 cp="${cp}:lib/$bitly.jar"
 
 [ "$(command -v scalac)" ] || {
-    scalaver="2.11.6"
+    scalaver="2.11.8"
     if [ ! -e "scala-$scalaver/bin/scalac" ]; then
         echo "trying to get scala-$scalaver"
         wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz > /dev/null 2>&1
