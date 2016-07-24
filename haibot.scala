@@ -356,16 +356,16 @@ final class haibot extends PircBot {
         s"yes, $sender.",
         "my brethren speaks of me!",
         s"I appreciate that, brother $sender.")
-    } else if (message.containsAny("0-9", "a-z", "A-Z", ")*", "]*", ".*", ".+")
-            && (message.indexOf('[') < message.indexOf(']'))
-            && (if (message.containsAny("^", "$", "{", "}")) 0.7 else 0.5).prob) {
+    } else if (message.containsAny("0-9", "a-z", "A-Z", ")*", ")+", "]*", "]+", ".*", ".+")
+            && (message.indexOf('[') <= message.indexOf(']')) // index -1 or <
+            && (if (message.containsAny("^", "$", "{", "}", "/", "\\", "|")) 0.85 else 0.5).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
         c"Regex{es}[!]2 [M|m]y favorite thing[!]2",
         c"mm{m}{m}, regex{es}{!|...}",
         c"{wow, }I wonder what that matches.{.}")
     } else if ((msg.containsAny("thx", "tnx", "thanks", "hvala"))
-            &&  ((mentions.contains(name) && 0.8.prob) || (msg.contains(" alot ") && 0.5.prob))) {
+            && ((mentions.contains(name) && 0.8.prob) || (msg.contains(" alot ") && 0.5.prob))) {
       if (msg.matches(".* alot([.,?! ]|$)") && !msg.contains("hvala") && 0.9.prob) {
         speak(Memes.thanks_alot)
       } else {

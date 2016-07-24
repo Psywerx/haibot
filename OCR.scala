@@ -25,7 +25,7 @@ object OCR {
       .map(_.split(" ").distinct)
       .reduce(_ ++ _)
       .groupBy(a => a)
-      .filter(_._2.size >= 2).keys // at least 2 occurences of word
+      .filter(_._2.size >= 2).keys // at least 2 occurrences of word
       .filter(_.size >= 2).toSet   // word at least length 2
   }
 
