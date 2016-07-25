@@ -356,9 +356,9 @@ final class haibot extends PircBot {
         s"yes, $sender.",
         "my brethren speaks of me!",
         s"I appreciate that, brother $sender.")
-    } else if (message.containsAny("0-9", "a-z", "A-Z", ")*", ")+", "]*", "]+", ".*", ".+")
+    } else if (message.containsAny(")*", ")+", "]*", "]+", ".*", ".+")
             && (message.indexOf('[') <= message.indexOf(']')) // index -1 or <
-            && (if (message.containsAny("^", "$", "{", "}", "/", "\\", "|")) 0.85 else 0.5).prob) {
+            && (if (message.containsAny("0-9", "a-z", "A-Z", "^", "$", "{", "}", "/", "\\", "|")) 0.85 else 0.5).prob) {
       speak(
         c"ooo{o}h, is that a regex? I [<3|love] regexes[!]2",
         c"Regex{es}[!]2 [M|m]y favorite thing[!]2",
