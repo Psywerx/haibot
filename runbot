@@ -131,7 +131,7 @@ run() {
     rununsecure="scala -cp $cp"
     case "$args" in
         -c)   echo "not gonna run $bot...";;
-        -d)   echo "making docs..." && scaladoc -d $docdir -cp $cp -- *.scala;;
+        -d)   echo "making docs..." && scaladoc $SCALA_PLUGINS -d $docdir -cp $cp -- *.scala;;
         -fb)  echo "starting findbugs" && findbugs -project findbugs.xml -effort:max;;
         -s)   echo "dropping into scala console" && $runsecure;;
         -us)  echo "dropping into unsecure scala console" && $rununsecure;;
