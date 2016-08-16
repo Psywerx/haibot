@@ -257,7 +257,7 @@ object Net {
   import util._
   val extractor = KeepEverythingExtractor.INSTANCE
 
-  //TODO: use download + file -i or some proper mime solution, this is risky as fuck
+  //TODO: use download + file -i or some proper mime solution, this is risky
   def badExts: List[String] = getFile(util.folder+"badexts.db")
   def scrapeURLs(urls: String*): String =
     (urls
