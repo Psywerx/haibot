@@ -811,7 +811,7 @@ final class haibot extends PircBot {
                   c"let ${themForm(toMsgNicks)} know{.}",
                   c"make [sure|certain]"+" "+(
                     if (isHere.nonEmpty)
-                      c"${theyForm(toMsgNicks)} [get|recieve]${sForm(toMsgNicks)} this {msg|message}"
+                      c"${theyForm(toMsgNicks)} [get|receive]${sForm(toMsgNicks)} this {msg|message}"
                     else
                       c"this {msg|message} reaches ${themForm(toMsgNicks)} {when ${theyForm(toMsgNicks)} return${sForm(toMsgNicks)}} {here}")).random + c"{.}")
 
