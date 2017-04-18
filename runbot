@@ -13,23 +13,6 @@ pb="pircbot-1.5.0-ssl"
 [ -e "lib/${pb}.jar" ] || { echo "$pb not found"; exit 1; }
 cp="${cp}:lib/${pb}.jar"
 
-# zemanta 
-zem="zemapi"
-[ -e "lib/$zem/$zem-java.jar" ] || {
-    echo "trying to get $zem"
-    mkdir -p lib/$zem
-    cd lib/$zem
-    #zemzip="zemapi-februar2012-java.zip"
-    #wget http://developer.zemanta.com/media/files/code/$zemzip > /dev/null 2>&1
-    #unzip $zemzip > /dev/null 2>&1
-    #rm $zemzip > /dev/null 2>&1
-    wget https://github.com/Zemanta/zemapi-java/raw/3a37e13d7adaf22087a24c4c7125cc683b3a3c0a/$zem-java.jar > /dev/null 2>&1
-    cd ../..
-    [ -e "lib/$zem/$zem-java.jar" ] || { echo "getting $zem failed"; exit 1; }
-    echo "successfully got $zem"
-}
-cp="${cp}:lib/$zem/$zem-java.jar"
-
 # boilerpipe
 bp="boilerpipe-1.2.0"
 [ -e "lib/$bp/$bp.jar" ] || {
@@ -90,7 +73,7 @@ bitly="bitlyj-2.0.0"
 cp="${cp}:lib/$bitly.jar"
 
 [ "$(command -v scalac)" ] || {
-    scalaver="2.12.1"
+    scalaver="2.12.2"
     if [ ! -e "scala-$scalaver/bin/scalac" ]; then
         echo "trying to get scala-$scalaver"
         wget http://downloads.typesafe.com/scala/$scalaver/scala-$scalaver.tgz > /dev/null 2>&1
@@ -121,7 +104,7 @@ compile() {
     echo "compiling $bot"
     rm -rf -- "$outdir" > /dev/null 2>&1
     mkdir -p -- "$outdir"
-    warnings=$(scalac -Y 2>&1 | grep -- -Ywarn | cut -d' ' -f 3 | tr '\n' ' ')
+    warnings=$(scalac -Y 2>&1 | grep -- -Ywarn | cut -d' ' -f 3 | tr '\n' ' ' | sed 's/:<.*>//g')
     scalac -version
     scalac $SCALA_PLUGINS $warnings -Xlint -deprecation -feature -unchecked -opt:l:classpath -d $outdir -cp $cp -- *.scala
 }

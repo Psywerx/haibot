@@ -15,7 +15,7 @@ Here's the secret: The magic is config and .db files!
 .config - IRC & other settings. ("key value" format)
     folder, name, serv, chan, login, owner
 .apikeys - API keys. ("key value" format)
-    bitly1, bitly2, Zemanta, novatel_user, novatel_pass, facebookpage
+    bitly1, bitly2, novatel_user, novatel_pass
 <folder from .config>/
     msgs.db - used for @msgs, can/should be empty
     events.db - used for @event, can be empty (also doesn't really work)
@@ -38,9 +38,7 @@ util/
 But there's more to haibot than config files - there's also dependencies:
     pircbot - Java IRC Bot -- autodownloaded
     boilerpipe - the article extractor library -- autodownloaded
-    Zemanta - contextual intelligence for everyone -- autodownloaded
     WordNet - lexical db for English (prolog version) -- autodownloaded
     bitlyj - A DSL for Bitly-powered Url Shortening Services -- autodownloaded
     t - twitter CLI client -- you need to set it up manually
-    fbcmd - facebook CLI client 2.0 -- also manually.
     ocrad gocr tesseract-ocr - OCR engines -- use sudo apt-get?

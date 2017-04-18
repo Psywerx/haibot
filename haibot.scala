@@ -12,9 +12,7 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import math._
 
-final object haibot { def main(args: Array[String]): Unit = new haibot }
-
-final class haibot extends PircBot {
+final object haibot extends PircBot with App {
   var startTime = now
   val joinTimes = mutable.AnyRefMap[String, Int]() withDefaultValue -1
 
@@ -59,7 +57,6 @@ final class haibot extends PircBot {
   val apiKeys = Store(".apikeys").toMap
 
   lazy val wordnet = new WordNet("lib/WordNet/")
-  lazy val zemanta = new Zemanta(apiKeys("Zemanta"))
   lazy val bitly   = new Bitly(apiKeys("bitly1"), apiKeys("bitly2"))
   lazy val novatel = new NovatelSMS(apiKeys("novatel_user"), apiKeys("novatel_pass"))
   val smsCoolDown = 77 //seconds
@@ -137,7 +134,7 @@ final class haibot extends PircBot {
         val mentions = Seq("t", "mentions", "-n", "5").!!.trim
         if (mentions(0) == '@') {
           val lastTweets = getFile(folder+"lasttweets.db")
-          val mentionList = mentions.replace("\n   ", " ").split("\n").take(5).map(_.trim).takeWhile(tw => !lastTweets.contains(tw))
+          val mentionList = mentions.replace("\n   ", " ").split('\n').take(5).map(_.trim).takeWhile(tw => !lastTweets.contains(tw))
           if (mentionList.nonEmpty) {
             // Save the last few mentions
             val newLastTweets = (mentionList ++ lastTweets).take(10)
@@ -191,7 +188,7 @@ final class haibot extends PircBot {
       val (param, msg) =
         (rawMsg splitAt (rawMsg indexOf ',')) match { case (s1, s2)  => (s1, s2.tail) }
 
-      val params = param.split("[|]").toSet
+      val params = param.split('|').toSet
       val timeParams = withAlternative(params.filter { _ matches "[0-9]+" }.map{ _.toLong }, Set.empty)
 
       if ((params("onspeak") && spoke)
@@ -217,11 +214,11 @@ final class haibot extends PircBot {
         this.reconnect()
         this.joinChannel(chan)
       } catch {
-        case e: IOException =>
+        case _: IOException =>
           println("onDisconnect: it was not possible to reconnect to the server.")
-        case e: IrcException =>
+        case _: IrcException =>
           println("onDisconnect: the server would not let me join it.")
-        case e: NickAlreadyInUseException =>
+        case _: NickAlreadyInUseException =>
           println("onDisconnect: my nick is already in use on the server.")
           this.setName(name+"_")
       }
@@ -295,11 +292,11 @@ final class haibot extends PircBot {
   override def onMessage(channel: String, sender: String, login: String, hostname: String, message: String): Unit = {
     speakMessages(sender, spoke = true, joined = false)
     val msg = message.makeEasy
-    val msgBag = msg.split(" ").toSet
+    val msgBag = msg.split(' ').toSet
     lazy val sentences = message.sentences
     val users = getUsers
     //TODO: @nick nick. <- get the proper regex here
-    val mentions = message.replaceAll("[@,:]", " ").split(" ").toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
+    val mentions = message.replaceAll("[@,:]", " ").split(' ').toSet & (users ++ users.map(_.toLowerCase) ++ (users.map(_.toLowerCase) & bots).map(_.replace("_", "")))
     val URLs = message.findAll(Regex.webURL).distinct
     lazy val URLsText = Net.scrapeURLs(URLs: _*)
     lazy val URLsWords =
@@ -377,7 +374,7 @@ final class haibot extends PircBot {
       // naughty part
     } else if (msg.contains("i need an adult") && 0.9.prob) {
       speak(c"I am an adult{!}{!}{!}")
-    } else if (msg.startsWithAny("fucking ", "fakin") && sentences(0).split(" ").size.isBetween(2, 5) && 0.75.prob) {
+    } else if (msg.startsWithAny("fucking ", "fakin") && sentences(0).split(' ').size.isBetween(2, 5) && 0.75.prob) {
       speak(
         "how does "+sentences(0).trim+" feel?",
         "having sex with "+sentences(0).substring(sentences(0).indexOf(' ')+1).trim+"?",
@@ -551,7 +548,7 @@ final class haibot extends PircBot {
         import sys.process._
         val tweetDetails = withAlternative(
           (Seq("t", "status", tweetId).!!)
-            .split("\n")
+            .split('\n')
             .map(line => line.splitAt("Screen name  ".length))
             .map(line => (line._1.trim, line._2))
             .toMap,
@@ -559,17 +556,6 @@ final class haibot extends PircBot {
         ).withDefaultValue("")
 
         if (tweetDetails("Text") != "") {
-          // fbcmd 1.1
-          // val facebookReturn = Seq("fbcmd", "PPOST", apiKeys("facebookpage"), ...
-          // fbcmd 2.x
-          val facebookReturn =
-            Seq("fbcmd", "AS", apiKeys("facebookpage"), "POST",
-              "",                                      // Post Message
-              " "+tweetDetails("Screen name"),         // Post Name
-              "https://twitter.com/statuses/"+tweetId, // Post Link
-              "via Twitter",                           // Post Caption
-              " "+tweetDetails("Text")).!              // Post Description
-
           val screenName = tweetDetails("Screen name")
           if (screenName.nonEmpty) {
             successResponses ++= List(
@@ -614,7 +600,7 @@ final class haibot extends PircBot {
           .trim
           .replaceAll("(https?[:]//)?(www.)?twitter.com/", "")
           .replace("@", "")
-          .split(" ")
+          .split(' ')
           .toSet
 
       if (names forall { _ matches "[A-Za-z0-9_]{1,20}" }) {
@@ -739,7 +725,7 @@ final class haibot extends PircBot {
             else if (rawParamLower != null) {
               if ((rawParamLower == "onspeak")
               ||  (rawParamLower == "onjoin")
-              ||  (rawParamLower.split("[|]").toSet == Set("onjoin", "onspeak"))) rawParamLower
+              ||  (rawParamLower.split('|').toSet == Set("onjoin", "onspeak"))) rawParamLower
               else Time.getFutureDates(rawParam).lastOption.fold(default)(_.getTime.toString)
             } else default
           }
@@ -747,14 +733,14 @@ final class haibot extends PircBot {
 
           val msg = rawMsg.trim
           //TODO: possible bug if name and name++ are both present, and probably others ;)
-          var nicks = rawNicks.split(",").map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
+          var nicks = rawNicks.split(',').map(_.replaceAll("[:.@]", "").trim).filter(_.nonEmpty).toSet
           var toPlusNicks = nicks.filter(_.endsWith("++")).map(_.replace("+", ""))
           nicks = nicks.map(_.replace("+", ""))
           val isHere = nicks.filter(nick => users.map(_.toLowerCase).contains(nick.toLowerCase))
           val errNicks = nicks.filter(nick => !messages.isValidKey(nick))
           val noOnlineOnMsgNicks = isHere.filter(here => (here.cleanNick != sender.cleanNick) && noOnlineOnMsg.contains(here.cleanNick))
           val neverSeen = nicks.filterNot(nick => seen.contains(nick.cleanNick))
-          val watNicks = (if (!param.matches("[0-9]+") && (isHere.contains(this.name) || isHere.contains(sender))) (Set(this.name, sender) & isHere) else Set.empty[String])
+          val watNicks = (if (!param.matches("[0-9]+") && (isHere.containsAny(this.name, sender))) (Set(this.name, sender) & isHere) else Set.empty[String])
           val toMsgNicks = ((((nicks &~ errNicks) &~ watNicks) &~ noOnlineOnMsgNicks) &~ neverSeen)
           toPlusNicks = (toPlusNicks &~ errNicks)
           val dontMsgNicks = errNicks ++ (if (msg.isEmpty) (toMsgNicks &~ toPlusNicks) else Set.empty) ++ watNicks ++ noOnlineOnMsgNicks ++ neverSeen
@@ -849,42 +835,11 @@ final class haibot extends PircBot {
       }
 
       speak(if (isRepost) "Sorry, I've got nothing..." else rephrased)
-    } else if (message.startsWithAny("@context", "@tldr", "@tl;dr", "@keyword")) thread {
-      val text: String = recentContext
-
-      println(text)
-
-      speakNow(
-        zemanta.suggestKeywords(text, 3~4).emptyToNone.orElse(wordnet.keywords(text, 3~4).emptyToNone) map { keywords =>
-          val keywordStr = keywords.mkString(", ").toLowerCase
-          List(
-            c"{I'd say|I think} it's about $keywordStr.",
-            c"It {could|might} be about $keywordStr.")
-        } getOrElse {
-          List(
-            c"I have no idea{.}1-3",
-            c"I don't know what this is about{.}1-3")
-        } :_*)
-    } else if (message.startsWithAny("@suggest")) thread {
-      val cntReg = """@suggest[(]([1-5])[)].*""".r
-      val cnt = message match {
-        case cntReg(count) => count.toInt
-        case _ => 2
-      }
-
-      val text: String = recentContext
-      println(text)
-
-      speakNow(
-        zemanta.suggestArticles(text)
-          .map(_.filterNot(article => URLs.contains(article.url)).take(cnt)).emptyToNone
-          .map(articleList => for (article <- articleList) yield article.title + " " + bitly.tryShorten(article.url))
-          .getOrElse(List("Sorry, I've got nothing...")):_*)
     } else if (message.contains("@all") && !users.exists(_ matches "_*botko_*")) {
       speak((users.toBuffer -- mustNotBeNamed).mkString(", "))
     } else if ((message matches "@?"+name+"[:, ]{0,3}(uptime|updog)")
       || (message.startsWithAny("uptime ", "@uptime") && mentions.nonEmpty)
-      || (message.startsWithAny(users.toSeq: _*) && message.split(" ").size <= 5 && message.contains("uptime"))) {
+      || (message.startsWithAny(users.toSeq: _*) && message.split(' ').size <= 5 && message.contains("uptime"))) {
 
       val mytime = withAlternative(getSinceString(startTime), "who knows how long..")
 
@@ -945,7 +900,7 @@ final class haibot extends PircBot {
       "they're" -> "they are",
       "we're" -> "we are",
       "don't" -> "dont"
-    ).split(" ").toList match {
+    ).split(' ').toList match {
       case List("hello") | List("hi") => speakPriv(message, sender,
           "How do you do?",
           "Hi. How are you?")
@@ -1033,7 +988,7 @@ final class haibot extends PircBot {
               })
       case "for" :: x =>
         speakPriv(message, sender,
-          if (x.contains("years")||x.contains("long")||x.contains("while"))
+          if (x.containsAny("years", "long", "while"))
             "What can you recall from before that?"
           else
             "What did you think before that?")

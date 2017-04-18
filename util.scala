@@ -30,10 +30,9 @@ final object util {
       m.foldLeft(s)((out, rep) => out.replace(rep._1, rep._2))
     def replaceAll(m: (String, String)*): String =
       m.foldLeft(s)((out, rep) => out.replaceAll(rep._1, rep._2))
-    //TODO: containsPercent: Double for fuzzy reasoning
-    def containsAny(strs: String*): Boolean   = strs.exists(str => s.contains(str))
-    def startsWithAny(strs: String*): Boolean = strs.exists(str => s.startsWith(str))
-    def endsWithAny(strs: String*): Boolean   = strs.exists(str => s.endsWith(str))
+    def startsWithAny(strs: String*): Boolean = strs.exists(s.startsWith)
+    def endsWithAny(strs: String*): Boolean   = strs.exists(s.endsWith)
+    def containsAny(strs: String*): Boolean = strs.exists(s.contains)
     def sentences: Array[String] = s.split("[.!?]+") //TODO: http://stackoverflow.com/questions/2687012/split-string-into-sentences-based-on-periods
     private[this] val charMap = ("čćžšđ" zip "cczsd").toMap
     def makeEasy: String = // lazy way to make text processing easier
@@ -67,21 +66,36 @@ final object util {
   }
 
   //implicit class MaybeSI(val sc: StringContext) extends AnyVal { def maybe(args: Any*): String = sc.parts.iterator.mkString("").maybe }
-  implicit class IntImplicits(val i: Int) extends AnyVal { def ~(j: Int): Int = nextInt(j-i+1)+i }
 
-  implicit class Seqs[A](val s: Seq[A]) {
+  implicit class SeqImplicits[A](val s: Seq[A]) {
     def random: A = s(nextInt(s.size))
     def randomOption: Option[A] = if (s.isEmpty) None else Some(random)
+    def containsAny(elts: A*): Boolean = elts.exists(s.contains)
   }
-  implicit class Maps[A, B](val m: Map[A, B]) {
+  implicit class SetImplicits[A](val s: Set[A]) {
+    def random: A = s.iterator.drop(nextInt(s.size)).next
+    def randomOption: Option[A] = if (s.isEmpty) None else Some(random)
+    def containsAny(elts: A*): Boolean = elts.exists(s.contains)
+  }
+  implicit class MapImplicits[A, B](val m: Map[A, B]) {
     def apply(a: A, b: B): B = m.getOrElse(a, b)
   }
 
-  implicit class OptSeq[L <: Seq[_]](val optseq: Option[L]) { def emptyToNone: Option[L] = optseq filterNot { _.isEmpty } }
+  implicit class OptSeqImplicits[L <: Seq[_]](val optseq: Option[L]) {
+    def emptyToNone: Option[L] = optseq filterNot { _.isEmpty }
+  }
 
-  implicit class D(val d: Double) { def prob: Boolean = nextDouble < d } //0.5.prob #syntaxabuse
-  implicit class F(val f: Float) { def prob: Boolean = nextFloat < f }
-  implicit class I(val i: Int) { def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max }
+  implicit class DoubleImplicits(val d: Double) extends AnyVal {
+    //0.5.prob #syntaxabuse
+    def prob: Boolean = nextDouble < d
+  }
+  implicit class FloatImplicits(val f: Float) extends AnyVal {
+    def prob: Boolean = nextFloat < f
+  }
+  implicit class IntImplicits(val i: Int) extends AnyVal {
+    def ~(j: Int): Int = nextInt(j-i+1)+i
+    def isBetween(min: Int, max: Int): Boolean = i >= min && i <= max
+  }
 
   //TODO: force utf8 for reading and writing
   def getFile(name: String, allowFail: Boolean = false): List[String] = {
@@ -91,7 +105,7 @@ final object util {
       file.close
       out
     } catch {
-      case e: IOException if allowFail => Nil
+      case _: IOException if allowFail => Nil
     }
   }
 
@@ -292,7 +306,7 @@ object Net {
     try {
       func(tempFile)
     } finally {
-      tempFile.foreach { _.delete }
+      tempFile.foreach(_.delete)
     }
   }
   def download(urlStr: String, outFile: File): Boolean = {

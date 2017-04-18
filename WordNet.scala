@@ -37,7 +37,7 @@ class WordNet(folder: String) {
       val synonyms =
         wn_sByWord(word.toLowerCase) // find word
           .map(_._1).distinct.flatMap(id => wn_sById(id).map(_._2)) // query all synonyms by id
-          .filter(w => w != word && w.split(" ").forall(_.size >= 4)).distinct // filter probably useless ones
+          .filter(w => w != word && w.split(' ').forall(_.size >= 4)).distinct // filter probably useless ones
 
       if (synonyms.nonEmpty) {
         var outWord = synonyms.random
@@ -61,17 +61,17 @@ class WordNet(folder: String) {
       }
     case _ => str
   }
-  def rephrase(s: String): String = synonyms(s.split(" "): _*).mkString(" ")
+  def rephrase(s: String): String = synonyms(s.split(' '): _*).mkString(" ")
 
   // bad excuse for a stemmer :)
   // Note: adds the word itself in output
   def stem(word: String): List[String] =
     (List(word) ++
       word
-        .split("-")
+        .split('-')
         .flatMap(w => List(w, w.replaceAll("ability$", "able")))
-        .flatMap(w => List(w, w.replaceAll("s$|er$|est$|ed$|ing$|d$", "")))
-        //.flatMap(w => List(w, w.replaceAll("^un|^im|^in", "")))
+        .flatMap(w => List(w, w.replaceAll("(s|er|est|ed|ing|d)$", "")))
+        //.flatMap(w => List(w, w.replaceAll("^(un|im|in)", "")))
         .filter(_.size >= 4)
     ).distinct
 
@@ -98,7 +98,7 @@ class WordNet(folder: String) {
   def getWeights: Map[String, Double] = {
     val file = io.Source.fromFile(folder+"weights")
     val out = file.getLines.toList.map { line =>
-      val elts = line.split(" ")
+      val elts = line.split(' ')
       (elts(0), elts(1).toDouble)
     }.toMap.withDefaultValue(1d)
     file.close()
@@ -112,7 +112,7 @@ class WordNet(folder: String) {
         if (!stoplist.contains(str)) scores(str) = (scores.getOrElse(str, 0.0)+add)
       }
 
-      val words = in.split(" ").toList flatMap {
+      val words = in.split(' ').toList flatMap {
         case wordReg(prefix, word, suffix) =>
           if (word.size >= 3) {
             preprocess(word) filter { w => wn_sByWord contains w } flatMap { w =>

@@ -15,14 +15,14 @@ object OCR {
       .toLowerCase
       .replaceAll("[,.!?:;_-]", " ")
       .replaceAll("[^a-zA-Z\\s]", "")
-      .replaceAll("\\s+", " ").trim.split(" ").map(_.trim)
+      .replaceAll("\\s+", " ").trim.split(' ').map(_.trim)
       .filter(word => (word.size >= 2 || allowedSingleLetters.contains(word)))
       .mkString(" ")
   )
 
   def commonWords(strings: Seq[String]): Set[String] = {
     strings
-      .map(_.split(" ").distinct)
+      .map(_.split(' ').distinct)
       .reduce(_ ++ _)
       .groupBy(a => a)
       .filter(_._2.size >= 2).keys // at least 2 occurrences of word
@@ -37,7 +37,7 @@ object OCR {
         val common = commonWords(results)
 
         val attrs = results.map { result =>
-          val resSplit = result.split(" ")
+          val resSplit = result.split(' ')
           (result, Array(
             result.size.toDouble,
             resSplit.count(word =>  common.contains(word)).toDouble,
@@ -100,7 +100,7 @@ object OCR {
               }
             }, 30.seconds)
           } catch {
-            case e: Exception =>
+            case _: Exception =>
               None
           } finally {
             tempImg.delete

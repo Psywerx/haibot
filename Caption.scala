@@ -4,7 +4,7 @@ import scala.util.parsing.combinator._
 import scala.util.Random._
 import scala.language.postfixOps
 import java.lang.StringBuilder
-import org.psywerx.util.Seqs
+import org.psywerx.util.SeqImplicits
 
 //TODO: needs multilevel parsing
 final object Caption extends RegexParsers {

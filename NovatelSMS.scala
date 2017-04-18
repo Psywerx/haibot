@@ -1,7 +1,7 @@
 package org.psywerx
 
-import java.net.{ URLEncoder, MalformedURLException }
-import sun.misc.BASE64Encoder
+import java.net.{URLEncoder, MalformedURLException}
+import java.util.Base64
 
 object NovatelSMS {
   val responseMap = Map(
@@ -16,7 +16,6 @@ object NovatelSMS {
 }
 
 class NovatelSMS(username: String, password: String) {
-  private val BASE64Encoder = new BASE64Encoder
   def sendSMS(msg: String, number: String): String = {
     try {
       //TODO: base64 encode everything, as is recommended by API
@@ -25,18 +24,22 @@ class NovatelSMS(username: String, password: String) {
       assert(!username.contains("&"))
       assert(!password.contains("&"))
 
-      val msg64 = URLEncoder.encode(BASE64Encoder.encode(msg.getBytes))
+      val msg64 = URLEncoder.encode(Base64.getEncoder().encodeToString(msg.getBytes))
 
       val url = s"""http://smsgw0.novatel.si/sms.php?msg_enc_type=base64&msg=${msg64}&username=${username}&password=${password}&to=${number}"""
-      println("Sending SMS as: "+url)
+      println("Sending SMS as: " + url)
 
-      val response = io.Source.fromURL(url).mkString.split(" ")
-      println("SMS response: "+response.mkString(" "))
+      val response = io.Source.fromURL(url).mkString
+      println("SMS response: " + response)
+      val responseSplit = response.split(' ')
 
-      response(0) match {
-        case "ok" => NovatelSMS.responseMap("ok")
-        case "error" if (response.size == 2) => NovatelSMS.responseMap(response(1))
-        case _ => NovatelSMS.responseMap("error")
+      responseSplit(0) match {
+        case "ok" =>
+          NovatelSMS.responseMap("ok")
+        case "error" if (responseSplit.size == 2) =>
+          NovatelSMS.responseMap(responseSplit(1))
+        case _ =>
+          NovatelSMS.responseMap("error")
       }
     } catch {
       case e: AssertionError =>
