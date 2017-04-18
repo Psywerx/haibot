@@ -19,16 +19,21 @@ grant {
 
   permission java.lang.RuntimePermission "exitVM.0";
 
+  // java8/scala212 changes
+  permission java.lang.RuntimePermission "fileSystemProvider";
+  permission java.lang.RuntimePermission "loadLibrary.sunec";
+
   // base64
   permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
   // https
   permission java.security.SecurityPermission "putProviderProperty.SunJCE", "";
   permission java.lang.RuntimePermission "accessClassInPackage.sun.security.*", "";
   permission java.lang.RuntimePermission "loadLibrary.j2pkcs11", "";
-  permission java.io.FilePermission "${java.home}/jre/lib/ext/-", "read";
+  permission java.io.FilePermission "${java.home}/lib/ext/-", "read";
   permission java.security.SecurityPermission "putProviderProperty.SunPKCS11-NSS", "";
   // freenode
   permission java.net.SocketPermission "*:6665-8080", "connect,resolve";
+  // http(s)
   permission java.net.SocketPermission "*:80", "connect,resolve";
   permission java.net.SocketPermission "*:443", "connect,resolve";
   // pircbot-ssl
